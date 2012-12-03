@@ -80,6 +80,6 @@
     <FRAG2 frag_size="60000"  />
     <RSVP/>
     <!--<FORWARD_TO_COORD />-->
-    <relay.RELAY2 site="${site:SFO}" config="relay.xml" relay_multicasts="true" enable_address_tagging="false"/>
+    <relay.RELAY2 site="${site:SFO}" config="relay.xml" relay_multicasts="false" enable_address_tagging="false"/>
 </config>
 

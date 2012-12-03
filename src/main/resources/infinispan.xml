@@ -40,22 +40,15 @@
     </default>
 
     <namedCache name="clusteredCache">
-
-       <!-- <sites>
-            <backups backupSites="${backupSites:NYC,SFO}">
-                <backup site="LON" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000"/>
-                <backup site="NYC" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000"/>
-                <backup site="SFO" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000"/>
-            </backups>
-        </sites>-->
-
         <clustering mode="distribution">
             <hash numOwners="2"/>
             <sync/>
         </clustering>
 
-        <!--<transaction transactionMode="TRANSACTIONAL" lockingMode="PESSIMISTIC"
-                     transactionManagerLookupClass="org.infinispan.transaction.lookup.JBossStandaloneJTAManagerLookup"/>-->
+        <!--<transaction transactionMode="TRANSACTIONAL"
+                     lockingMode="PESSIMISTIC"
+                />
+        <locking concurrencyLevel="1000" isolationLevel="READ_COMMITTED" useLockStriping="true"/>-->
 
     </namedCache>
 

@@ -21,7 +21,7 @@ public class Test {
     protected Cache<Integer,byte[]>  cache;
     protected TransactionManager     txmgr;
     protected Address                local_addr;
-    protected boolean                sync=false, use_txs=false;
+    protected boolean                sync=true;
     protected int                    num_threads=1;
     protected int                    num_rpcs=10000, msg_size=1000, print=num_rpcs / 10;
     protected final AtomicInteger    num_requests=new AtomicInteger(0);
@@ -29,26 +29,28 @@ public class Test {
 
 
     protected void start() throws Exception {
-        mgr=new DefaultCacheManager("infinispan.xml");
-        cache=mgr.getCache("clusteredCache");
-        txmgr=cache.getAdvancedCache().getTransactionManager();
-        local_addr=cache.getAdvancedCache().getRpcManager().getAddress();
-
-        if(!cache.isEmpty()) {
-            int size=cache.size();
-            if(size < 10)
-                System.out.println("cache already contains elements: " + cache.keySet());
-            else
-                System.out.println("cache already contains " + size + " elements");
-        }
         try {
+            mgr=new DefaultCacheManager("infinispan.xml");
+            cache=mgr.getCache("clusteredCache");
+            txmgr=cache.getAdvancedCache().getTransactionManager();
+            local_addr=cache.getAdvancedCache().getRpcManager().getAddress();
+
+            if(!cache.isEmpty()) {
+                int size=cache.size();
+                if(size < 10)
+                    System.out.println("cache already contains elements: " + cache.keySet());
+                else
+                    System.out.println("cache already contains " + size + " elements");
+            }
             eventLoop();
         }
         catch(Throwable t) {
             t.printStackTrace();
         }
-        cache.stop();
-        mgr.stop();
+        if(cache != null)
+            cache.stop();
+        if(mgr != null)
+            mgr.stop();
     }
 
 
@@ -60,7 +62,7 @@ public class Test {
                                ") [4] Set num RPCs (" + num_rpcs + ") " +
                                "\n[5] Set msg size (" + Util.printBytes(msg_size) + ")" +
                                " [6] Print cache size [7] Print contents [8] Clear cache" +
-                               "\n[t] Toggle TXs (" + use_txs + ") [s] Toggle sync (" + sync + ")" +
+                               "\n[s] Toggle sync (" + sync + ")" +
                                "\n[q] Quit\n");
             System.out.flush();
             c=System.in.read();
@@ -96,10 +98,6 @@ public class Test {
                 case '8':
                     clearCache();
                     break;
-                case 't':
-                    use_txs=!use_txs;
-                    System.out.println("TXs=" + use_txs);
-                    break;
                 case 's':
                     sync=!sync;
                     System.out.println("sync=" + sync);
@@ -116,7 +114,8 @@ public class Test {
     protected void invokeRpcs() throws Throwable {
         num_requests.set(0);
 
-        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(msg_size) + ", sync=" + sync + ", use TXs=" + use_txs);
+        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(msg_size) +
+                             ", sync=" + sync + ", transactional=" + (txmgr != null));
 
         // The first call needs to be synchronous with OOB !
         final CountDownLatch latch=new CountDownLatch(1);
@@ -149,7 +148,7 @@ public class Test {
         int view_id=transport.getViewId();
         List<Address> members=transport.getMembers();
         String view=view_id + "|" + members;
-        System.out.println("\n-- view: " + view + '\n');
+        System.out.println("\n-- [" + local_addr + "] view: " + view + '\n');
         try {
             System.in.skip(System.in.available());
         }
@@ -164,7 +163,7 @@ public class Test {
 
     protected void printContents() {
         int size=cache.size();
-        if(size < 50)
+        if(size < 500)
             System.out.println(cache.keySet());
         else
             System.out.println(size + " elements");
@@ -219,7 +218,7 @@ public class Test {
 
                 Transaction tx=null;
                 try {
-                    if(use_txs) {
+                    if(txmgr != null) {
                         txmgr.begin();
                         tx=txmgr.getTransaction();
                     }

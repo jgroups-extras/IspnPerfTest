@@ -81,7 +81,7 @@
     <RSVP/>
     <!--<FORWARD_TO_COORD />-->
     <relay.RELAY2 site="${site:LON}"
-            config="relay.xml"
-            relay_multicasts="true" enable_address_tagging="false"/>
+                  config="relay.xml"
+                  relay_multicasts="false" enable_address_tagging="false"/>
 </config>
 
