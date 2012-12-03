@@ -1,0 +1,62 @@
+<infinispan
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:infinispan:config:5.2 http://www.infinispan.org/schemas/infinispan-config-5.2.xsd"
+        xmlns="urn:infinispan:config:5.2">
+
+    <global>
+
+        <sites local="${site:LON}"/>
+        <transport clusterName="${site}-cluster" siteId="${site:LON}">
+            <properties>
+                <property name="configurationFile" value="${site:LON}.xml"/>
+            </properties>
+        </transport>
+
+    </global>
+
+    <default>
+
+        <locking concurrencyLevel="100" lockAcquisitionTimeout="1000"/>
+        <jmxStatistics enabled="true"/>
+        <clustering mode="distribution">
+            <hash numOwners="2"/>
+            <sync/>
+        </clustering>
+
+
+        <sites>
+            <backups backupSites="${backupSites:NYC,SFO}">
+                <backup site="LON" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
+                    <takeOffline afterFailures="3" minTimeToWait="10000"/>
+                </backup>
+                <backup site="NYC" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
+                    <takeOffline afterFailures="3" minTimeToWait="10000"/>
+                </backup>
+                <backup site="SFO" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
+                    <takeOffline afterFailures="3" minTimeToWait="10000"/>
+                </backup>
+            </backups>
+        </sites>
+    </default>
+
+    <namedCache name="clusteredCache">
+
+       <!-- <sites>
+            <backups backupSites="${backupSites:NYC,SFO}">
+                <backup site="LON" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000"/>
+                <backup site="NYC" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000"/>
+                <backup site="SFO" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000"/>
+            </backups>
+        </sites>-->
+
+        <clustering mode="distribution">
+            <hash numOwners="2"/>
+            <sync/>
+        </clustering>
+
+        <!--<transaction transactionMode="TRANSACTIONAL" lockingMode="PESSIMISTIC"
+                     transactionManagerLookupClass="org.infinispan.transaction.lookup.JBossStandaloneJTAManagerLookup"/>-->
+
+    </namedCache>
+
+</infinispan>
