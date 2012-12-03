@@ -65,6 +65,7 @@ public class Test {
                                "\n[s] Toggle sync (" + sync + ")" +
                                "\n[q] Quit\n");
             System.out.flush();
+            System.in.skip(System.in.available());
             c=System.in.read();
             switch(c) {
                 case -1:

@@ -45,6 +45,7 @@
             <sync/>
         </clustering>
 
+        <!-- Uncomment the config below to get a tranactional cache  /-->
         <!--<transaction transactionMode="TRANSACTIONAL"
                      lockingMode="PESSIMISTIC"
                 />
