@@ -16,6 +16,11 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/** Tests Infinispan perf with writes only. The key set for the writes are non conflicting, so that we have no
+ * (TX) collisions. This is used to measure raw performance. Adding reads should make the test faster. Using a shared
+ * key set for all Invokers will slow performance down.
+ * @author Bela Ban
+ */
 public class Test {
     protected EmbeddedCacheManager   mgr;
     protected Cache<Integer,byte[]>  cache;
@@ -194,7 +199,7 @@ public class Test {
 
 
     protected class Invoker extends Thread {
-        private final CountDownLatch latch;
+        protected final CountDownLatch latch;
 
 
         public Invoker(CountDownLatch latch) {
