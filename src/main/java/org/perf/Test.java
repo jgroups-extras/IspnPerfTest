@@ -12,6 +12,7 @@ import org.jgroups.util.Util;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
+import java.text.NumberFormat;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,6 +31,15 @@ public class Test {
     protected int                    num_threads=1;
     protected int                    num_rpcs=10000, msg_size=1000, print=num_rpcs / 10;
     protected final AtomicInteger    num_requests=new AtomicInteger(0);
+    protected double                 read_percentage=0.8; // 80% reads, 20% writes
+    protected static NumberFormat    f;
+
+    static {
+        f=NumberFormat.getNumberInstance();
+        f.setGroupingUsed(false);
+        f.setMinimumFractionDigits(2);
+        f.setMaximumFractionDigits(2);
+    }
 
 
 
@@ -67,7 +77,7 @@ public class Test {
                                ") [4] Set num RPCs (" + num_rpcs + ") " +
                                "\n[5] Set msg size (" + Util.printBytes(msg_size) + ")" +
                                " [6] Print cache size [7] Print contents [8] Clear cache" +
-                               "\n[s] Toggle sync (" + sync + ")" +
+                               "\n[s] Toggle sync (" + sync + ") [r] Set read percentage (" + f.format(read_percentage) + ") " +
                                "\n[q] Quit\n");
             System.out.flush();
             System.in.skip(System.in.available());
@@ -103,6 +113,9 @@ public class Test {
                     break;
                 case '8':
                     clearCache();
+                    break;
+                case 'r':
+                    setReadPercentage();
                     break;
                 case 's':
                     sync=!sync;
@@ -197,6 +210,14 @@ public class Test {
         System.out.println("set msg_size=" + msg_size);
     }
 
+    protected void setReadPercentage() throws Exception {
+        double tmp=Util.readDoubleFromStdin("Read percentage: ");
+        if(tmp < 0 || tmp > 1.0)
+            System.err.println("read percentage must be >= 0 or <= 1.0");
+        else
+            read_percentage=tmp;
+    }
+
 
     protected class Invoker extends Thread {
         protected final CountDownLatch latch;
@@ -221,6 +242,9 @@ public class Test {
                 if(i > num_rpcs)
                     break;
 
+                // get a random key in range [0 .. num_rpcs-1]
+                int key=(int)Util.random(num_rpcs) -1;
+                boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
                 Transaction tx=null;
                 try {
@@ -231,7 +255,10 @@ public class Test {
 
                     Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
                       new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
-                    cache.getAdvancedCache().withFlags(flags).put(i, buf);
+                    if(is_this_a_read)
+                        cache.getAdvancedCache().withFlags(flags).get(key);
+                    else
+                        cache.getAdvancedCache().withFlags(flags).put(key, buf);
 
                     if(print > 0 && i % print == 0)
                         System.out.println("-- invoked " + i);
