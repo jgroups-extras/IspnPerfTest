@@ -207,7 +207,7 @@ public class Test {
         Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
           new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
 
-        for(int i=0; i <= num_rpcs; i++) {
+        for(int i=1; i <= num_rpcs; i++) {
             Transaction tx=null;
             try {
                 if(txmgr != null) {
