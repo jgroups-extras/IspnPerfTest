@@ -31,6 +31,8 @@ public class Test {
     protected int                    num_threads=1;
     protected int                    num_rpcs=10000, msg_size=1000, print=num_rpcs / 10;
     protected final AtomicInteger    num_requests=new AtomicInteger(0);
+    protected final AtomicInteger    num_reads=new AtomicInteger(0);
+    protected final AtomicInteger    num_writes=new AtomicInteger(0);
     protected double                 read_percentage=0.8; // 80% reads, 20% writes
     protected static NumberFormat    f;
 
@@ -77,6 +79,7 @@ public class Test {
                                ") [4] Set num RPCs (" + num_rpcs + ") " +
                                "\n[5] Set msg size (" + Util.printBytes(msg_size) + ")" +
                                " [6] Print cache size [7] Print contents [8] Clear cache" +
+                               "\n[9] Populate cache" +
                                "\n[s] Toggle sync (" + sync + ") [r] Set read percentage (" + f.format(read_percentage) + ") " +
                                "\n[q] Quit\n");
             System.out.flush();
@@ -114,6 +117,9 @@ public class Test {
                 case '8':
                     clearCache();
                     break;
+                case '9':
+                    populateCache();
+                    break;
                 case 'r':
                     setReadPercentage();
                     break;
@@ -132,6 +138,8 @@ public class Test {
 
     protected void invokeRpcs() throws Throwable {
         num_requests.set(0);
+        num_reads.set(0);
+        num_writes.set(0);
 
         System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(msg_size) +
                              ", sync=" + sync + ", transactional=" + (txmgr != null));
@@ -158,7 +166,8 @@ public class Test {
         double reqs_sec=num_rpcs / (time / 1000.0);
         double throughput=num_rpcs * msg_size / (time / 1000.0);
         System.out.println(Util.bold("\ninvoked " + num_rpcs + " requests in " + time + " ms: " + time_per_req + " ms/req, " +
-                                       String.format("%.2f", reqs_sec) + " reqs/sec, " + Util.printBytes(throughput) + "/sec\n"));
+                                       String.format("%.2f", reqs_sec) + " reqs/sec, " + Util.printBytes(throughput) +
+                                       "/sec\n(" + num_reads + " reads, " + num_writes + " writes)\n"));
     }
 
 
@@ -191,6 +200,42 @@ public class Test {
     protected void clearCache() {
         cache.clear();
     }
+
+    // Creates num_rpcs elements
+    protected void populateCache() {
+        byte[] buf={'b', 'e', 'l', 'a'};
+        Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
+          new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
+
+        for(int i=0; i <= num_rpcs; i++) {
+            Transaction tx=null;
+            try {
+                if(txmgr != null) {
+                    txmgr.begin();
+                    tx=txmgr.getTransaction();
+                }
+
+                cache.getAdvancedCache().withFlags(flags).put(i, buf);
+                num_writes.incrementAndGet();
+                if(print > 0 && i > 0 && i % print == 0)
+                    System.out.println("-- invoked " + i);
+                if(tx != null)
+                    tx.commit();
+            }
+            catch(Throwable t) {
+                t.printStackTrace();
+                if(tx != null) {
+                    try {
+                        tx.rollback();
+                    }
+                    catch(SystemException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
 
     protected void setSenderThreads() throws Exception {
         int threads=Util.readIntFromStdin("Number of sender threads: ");
@@ -255,10 +300,14 @@ public class Test {
 
                     Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
                       new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
-                    if(is_this_a_read)
+                    if(is_this_a_read) {
                         cache.getAdvancedCache().withFlags(flags).get(key);
-                    else
+                        num_reads.incrementAndGet();
+                    }
+                    else {
                         cache.getAdvancedCache().withFlags(flags).put(key, buf);
+                        num_writes.incrementAndGet();
+                    }
 
                     if(print > 0 && i % print == 0)
                         System.out.println("-- invoked " + i);
