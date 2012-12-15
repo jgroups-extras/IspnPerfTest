@@ -8,7 +8,7 @@
         <sites local="${site:LON}"/>
         <transport clusterName="${site}-cluster" siteId="${site:LON}">
             <properties>
-                <property name="configurationFile" value="${site:LON}.xml"/>
+                <property name="configurationFile" value="local.xml"/>
             </properties>
         </transport>
 
