@@ -79,7 +79,7 @@ public class Test {
                                ") [4] Set num RPCs (" + num_rpcs + ") " +
                                "\n[5] Set msg size (" + Util.printBytes(msg_size) + ")" +
                                " [6] Print cache size [7] Print contents [8] Clear cache" +
-                               "\n[9] Populate cache" +
+                               "\n[9] Populate cache [v] Print versions" +
                                "\n[s] Toggle sync (" + sync + ") [r] Set read percentage (" + f.format(read_percentage) + ") " +
                                "\n[q] Quit\n");
             System.out.flush();
@@ -119,6 +119,10 @@ public class Test {
                     break;
                 case '9':
                     populateCache();
+                    break;
+                case 'v':
+                    System.out.println("JGroups: " + org.jgroups.Version.printVersion() +
+                                         ", Infinispan: " + org.infinispan.Version.printVersion() + "\n");
                     break;
                 case 'r':
                     setReadPercentage();
