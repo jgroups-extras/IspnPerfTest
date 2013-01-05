@@ -164,12 +164,12 @@ public class Test {
             invoker.join();
         long time=System.currentTimeMillis() - start;
 
-        System.out.println("done invoking " + num_rpcs + " RPCs");
+        System.out.println("done invoking " + num_requests + " RPCs");
 
-        double time_per_req=time / (double)num_rpcs;
-        double reqs_sec=num_rpcs / (time / 1000.0);
-        double throughput=num_rpcs * msg_size / (time / 1000.0);
-        System.out.println(Util.bold("\ninvoked " + num_rpcs + " requests in " + time + " ms: " + time_per_req + " ms/req, " +
+        double time_per_req=time / (double)num_requests.get();
+        double reqs_sec=num_requests.get() / (time / 1000.0);
+        double throughput=num_requests.get() * msg_size / (time / 1000.0);
+        System.out.println(Util.bold("\ninvoked " + num_requests.get() + " requests in " + time + " ms: " + time_per_req + " ms/req, " +
                                        String.format("%.2f", reqs_sec) + " reqs/sec, " + Util.printBytes(throughput) +
                                        "/sec\n(" + num_reads + " reads, " + num_writes + " writes)\n"));
     }
@@ -288,44 +288,46 @@ public class Test {
 
             for(;;) {
                 int i=num_requests.incrementAndGet();
-                if(i > num_rpcs)
-                    break;
+                if(i > num_rpcs) {
+                    num_requests.decrementAndGet();
+                    return;
+                }
 
                 // get a random key in range [0 .. num_rpcs-1]
                 int key=(int)Util.random(num_rpcs) -1;
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
-                Transaction tx=null;
-                try {
-                    if(txmgr != null) {
-                        txmgr.begin();
-                        tx=txmgr.getTransaction();
-                    }
-
-                    Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
-                      new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
-                    if(is_this_a_read) {
-                        cache.getAdvancedCache().withFlags(flags).get(key);
-                        num_reads.incrementAndGet();
-                    }
-                    else {
-                        cache.getAdvancedCache().withFlags(flags).put(key, buf);
-                        num_writes.incrementAndGet();
-                    }
-
-                    if(print > 0 && i % print == 0)
-                        System.out.println("-- invoked " + i);
-                    if(tx != null)
-                        tx.commit();
-                }
-                catch(Throwable t) {
-                    t.printStackTrace();
-                    if(tx != null) {
-                        try {
-                            tx.rollback();
+                // try the operation until it is successful
+                while(true) {
+                    Transaction tx=null;
+                    try {
+                        if(txmgr != null) {
+                            txmgr.begin();
+                            tx=txmgr.getTransaction();
                         }
-                        catch(SystemException e) {
-                            e.printStackTrace();
+
+                        Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
+                          new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
+                        if(is_this_a_read) {
+                            cache.getAdvancedCache().withFlags(flags).get(key);
+                            num_reads.incrementAndGet();
+                        }
+                        else {
+                            cache.getAdvancedCache().withFlags(flags).put(key, buf);
+                            num_writes.incrementAndGet();
+                        }
+
+                        if(tx != null)
+                            tx.commit();
+
+                        if(print > 0 && i % print == 0)
+                            System.out.println("-- invoked " + i);
+                        break;
+                    }
+                    catch(Throwable t) {
+                        t.printStackTrace();
+                        if(tx != null) {
+                            try {tx.rollback();} catch(SystemException e) {}
                         }
                     }
                 }
