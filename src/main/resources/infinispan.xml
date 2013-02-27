@@ -5,7 +5,6 @@
 
     <global>
 
-        <sites local="${site:LON}"/>
         <transport clusterName="${site}-cluster" siteId="${site:LON}">
             <properties>
                 <property name="configurationFile" value="local.xml"/>
@@ -25,15 +24,12 @@
 
 
         <sites>
-            <backups backupSites="${backupSites:NYC,SFO}">
+            <backups>
                 <backup site="LON" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
-                    <takeOffline afterFailures="3" minTimeToWait="10000"/>
                 </backup>
                 <backup site="NYC" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
-                    <takeOffline afterFailures="3" minTimeToWait="10000"/>
                 </backup>
                 <backup site="SFO" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
-                    <takeOffline afterFailures="3" minTimeToWait="10000"/>
                 </backup>
             </backups>
         </sites>
