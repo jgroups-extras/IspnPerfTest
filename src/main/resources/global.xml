@@ -7,15 +7,13 @@
 
 <config xmlns="urn:org:jgroups"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/JGroups-3.1.xsd">
+        xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/JGroups-3.3.xsd">
     <TCP
          recv_buf_size="20M"
          send_buf_size="640K"
          loopback="${loopback:true}"
          max_bundle_size="64K"
          max_bundle_timeout="30"
-         enable_bundling="true"
-         enable_unicast_bundling="true"
          enable_diagnostics="true"
          thread_naming_pattern="cl"
 
@@ -43,10 +41,10 @@
 
     <MPING timeout="2000"
             num_initial_members="10"/>
-    <!--MERGE3 max_interval="30000"
-            min_interval="10000"/-->
+    <MERGE3 max_interval="30000"
+            min_interval="10000"/>
     <FD_SOCK/>
-    <!--FD_ALL/-->
+    <FD_ALL/>
     <VERIFY_SUSPECT timeout="1500"  />
     <BARRIER />
     <pbcast.NAKACK2 xmit_interval="500"
@@ -56,8 +54,7 @@
                     max_msg_batch_size="500"
                     use_mcast_xmit="false"
                     discard_delivered_msgs="true" />
-    <UNICAST2 xmit_interval="500"
-              max_bytes="20M"
+    <UNICAST3 xmit_interval="500"
               xmit_table_num_rows="100"
               xmit_table_msgs_per_row="10000"
               xmit_table_max_compaction_time="30000"
@@ -66,8 +63,6 @@
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="3000"
                 view_bundling="true"/>
-    <!--<UFC max_credits="2M"
-         min_threshold="0.4"/>-->
     <MFC max_credits="2M"
          min_threshold="0.4"/>
     <FRAG2 frag_size="60000"  />
