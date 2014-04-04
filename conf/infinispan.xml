@@ -5,7 +5,7 @@
 
     <global>
 
-        <transport clusterName="${site}-cluster" siteId="${site:LON}">
+        <transport clusterName="ispn-perf-test" nodeName="A">
             <properties>
                 <property name="configurationFile" value="local.xml"/>
             </properties>
@@ -14,25 +14,12 @@
     </global>
 
     <default>
-
         <locking concurrencyLevel="100" lockAcquisitionTimeout="1000"/>
         <jmxStatistics enabled="true"/>
         <clustering mode="distribution">
             <hash numOwners="2"/>
             <sync/>
         </clustering>
-
-
-        <sites>
-            <backups>
-                <backup site="LON" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
-                </backup>
-                <backup site="NYC" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
-                </backup>
-                <backup site="SFO" backupFailurePolicy="WARN" strategy="ASYNC" timeout="12000">
-                </backup>
-            </backups>
-        </sites>
     </default>
 
     <namedCache name="clusteredCache">
@@ -42,9 +29,7 @@
         </clustering>
 
         <!-- Uncomment the config below to get a non-transactional cache  /-->
-        <transaction transactionMode="TRANSACTIONAL"
-                     lockingMode="PESSIMISTIC"
-                />
+        <transaction transactionMode="TRANSACTIONAL" lockingMode="PESSIMISTIC" />
         <locking lockAcquisitionTimeout="5000" concurrencyLevel="1000" isolationLevel="READ_COMMITTED" useLockStriping="true"/>
 
     </namedCache>

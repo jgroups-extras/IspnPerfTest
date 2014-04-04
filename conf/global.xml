@@ -11,7 +11,6 @@
     <TCP
          recv_buf_size="20M"
          send_buf_size="640K"
-         loopback="${loopback:true}"
          max_bundle_size="64K"
          max_bundle_timeout="30"
          enable_diagnostics="true"

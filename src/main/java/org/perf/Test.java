@@ -45,10 +45,10 @@ public class Test {
 
 
 
-    protected void start() throws Exception {
+    protected void start(String config_file, String cache_name, String name) throws Exception {
         try {
-            mgr=new DefaultCacheManager("infinispan.xml");
-            cache=mgr.getCache("clusteredCache");
+            mgr=new DefaultCacheManager(config_file);
+            cache=mgr.getCache(cache_name);
             txmgr=cache.getAdvancedCache().getTransactionManager();
             local_addr=cache.getAdvancedCache().getRpcManager().getAddress();
 
@@ -337,8 +337,29 @@ public class Test {
 
 
     public static void main(String[] args) throws Exception {
+        String config_file="infinispan.xml";
+        String cache_name="clusteredCache";
+        String name=null;
+
+        for(int i=0; i < args.length; i++) {
+            if(args[i].equals("-cfg")) {
+                config_file=args[++i];
+                continue;
+            }
+            if(args[i].equals("-cache")) {
+                cache_name=args[++i];
+                continue;
+            }
+            if(args[i].equals("-name")) {
+                name=args[++i];
+                continue;
+            }
+            System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name <name>]");
+            return;
+        }
+
         Test test=new Test();
-        test.start();
+        test.start(config_file, cache_name, name);
     }
 
 }
