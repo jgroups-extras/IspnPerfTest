@@ -60,7 +60,7 @@
 
     <target name="retrieve" depends="check-jars-exist,get-ivy,define-ivy-task" unless="jars.exist"
             description="Retrieves all dependent libs defined in ivy.xml unless already present">
-        <ivy:retrieve transitive="true"/>
+        <ivy:retrieve type="jar,bundle"  />
 
         <!-- Move byteman-x.y.z.jar to byteman.jar (needed by -javaagent:byteman.jar in byteman tests) -->
         <move todir="${lib.dir}">

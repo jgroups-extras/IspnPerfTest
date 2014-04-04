@@ -9,6 +9,9 @@
                 <ivy pattern="${m2-pattern}"/>
             </filesystem>
             <ibiblio name="central" m2compatible="true"/>
+            <url name="nexus" m2compatible="true">
+                <artifact pattern="https://repository.jboss.org/nexus/content/groups/public/[organisation]/[module]/[revision]/[module]-[revision](-[classifier]).[ext]"/>
+            </url>
         </chain>
     </resolvers>
 </ivysettings>
