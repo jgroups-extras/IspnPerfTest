@@ -1,0 +1,37 @@
+<infinispan
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:infinispan:config:6.0 http://www.infinispan.org/schemas/infinispan-config-6.0.xsd"
+        xmlns="urn:infinispan:config:6.0">
+
+    <global>
+
+        <transport clusterName="ispn-perf-test" nodeName="A">
+            <properties>
+                <property name="configurationFile" value="google.xml"/>
+            </properties>
+        </transport>
+
+    </global>
+
+    <default>
+        <locking concurrencyLevel="100" lockAcquisitionTimeout="1000"/>
+        <jmxStatistics enabled="true"/>
+        <clustering mode="distribution">
+            <hash numOwners="2"/>
+            <sync/>
+        </clustering>
+    </default>
+
+    <namedCache name="clusteredCache">
+        <clustering mode="distribution">
+            <hash numOwners="2"/>
+            <sync replTimeout="10000"/>
+        </clustering>
+
+        <!-- Uncomment the config below to get a non-transactional cache  /-->
+        <transaction transactionMode="TRANSACTIONAL" lockingMode="PESSIMISTIC" />
+        <locking lockAcquisitionTimeout="5000" concurrencyLevel="1000" isolationLevel="READ_COMMITTED" useLockStriping="true"/>
+
+    </namedCache>
+
+</infinispan>
