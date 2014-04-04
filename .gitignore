@@ -11,6 +11,7 @@
 classes/
 build.properties
 dist/
+lib/
 atlassian*
 keystore/
 tmp/
