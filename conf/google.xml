@@ -46,9 +46,7 @@
     <GOOGLE_PING
             access_key="${access_key:abc}"
             secret_access_key="${secret_access_key:xyz}"
-            location="${bucket:jgroups-bucket}"
-            timeout="2000"
-            num_initial_members="20"/>
+            location="${bucket:jgroups-bucket}" />
     <MERGE2 max_interval="30000"
             min_interval="10000"/>
     <FD_SOCK/>

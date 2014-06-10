@@ -38,8 +38,7 @@
          oob_thread_pool.queue_enabled="false"
          oob_thread_pool.rejection_policy="discard"/>
 
-    <MPING timeout="2000"
-            num_initial_members="10"/>
+    <MPING />
     <MERGE3 max_interval="30000"
             min_interval="10000"/>
     <FD_SOCK/>
