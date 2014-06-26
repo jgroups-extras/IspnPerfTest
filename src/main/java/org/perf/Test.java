@@ -7,6 +7,8 @@ import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.remoting.transport.Address;
 import org.infinispan.remoting.transport.Transport;
+import org.jgroups.stack.AddressGenerator;
+import org.jgroups.util.UUID;
 import org.jgroups.util.Util;
 
 import javax.transaction.SystemException;
@@ -45,9 +47,12 @@ public class Test {
 
 
 
-    protected void start(String config_file, String cache_name, String name) throws Exception {
+    protected void start(String config_file, String cache_name, String name, long uuid) throws Exception {
         try {
             mgr=new DefaultCacheManager(config_file);
+            Transport transport=mgr.getTransport();
+            if(uuid > 0 && transport instanceof CustomTransport)
+                ((CustomTransport)transport).setUUID(uuid);
             cache=mgr.getCache(cache_name);
             txmgr=cache.getAdvancedCache().getTransactionManager();
             local_addr=cache.getAdvancedCache().getRpcManager().getAddress();
@@ -335,11 +340,30 @@ public class Test {
         }
     }
 
+    // todo: remove when JGroups is at 3.5
+    protected static class OneTimeAddressGenerator implements AddressGenerator {
+        protected final long initial_val;
+        protected boolean    first=true;
+
+        public OneTimeAddressGenerator(long initial_val) {
+            this.initial_val=initial_val;
+        }
+
+        public org.jgroups.Address generateAddress() {
+            if(first) {
+                first=false;
+                return new UUID(0, initial_val);
+            }
+            return Util.createRandomAddress();
+        }
+    }
+
 
     public static void main(String[] args) throws Exception {
         String config_file="infinispan.xml";
         String cache_name="clusteredCache";
         String name=null;
+        long   uuid=0;
 
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
@@ -354,12 +378,16 @@ public class Test {
                 name=args[++i];
                 continue;
             }
-            System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name <name>]");
+            if(args[i].equals("-uuid")) {
+                uuid=Long.parseLong(args[++i]);
+                continue;
+            }
+            System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name <name>] [-uuid <UUID>]");
             return;
         }
 
         Test test=new Test();
-        test.start(config_file, cache_name, name);
+        test.start(config_file, cache_name, name, uuid);
     }
 
 }
