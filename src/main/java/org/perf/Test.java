@@ -7,7 +7,11 @@ import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.remoting.transport.Address;
 import org.infinispan.remoting.transport.Transport;
+import org.infinispan.topology.LocalTopologyManager;
+import org.infinispan.topology.LocalTopologyManagerImpl;
+import org.jgroups.Channel;
 import org.jgroups.stack.AddressGenerator;
+import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.util.UUID;
 import org.jgroups.util.Util;
 
@@ -15,7 +19,9 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -51,9 +57,17 @@ public class Test {
         try {
             mgr=new DefaultCacheManager(config_file);
             Transport transport=mgr.getTransport();
-            if(uuid > 0 && transport instanceof CustomTransport)
+            if(transport instanceof CustomTransport && uuid > 0)
                 ((CustomTransport)transport).setUUID(uuid);
+
             cache=mgr.getCache(cache_name);
+            if(transport instanceof CustomTransport) {
+                Channel channel=((CustomTransport)transport).getChannel();
+                if(channel != null)
+                    channel.getProtocolStack().getTransport().registerProbeHandler(new IspnPerfTestProbeHandler());
+            }
+
+
             txmgr=cache.getAdvancedCache().getTransactionManager();
             local_addr=cache.getAdvancedCache().getRpcManager().getAddress();
 
@@ -192,6 +206,8 @@ public class Test {
         catch(Exception e) {
         }
     }
+
+
 
     protected void printCacheSize() {
         int size=cache.size();
@@ -336,6 +352,51 @@ public class Test {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    protected class IspnPerfTestProbeHandler implements DiagnosticsHandler.ProbeHandler {
+        protected static final String GET_ST="st", ENABLE_ST="enable-st", DISABLE_ST="disable-st",
+          CACHE_SIZE="cache-size";
+
+        public Map<String,String> handleProbe(String... keys) {
+            Map<String,String> map=new HashMap<String,String>();
+            for(String key: keys) {
+                if(GET_ST.equals(key))
+                    map.put(GET_ST, String.valueOf(isRebalancingEnabled()));
+                if(ENABLE_ST.equals(key))
+                    setRebalancing(true);
+                if(DISABLE_ST.equals(key))
+                    setRebalancing(false);
+                if(CACHE_SIZE.equals(key))
+                    map.put(CACHE_SIZE, String.valueOf(cache.size()));
+            }
+            return map;
+        }
+
+        public String[] supportedKeys() {
+            return new String[]{GET_ST, ENABLE_ST, DISABLE_ST, CACHE_SIZE};
+        }
+
+        protected boolean isRebalancingEnabled() {
+            LocalTopologyManagerImpl topo_mgr=(LocalTopologyManagerImpl)mgr.getGlobalComponentRegistry().getComponent(LocalTopologyManager.class);
+            try {
+                return topo_mgr.isRebalancingEnabled();
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        protected void setRebalancing(boolean flag) {
+            LocalTopologyManagerImpl topo_mgr=(LocalTopologyManagerImpl)mgr.getGlobalComponentRegistry().getComponent(LocalTopologyManager.class);
+            try {
+                topo_mgr.setRebalancingEnabled(flag);
+            }
+            catch(Exception e) {
+                e.printStackTrace();
             }
         }
     }

@@ -24,6 +24,7 @@
 
     <namedCache name="clusteredCache">
         <clustering mode="distribution">
+            <stateTransfer awaitInitialTransfer="false"/>
             <hash numOwners="2"/>
             <sync replTimeout="10000"/>
         </clustering>
