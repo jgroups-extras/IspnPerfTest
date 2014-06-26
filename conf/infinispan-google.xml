@@ -7,7 +7,7 @@
 
         <transport clusterName="ispn-perf-test" nodeName="A">
             <properties>
-                <property name="configurationFile" value="google.xml"/>
+                <property name="configurationFile" value="http://storage.googleapis.com/jgroups-bucket/google.xml"/>
             </properties>
         </transport>
 
