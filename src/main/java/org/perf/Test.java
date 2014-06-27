@@ -5,11 +5,16 @@ import org.infinispan.Cache;
 import org.infinispan.context.Flag;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
+import org.infinispan.notifications.Listener;
+import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
+import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
 import org.infinispan.remoting.transport.Address;
 import org.infinispan.remoting.transport.Transport;
+import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.infinispan.topology.LocalTopologyManager;
 import org.infinispan.topology.LocalTopologyManagerImpl;
 import org.jgroups.Channel;
+import org.jgroups.View;
 import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.util.Util;
 
@@ -54,6 +59,7 @@ public class Test {
     protected void start(String config_file, String cache_name, String name, long uuid) throws Exception {
         try {
             mgr=new DefaultCacheManager(config_file);
+            mgr.addListener(new MyListener());
             Transport transport=mgr.getTransport();
             if(transport instanceof CustomTransport) {
                 if(uuid > 0)
@@ -403,6 +409,20 @@ public class Test {
         }
     }
 
+    @Listener
+    public static class MyListener {
+        @ViewChanged
+        public static void viewChanged(ViewChangedEvent evt) {
+            Transport transport=evt.getCacheManager().getTransport();
+            if(transport instanceof JGroupsTransport) {
+                Channel ch=((JGroupsTransport)transport).getChannel();
+                View view=ch.getView();
+                System.out.println("** view: " + view);
+            }
+            else
+                System.out.println("** view: " + evt);
+        }
+    }
 
 
     public static void main(String[] args) throws Exception {
