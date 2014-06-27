@@ -56,7 +56,7 @@ public class Test {
 
 
 
-    protected void start(String config_file, String cache_name, String name, long uuid) throws Exception {
+    protected void start(String config_file, String cache_name, String name, long uuid, boolean run_event_loop) throws Exception {
         try {
             mgr=new DefaultCacheManager(config_file);
             mgr.addListener(new MyListener());
@@ -86,15 +86,18 @@ public class Test {
                 else
                     System.out.println("cache already contains " + size + " elements");
             }
-            eventLoop();
+            if(run_event_loop)
+                eventLoop();
         }
         catch(Throwable t) {
             t.printStackTrace();
         }
-        if(cache != null)
-            cache.stop();
-        if(mgr != null)
-            mgr.stop();
+        if(run_event_loop) {
+            if(cache != null)
+                cache.stop();
+            if(mgr != null)
+                mgr.stop();
+        }
     }
 
 
@@ -426,10 +429,11 @@ public class Test {
 
 
     public static void main(String[] args) throws Exception {
-        String config_file="infinispan.xml";
-        String cache_name="clusteredCache";
-        String name=null;
-        long   uuid=0;
+        String  config_file="infinispan.xml";
+        String  cache_name="clusteredCache";
+        String  name=null;
+        long    uuid=0;
+        boolean run_event_loop=true;
 
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
@@ -448,12 +452,17 @@ public class Test {
                 uuid=Long.parseLong(args[++i]);
                 continue;
             }
-            System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name <name>] [-uuid <UUID>]");
+            if("-nohup".equals(args[i])) {
+                run_event_loop=false;
+                continue;
+            }
+            System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name <name>] " +
+                                 "[-uuid <UUID>] [-nohup]");
             return;
         }
 
         Test test=new Test();
-        test.start(config_file, cache_name, name, uuid);
+        test.start(config_file, cache_name, name, uuid, run_event_loop);
     }
 
 }
