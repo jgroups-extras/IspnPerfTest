@@ -9,8 +9,8 @@ import org.jgroups.util.OneTimeAddressGenerator;
  * @since x.y
  */
 public class CustomTransport extends JGroupsTransport {
-    protected long initial_uuid;
-    protected long uuid;
+    protected long   uuid;
+    protected String logical_name;
 
 
     protected void startJGroupsChannelIfNeeded() {
@@ -19,7 +19,18 @@ public class CustomTransport extends JGroupsTransport {
         super.startJGroupsChannelIfNeeded();
     }
 
+    @Override
+    protected void initChannel() {
+        super.initChannel();
+        if(logical_name != null)
+            channel.setName(logical_name);
+    }
+
     public void setUUID(long uuid) {
         this.uuid=uuid;
+    }
+
+    public void setLogicalName(String logical_name) {
+        this.logical_name=logical_name;
     }
 }

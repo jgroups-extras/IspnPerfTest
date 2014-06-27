@@ -55,8 +55,12 @@ public class Test {
         try {
             mgr=new DefaultCacheManager(config_file);
             Transport transport=mgr.getTransport();
-            if(transport instanceof CustomTransport && uuid > 0)
-                ((CustomTransport)transport).setUUID(uuid);
+            if(transport instanceof CustomTransport) {
+                if(uuid > 0)
+                    ((CustomTransport)transport).setUUID(uuid);
+                if(name != null)
+                    ((CustomTransport)transport).setLogicalName(name);
+            }
 
             cache=mgr.getCache(cache_name);
             if(transport instanceof CustomTransport) {

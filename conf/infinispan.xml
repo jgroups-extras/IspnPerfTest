@@ -5,7 +5,7 @@
 
     <global>
 
-        <transport clusterName="ispn-perf-test" nodeName="A" transportClass="org.perf.CustomTransport">
+        <transport clusterName="ispn-perf-test" transportClass="org.perf.CustomTransport">
             <properties>
                 <property name="configurationFile" value="local.xml"/>
             </properties>

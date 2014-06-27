@@ -5,7 +5,7 @@
 
     <global>
 
-        <transport clusterName="ispn-perf-test" nodeName="A">
+        <transport clusterName="ispn-perf-test" transportClass="org.perf.CustomTransport">
             <properties>
                 <property name="configurationString" value="http://storage.googleapis.com/jgroups-bucket/google.xml"/>
             </properties>
