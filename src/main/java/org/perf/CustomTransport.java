@@ -2,6 +2,7 @@ package org.perf;
 
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.JChannel;
+import org.jgroups.util.OneTimeAddressGenerator;
 
 /**
  * @author Bela Ban
@@ -14,7 +15,7 @@ public class CustomTransport extends JGroupsTransport {
 
     protected void startJGroupsChannelIfNeeded() {
         if(uuid > 0)
-            ((JChannel)channel).addAddressGenerator(new Test.OneTimeAddressGenerator(uuid));
+            ((JChannel)channel).addAddressGenerator(new OneTimeAddressGenerator(uuid));
         super.startJGroupsChannelIfNeeded();
     }
 

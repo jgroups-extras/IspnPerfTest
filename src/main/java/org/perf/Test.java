@@ -10,9 +10,7 @@ import org.infinispan.remoting.transport.Transport;
 import org.infinispan.topology.LocalTopologyManager;
 import org.infinispan.topology.LocalTopologyManagerImpl;
 import org.jgroups.Channel;
-import org.jgroups.stack.AddressGenerator;
 import org.jgroups.stack.DiagnosticsHandler;
-import org.jgroups.util.UUID;
 import org.jgroups.util.Util;
 
 import javax.transaction.SystemException;
@@ -401,23 +399,6 @@ public class Test {
         }
     }
 
-    // todo: remove when JGroups is at 3.5
-    protected static class OneTimeAddressGenerator implements AddressGenerator {
-        protected final long initial_val;
-        protected boolean    first=true;
-
-        public OneTimeAddressGenerator(long initial_val) {
-            this.initial_val=initial_val;
-        }
-
-        public org.jgroups.Address generateAddress() {
-            if(first) {
-                first=false;
-                return new UUID(0, initial_val);
-            }
-            return Util.createRandomAddress();
-        }
-    }
 
 
     public static void main(String[] args) throws Exception {
