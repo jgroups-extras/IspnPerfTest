@@ -11,11 +11,14 @@ import org.jgroups.util.OneTimeAddressGenerator;
 public class CustomTransport extends JGroupsTransport {
     protected long   uuid;
     protected String logical_name;
+    protected int    port;
 
 
     protected void startJGroupsChannelIfNeeded() {
         if(uuid > 0)
             ((JChannel)channel).addAddressGenerator(new OneTimeAddressGenerator(uuid));
+        if(port > 0)
+            channel.getProtocolStack().getTransport().setBindPort(port);
         super.startJGroupsChannelIfNeeded();
     }
 
@@ -32,5 +35,9 @@ public class CustomTransport extends JGroupsTransport {
 
     public void setLogicalName(String logical_name) {
         this.logical_name=logical_name;
+    }
+
+    public void setPort(int port) {
+        this.port=port;
     }
 }

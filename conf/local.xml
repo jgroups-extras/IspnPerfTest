@@ -73,4 +73,5 @@
          min_threshold="0.4"/>
     <FRAG2 frag_size="60K"  />
     <RSVP resend_interval="2000" timeout="10000"/>
+    <FORK />
 </config>
