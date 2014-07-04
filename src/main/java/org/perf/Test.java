@@ -81,6 +81,7 @@ public class Test extends ReceiverAdapter {
     private final AtomicInteger   COUNTER=new AtomicInteger(1);
     private final byte[]          GET_RSP=new byte[msg_size];
     static NumberFormat           f;
+    static final Flag[]           async_flags, sync_flags;
 
     static {
         try {
@@ -101,6 +102,9 @@ public class Test extends ReceiverAdapter {
         catch(NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
+
+        sync_flags=new Flag[] {Flag.FORCE_SYNCHRONOUS, Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP};
+        async_flags=new Flag[] {Flag.FORCE_ASYNCHRONOUS, Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP};
     }
 
 
@@ -387,7 +391,7 @@ public class Test extends ReceiverAdapter {
                     sendToggleTXs();
                     break;
                 case 'v':
-                    System.out.println("JGroups: " + org.jgroups.Version.printVersion() +
+                    System.out.println("JGroups: " + org.jgroups.Version.printDescription() +
                                          ", Infinispan: " + org.infinispan.Version.printVersion() + "\n");
                     break;
                 case 'q':
@@ -727,8 +731,7 @@ public class Test extends ReceiverAdapter {
                             tx=txmgr.getTransaction();
                         }
 
-                        Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
-                          new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
+                        Flag[] flags=sync? sync_flags : async_flags;
                         if(is_this_a_read) {
                             cache.getAdvancedCache().withFlags(flags).get(key);
                             num_reads.incrementAndGet();
