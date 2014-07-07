@@ -2,6 +2,10 @@
 
 
 ## Starts a local node using infinispan.xml as Infinispan config and local.xml as JGroups config
+## to test this on a single machine you could use aliases on your ethernet interface:
+## sudo ifconfig eth0:1 192.168.10.1 netmask 255.255.255.0 up
+## sudo ifconfig eth0:2 192.168.10.2 netmask 255.255.255.0 up
+
 # Author: Bela Ban
 
 PT=$HOME/IspnPerfTest
@@ -39,5 +43,8 @@ EXPERIMENTAL="$EXPERIMENTAL -XX:+EliminateLocks -XX:+UseBiasedLocking"
 
 #DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5000"
 JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
+
+echo "Going to run:"
+echo "java -classpath $CP $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC org.perf.Test $*"
 
 java -classpath $CP $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC org.perf.Test $*
