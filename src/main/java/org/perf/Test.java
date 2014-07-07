@@ -724,7 +724,7 @@ public class Test extends ReceiverAdapter {
                             num_reads.incrementAndGet();
                         }
                         else {
-                            tmp_cache.putIfAbsent(key, BUFFER);
+                            tmp_cache.put(key, BUFFER);
                             num_writes.incrementAndGet();
                         }
 
