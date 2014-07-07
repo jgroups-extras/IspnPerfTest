@@ -25,6 +25,7 @@ FLAGS="-server -Xmx1G -Xms1G"
 FLAGS="$FLAGS -XX:CompileThreshold=10000 -XX:+AggressiveHeap -XX:ThreadStackSize=64K -XX:SurvivorRatio=8"
 FLAGS="$FLAGS -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15"
 FLAGS="$FLAGS -Xshare:off"
+
 # JMX="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=7777 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
 JMX="-Dcom.sun.management.jmxremote"
 #EXPERIMENTAL="-XX:+UseFastAccessorMethods -XX:+UseTLAB"
@@ -38,6 +39,8 @@ EXPERIMENTAL="$EXPERIMENTAL -XX:+EliminateLocks -XX:+UseBiasedLocking"
 #java -Xrunhprof:cpu=samples,monitor=y,interval=5,lineno=y,thread=y -classpath $CP $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX  $*
 
 #DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5000"
-#JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:StartFlightRecording=duration=120s,filename=/tmp/flight.jfr"
 
-java -classpath $CP $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC org.perf.Test $*
+# Enable flight recorder with our custom profile:
+# JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:StartFlightRecording=compress=false,delay=30s,duration=300s,name=$IP_ADDR,filename=$IP_ADDR.jfr,settings=profile_2ms.jfc"
+
+java -classpath $CP $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC $GC_FLAGS org.perf.Test $*
