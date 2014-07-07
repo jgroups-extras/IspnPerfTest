@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Test extends ReceiverAdapter {
     protected EmbeddedCacheManager   mgr;
-    protected Cache<Integer,byte[]>  cache, async_cache, sync_cache;
+    protected Cache<Integer,byte[]>  cache, async_cache, sync_cache, async_cache_forwrites, sync_cache_forwrites;
     protected TransactionManager     txmgr;
     protected ForkChannel            channel;
     protected Address                local_addr;
@@ -124,7 +124,9 @@ public class Test extends ReceiverAdapter {
 
             cache=mgr.getCache(cache_name); // joins the cluster
             async_cache=new DecoratedCache<Integer,byte[]>(cache.getAdvancedCache(), async_flags);
+            async_cache_forwrites = async_cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES);
             sync_cache=new DecoratedCache<Integer,byte[]>(cache.getAdvancedCache(), sync_flags);
+            sync_cache_forwrites = sync_cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES);
 
             JChannel main_channel=(JChannel)transport.getChannel();
             main_channel.getProtocolStack().getTransport().registerProbeHandler(new IspnPerfTestProbeHandler());
@@ -545,7 +547,7 @@ public class Test extends ReceiverAdapter {
                     txmgr.begin();
                     tx=txmgr.getTransaction();
                 }
-                Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
+                Cache<Integer,byte[]> tmp_cache=sync? sync_cache_forwrites : async_cache_forwrites;
                 tmp_cache.put(i, BUFFER);
                 num_writes.incrementAndGet();
                 if(print > 0 && i > 0 && i % print == 0)
@@ -718,13 +720,14 @@ public class Test extends ReceiverAdapter {
                             tx=txmgr.getTransaction();
                         }
 
-                        Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
                         if(is_this_a_read) {
+                            final Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
                             tmp_cache.get(key);
                             num_reads.incrementAndGet();
                         }
                         else {
-                            tmp_cache.putIfAbsent(key, BUFFER);
+                            final Cache<Integer,byte[]> tmp_cache=sync? sync_cache_forwrites : async_cache_forwrites;
+                            tmp_cache.put(key, BUFFER);
                             num_writes.incrementAndGet();
                         }
 
