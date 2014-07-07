@@ -1,6 +1,7 @@
 package org.perf;
 
 import org.infinispan.Cache;
+import org.infinispan.DecoratedCache;
 import org.infinispan.context.Flag;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -44,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Test extends ReceiverAdapter {
     protected EmbeddedCacheManager   mgr;
-    protected Cache<Integer,byte[]>  cache;
+    protected Cache<Integer,byte[]>  cache, async_cache, sync_cache;
     protected TransactionManager     txmgr;
     protected ForkChannel            channel;
     protected Address                local_addr;
@@ -79,7 +80,7 @@ public class Test extends ReceiverAdapter {
     private static final short    TOGGLE_TXMGR          =  6;
 
     private final AtomicInteger   COUNTER=new AtomicInteger(1);
-    private final byte[]          GET_RSP=new byte[msg_size];
+    private byte[]                BUFFER=new byte[msg_size];
     static NumberFormat           f;
     static final Flag[]           async_flags, sync_flags;
 
@@ -122,6 +123,9 @@ public class Test extends ReceiverAdapter {
                 transport.setPort(bind_port);
 
             cache=mgr.getCache(cache_name); // joins the cluster
+            async_cache=new DecoratedCache<Integer,byte[]>(cache.getAdvancedCache(), async_flags);
+            sync_cache=new DecoratedCache<Integer,byte[]>(cache.getAdvancedCache(), sync_flags);
+
             JChannel main_channel=(JChannel)transport.getChannel();
             main_channel.getProtocolStack().getTransport().registerProbeHandler(new IspnPerfTestProbeHandler());
             try {
@@ -206,10 +210,10 @@ public class Test extends ReceiverAdapter {
     // =================================== callbacks ======================================
 
     public Results startUPerfTest() throws Throwable {
-
+        BUFFER=new byte[msg_size];
         addSiteMastersToMembers();
 
-        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(msg_size) + ", sync=" + sync +
+        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length) + ", sync=" + sync +
                              ", oob=" + oob + ", msg_bundling=" + msg_bundling + ", use_anycast_addrs=" + use_anycast_addrs);
         int total_gets=0, total_puts=0;
         final AtomicInteger num_rpcs_invoked=new AtomicInteger(0);
@@ -238,7 +242,8 @@ public class Test extends ReceiverAdapter {
         num_reads.set(0);
         num_writes.set(0);
 
-        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(msg_size) +
+        BUFFER=new byte[msg_size];
+        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length) +
                              ", sync=" + sync + ", transactional=" + (txmgr != null));
 
         // The first call needs to be synchronous with OOB !
@@ -257,14 +262,8 @@ public class Test extends ReceiverAdapter {
             invoker.join();
         long time=System.currentTimeMillis() - start;
 
-        System.out.println("done invoking " + num_requests + " RPCs in " + time + " ms");
+        System.out.println("\ndone (in " + time + " ms)");
 
-        double time_per_req=time / (double)num_requests.get();
-        double reqs_sec=num_requests.get() / (time / 1000.0);
-        double throughput=num_requests.get() * msg_size / (time / 1000.0);
-        System.out.println(Util.bold("\ninvoked " + num_requests.get() + " requests in " + time + " ms: " + time_per_req + " ms/req, " +
-                                       String.format("%.2f", reqs_sec) + " reqs/sec, " + Util.printBytes(throughput) +
-                                       "/sec\n(" + num_reads + " reads, " + num_writes + " writes)\n"));
         return new Results(num_reads.get(), num_writes.get(), time);
     }
 
@@ -287,7 +286,7 @@ public class Test extends ReceiverAdapter {
     }
 
     public byte[] get(long key) {
-        return GET_RSP;
+        return BUFFER;
     }
 
 
@@ -524,19 +523,6 @@ public class Test extends ReceiverAdapter {
         return relay != null? relay.siteNames() : new ArrayList<String>(0);
     }
 
-    /** Picks the next member in the view */
-    private Address getReceiver() {
-        try {
-            List<Address> mbrs=channel.getView().getMembers();
-            int index=mbrs.indexOf(local_addr);
-            int new_index=index + 1 % mbrs.size();
-            return mbrs.get(new_index);
-        }
-        catch(Exception e) {
-            System.err.println("UPerf.getReceiver(): " + e);
-            return null;
-        }
-    }
 
 
     protected void printCacheSize() {
@@ -551,11 +537,7 @@ public class Test extends ReceiverAdapter {
 
     // Creates num_rpcs elements
     protected void populateCache() {
-        byte[] buf={'b', 'e', 'l', 'a'};
         int    print=num_rpcs / 10;
-        Flag[] flags=sync? new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_SYNCHRONOUS} :
-          new Flag[]{Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP, Flag.FORCE_ASYNCHRONOUS};
-
         for(int i=1; i <= num_rpcs; i++) {
             Transaction tx=null;
             try {
@@ -563,8 +545,8 @@ public class Test extends ReceiverAdapter {
                     txmgr.begin();
                     tx=txmgr.getTransaction();
                 }
-
-                cache.getAdvancedCache().withFlags(flags).put(i, buf);
+                Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
+                tmp_cache.put(i, BUFFER);
                 num_writes.incrementAndGet();
                 if(print > 0 && i > 0 && i % print == 0)
                     System.out.print(".");
@@ -617,8 +599,7 @@ public class Test extends ReceiverAdapter {
 
 
         public void run() {
-            final byte[] buf=new byte[msg_size];
-            Object[] put_args={0, buf};
+            Object[] put_args={0, BUFFER};
             Object[] get_args={0};
             MethodCall get_call=new MethodCall(GET, get_args);
             MethodCall put_call=new MethodCall(PUT, put_args);
@@ -649,8 +630,14 @@ public class Test extends ReceiverAdapter {
                 try {
                     if(get) { // sync GET
                         Address target=pickTarget();
-                        get_args[0]=i;
-                        disp.callRemoteMethod(target, get_call, get_options);
+                        if(target != null && target.equals(local_addr)) {
+                            // System.out.println("direct invocation on " + local_addr);
+                            get(1); // invoke the call directly if local
+                        }
+                        else {
+                            get_args[0]=i;
+                            disp.callRemoteMethod(target, get_call, get_options);
+                        }
                         num_gets++;
                     }
                     else {    // sync or async (based on value of 'sync') PUT
@@ -673,9 +660,10 @@ public class Test extends ReceiverAdapter {
         }
 
         private Address pickTarget() {
-            int index=dests.indexOf(local_addr);
+            return Util.pickRandomElement(dests);
+            /*int index=dests.indexOf(local_addr);
             int new_index=(index +1) % dests.size();
-            return dests.get(new_index);
+            return dests.get(new_index);*/
         }
 
         private Collection<Address> pickAnycastTargets() {
@@ -702,7 +690,6 @@ public class Test extends ReceiverAdapter {
         }
 
         public void run() {
-            byte[] buf=new byte[msg_size];
             try {
                 latch.await();
             }
@@ -731,13 +718,13 @@ public class Test extends ReceiverAdapter {
                             tx=txmgr.getTransaction();
                         }
 
-                        Flag[] flags=sync? sync_flags : async_flags;
+                        Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
                         if(is_this_a_read) {
-                            cache.getAdvancedCache().withFlags(flags).get(key);
+                            tmp_cache.get(key);
                             num_reads.incrementAndGet();
                         }
                         else {
-                            cache.getAdvancedCache().withFlags(flags).put(key, buf);
+                            tmp_cache.putIfAbsent(key, BUFFER);
                             num_writes.incrementAndGet();
                         }
 
@@ -809,7 +796,7 @@ public class Test extends ReceiverAdapter {
         public void writeTo(DataOutput out) throws Exception {
             out.writeInt(values.size());
             for(Map.Entry<String,Object> entry: values.entrySet()) {
-                Bits.writeString(entry.getKey(),out);
+                Bits.writeString(entry.getKey(), out);
                 Util.objectToStream(entry.getValue(), out);
             }
         }

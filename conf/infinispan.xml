@@ -5,7 +5,7 @@
 
     <global>
 
-        <transport clusterName="ispn-perf-test" transportClass="org.perf.CustomTransport">
+        <transport clusterName="ispn-perf-test" transportClass="org.perf.CustomTransport" >
             <properties>
                 <property name="configurationFile" value="local.xml"/>
             </properties>
@@ -14,7 +14,7 @@
     </global>
 
     <default>
-        <locking concurrencyLevel="100" lockAcquisitionTimeout="1000"/>
+        <locking concurrencyLevel="1000" lockAcquisitionTimeout="1000" useLockStriping="true" isolationLevel="READ_COMMITTED"/>
         <jmxStatistics enabled="true"/>
         <clustering mode="distribution">
             <hash numOwners="2"/>
@@ -23,6 +23,7 @@
     </default>
 
     <namedCache name="clusteredCache">
+        <locking concurrencyLevel="1000" lockAcquisitionTimeout="5000" useLockStriping="true" isolationLevel="READ_COMMITTED"/>
         <clustering mode="distribution">
             <stateTransfer awaitInitialTransfer="false"/>
             <hash numOwners="2"/>
@@ -30,8 +31,7 @@
         </clustering>
 
         <!-- Uncomment the config below to get a non-transactional cache  /-->
-        <transaction transactionMode="TRANSACTIONAL" lockingMode="PESSIMISTIC" />
-        <locking lockAcquisitionTimeout="5000" concurrencyLevel="1000" isolationLevel="READ_COMMITTED" useLockStriping="true"/>
+        <transaction transactionMode="TRANSACTIONAL" lockingMode="OPTIMISTIC" />
 
     </namedCache>
 
