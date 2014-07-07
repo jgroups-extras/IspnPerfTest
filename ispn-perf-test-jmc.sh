@@ -2,7 +2,7 @@
 
 
 # GC analysis
-export GC_FLAGS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintTenuringDistribution -Xloggc:/tmp/ispn-perf-test.gclog"
+export GC_FLAGS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintTenuringDistribution -Xloggc:/tmp/$IP_ADDR.gclog"
 
 
 # Enable flight recorder with our custom profile:
