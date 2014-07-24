@@ -56,6 +56,8 @@ public class Test extends ReceiverAdapter {
     protected final AtomicInteger    num_requests=new AtomicInteger(0);
     protected final AtomicInteger    num_reads=new AtomicInteger(0);
     protected final AtomicInteger    num_writes=new AtomicInteger(0);
+    protected volatile boolean       looping=true;
+    protected Thread                 event_loop_thread;
 
 
     // ============ configurable properties ==================
@@ -78,6 +80,7 @@ public class Test extends ReceiverAdapter {
     private static final short    GET_CONFIG            =  4;
     private static final short    SET                   =  5;
     private static final short    TOGGLE_TXMGR          =  6;
+    private static final short    QUIT_ALL              =  7;
 
     private final AtomicInteger   COUNTER=new AtomicInteger(1);
     private byte[]                BUFFER=new byte[msg_size];
@@ -93,6 +96,7 @@ public class Test extends ReceiverAdapter {
             METHODS[GET_CONFIG]   = Test.class.getMethod("getConfig");
             METHODS[SET]          = Test.class.getMethod("set", String.class, Object.class);
             METHODS[TOGGLE_TXMGR] = Test.class.getMethod("toggleTXs");
+            METHODS[QUIT_ALL]     = Test.class.getMethod("quitAll");
 
             ClassConfigurator.add((short)11000, Results.class);
             f=NumberFormat.getNumberInstance();
@@ -192,6 +196,30 @@ public class Test extends ReceiverAdapter {
         mgr.stop();
     }
 
+    protected void startEventThread() {
+        event_loop_thread=new Thread("EventLoop") {
+            public void run() {
+                try {
+                    eventLoop();
+                }
+                catch(Throwable ex) {
+                    ex.printStackTrace();
+                    Test.this.stop();
+                }
+            }
+        };
+        event_loop_thread.setDaemon(true);
+        event_loop_thread.start();
+    }
+
+    protected void stopEventThread() {
+        Thread tmp=event_loop_thread;
+        looping=false;
+        if(tmp != null)
+            tmp.interrupt();
+        stop();
+    }
+
     public void viewAccepted(View new_view) {
         this.view=new_view;
         members.clear();
@@ -267,6 +295,12 @@ public class Test extends ReceiverAdapter {
         return new Results(num_reads.get(), num_writes.get(), time);
     }
 
+    public void quitAll() {
+        Util.sleepRandom(10, 10000);
+        System.out.println("-- received quitAll(): shutting down");
+        stopEventThread();
+    }
+
 
     public void set(String field_name, Object value) {
         Field field=Util.getField(this.getClass(),field_name);
@@ -319,7 +353,7 @@ public class Test extends ReceiverAdapter {
 
         addSiteMastersToMembers();
 
-        while(true) {
+        while(looping) {
             c=Util.keyPress("[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
                               "\n[6] Set sender threads (" + num_threads + ") [7] Set num RPCs (" + num_rpcs + ") " +
                               "[8] Set payload size (" + Util.printBytes(msg_size) + ")" +
@@ -330,7 +364,7 @@ public class Test extends ReceiverAdapter {
                               ") [r] Set read percentage (" + f.format(read_percentage) + ") [g] get_before_put (" + get_before_put + ") " +
                               "\n[a] Toggle use_anycast_addrs (" + use_anycast_addrs + ") [b] Toggle msg_bundling (" +
                               (msg_bundling? "on" : "off") + ")" +
-                              "\n[q] Quit\n");
+                              "\n[q] Quit [X] quit all\n");
             switch(c) {
                 case -1:
                     break;
@@ -396,6 +430,16 @@ public class Test extends ReceiverAdapter {
                 case 'q':
                     stop();
                     return;
+                case 'X':
+                    try {
+                        RequestOptions options=new RequestOptions(ResponseMode.GET_NONE, 0).setExclusionList(local_addr);
+                        options.setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
+                        disp.callRemoteMethods(null, new MethodCall(QUIT_ALL), options);
+                    }
+                    catch(Throwable t) {
+                        System.err.println("Calling quitAll() failed: " + t);
+                    }
+                    break;
                 case '\n':
                 case '\r':
                     break;
@@ -928,7 +972,7 @@ public class Test extends ReceiverAdapter {
             test=new Test();
             test.init(config_file, cache_name, name, xsite, uuid, port);
             if(run_event_loop)
-                test.eventLoop();
+                test.startEventThread();
         }
         catch(Throwable ex) {
             ex.printStackTrace();
@@ -938,7 +982,7 @@ public class Test extends ReceiverAdapter {
     }
 
     static void help() {
-        System.out.println("UPerf [-cfg <config-file>] [-cache <cache-name>] [-name name] [-xsite <true | false>] " +
+        System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name name] [-xsite <true | false>] " +
                              "[-nohup] [-uuid <UUID>] [-port <bind port>]");
     }
 
