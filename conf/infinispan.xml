@@ -31,7 +31,7 @@
         </clustering>
 
         <!-- Uncomment the config below to get a non-transactional cache  /-->
-        <transaction transactionMode="TRANSACTIONAL" lockingMode="OPTIMISTIC" />
+        <transaction transactionMode="NON_TRANSACTIONAL" lockingMode="OPTIMISTIC" />
 
     </namedCache>
 
