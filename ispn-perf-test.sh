@@ -43,4 +43,6 @@ EXPERIMENTAL="$EXPERIMENTAL -XX:+EliminateLocks -XX:+UseBiasedLocking"
 # Enable flight recorder with our custom profile:
 # JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:StartFlightRecording=compress=false,delay=30s,duration=300s,name=$IP_ADDR,filename=$IP_ADDR.jfr,settings=profile_2ms.jfc"
 
-java -classpath $CP $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC $GC_FLAGS org.perf.Test $*
+export proc_id=$$
+
+java -classpath $CP -Dproc_id=${proc_id} $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC $GC_FLAGS org.perf.Test $*

@@ -30,8 +30,14 @@
         </clustering>
 
         <!-- Uncomment the config below to get a non-transactional cache  /-->
-        <transaction transactionMode="NON_TRANSACTIONAL" lockingMode="PESSIMISTIC" />
-        <locking lockAcquisitionTimeout="15000" concurrencyLevel="1000" isolationLevel="READ_COMMITTED" useLockStriping="false"/>
+        <transaction transactionMode="NON_TRANSACTIONAL" lockingMode="OPTIMISTIC" useEagerLocking="true" eagerLockSingleNode="true"  />
+        <locking lockAcquisitionTimeout="5000" concurrencyLevel="1000"
+                 isolationLevel="READ_COMMITTED" useLockStriping="false" />
+
+        <!-- below works -->
+        <!--<transaction transactionMode="NON_TRANSACTIONAL" lockingMode="OPTIMISTIC" useEagerLocking="true" eagerLockSingleNode="true"  />
+                <locking lockAcquisitionTimeout="5000" concurrencyLevel="1000"
+                         isolationLevel="NONE" useLockStriping="false" />-->
 
     </namedCache>
 
