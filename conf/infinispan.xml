@@ -7,9 +7,14 @@
 
         <transport clusterName="ispn-perf-test" transportClass="org.perf.CustomTransport" >
             <properties>
-                <property name="configurationFile" value="local.xml"/>
+                <property name="configurationFile" value="tcp.xml"/>
             </properties>
         </transport>
+         <remoteCommandsExecutor>
+            <properties>
+                <property name="maxThreads" value="300"/>
+            </properties>
+        </remoteCommandsExecutor>
 
     </global>
 

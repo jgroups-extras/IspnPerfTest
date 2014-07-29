@@ -19,6 +19,8 @@
          enable_diagnostics="true"
          thread_naming_pattern="cl"
          use_send_queues="false"
+         bundler_type="transfer-queue"
+         bundler_capacity="50000"
 
          logical_addr_cache_max_size="4000"
          logical_addr_cache_expiration="600000"
@@ -40,13 +42,13 @@
 
          oob_thread_pool.enabled="true"
          oob_thread_pool.min_threads="10"
-         oob_thread_pool.max_threads="200"
+         oob_thread_pool.max_threads="300"
          oob_thread_pool.queue_enabled="false"
          oob_thread_pool.keep_alive_time="20000"
          oob_thread_pool.rejection_policy="discard"/>
     <!--PDC cache_dir="/tmp/jgroups"/-->
 
-    <MPING
+    <MPING 
          break_on_coord_rsp="true"/>
 
     <MERGE3 max_interval="60000"
@@ -76,7 +78,7 @@
                    max_bytes="4M"/>
     <pbcast.GMS print_local_addr="true"
                 log_collect_msgs="false"
-                join_timeout="20000"
+                join_timeout="3000"
                 view_bundling="true"
                 max_bundling_time="1000"
                 merge_timeout="5000"

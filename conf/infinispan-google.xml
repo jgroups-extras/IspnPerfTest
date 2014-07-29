@@ -10,6 +10,11 @@
                 <property name="configurationString" value="http://storage.googleapis.com/jgroups-bucket/google.xml"/>
             </properties>
         </transport>
+        <remoteCommandsExecutor>
+            <properties>
+                <property name="maxThreads" value="300"/>
+            </properties>
+        </remoteCommandsExecutor>
 
     </global>
 
