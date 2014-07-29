@@ -35,7 +35,9 @@
         </clustering>
 
         <!-- Uncomment the config below to get a non-transactional cache  /-->
-        <transaction transactionMode="NON_TRANSACTIONAL" lockingMode="OPTIMISTIC" useEagerLocking="true" eagerLockSingleNode="true"  />
+        <transaction transactionMode="TRANSACTIONAL" transactionProtocol="TOTAL_ORDER" lockingMode="OPTIMISTIC" useEagerLocking="true" eagerLockSingleNode="true">
+            <recovery enabled="false"/>
+        </transaction>
         <locking lockAcquisitionTimeout="5000" concurrencyLevel="1000"
                  isolationLevel="READ_COMMITTED" useLockStriping="false" />
 
