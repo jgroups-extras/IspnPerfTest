@@ -12,7 +12,7 @@
         </transport>
         <remoteCommandsExecutor>
             <properties>
-                <property name="maxThreads" value="300"/>
+                <property name="maxThreads" value="500"/>
             </properties>
         </remoteCommandsExecutor>
 
