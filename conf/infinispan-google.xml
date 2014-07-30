@@ -30,7 +30,7 @@
     <namedCache name="clusteredCache">
         <clustering mode="distribution">
             <stateTransfer awaitInitialTransfer="true"/>
-            <hash numOwners="2"/>
+            <hash numOwners="2" numSegments="1000"/>
             <sync replTimeout="20000"/>
         </clustering>
 
