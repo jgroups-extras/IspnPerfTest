@@ -5,7 +5,9 @@
 
     <dependencies>
         <dependency org="org.jgroups"              name="jgroups"              rev="3.6.+"/>
-        <dependency org="org.infinispan"           name="infinispan-embedded"  rev="7.+"/>
+        <dependency org="org.infinispan"           name="infinispan-core"  rev="7.+"/>
+        <dependency org="org.infinispan"           name="infinispan-commons"  rev="7.+"/>
+        <dependency org="org.jboss.spec.javax.transaction"           name="jboss-transaction-api_1.1_spec"  rev="1.0.1.Final"/>
         <dependency org="log4j"                    name="log4j"                rev="1.2.+"/>
         <dependency org="org.apache.logging.log4j" name="log4j-api"            rev="2.+"/>
         <dependency org="org.apache.logging.log4j" name="log4j-core"           rev="2.+"/>
