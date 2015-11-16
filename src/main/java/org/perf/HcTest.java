@@ -1,34 +1,28 @@
 package org.perf;
 
-import org.infinispan.Cache;
+import com.hazelcast.config.FileSystemXmlConfig;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
+import com.hazelcast.instance.BuildInfo;
+import com.hazelcast.instance.BuildInfoProvider;
+import com.hazelcast.util.EmptyStatement;
 import org.infinispan.context.Flag;
-import org.infinispan.manager.DefaultCacheManager;
-import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.notifications.Listener;
-import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
-import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
-import org.infinispan.remoting.transport.Transport;
-import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.infinispan.topology.LocalTopologyManager;
-import org.infinispan.topology.LocalTopologyManagerImpl;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
 import org.jgroups.blocks.*;
 import org.jgroups.conf.ClassConfigurator;
-import org.jgroups.fork.ForkChannel;
 import org.jgroups.jmx.JmxConfigurator;
 import org.jgroups.protocols.relay.RELAY2;
-import org.jgroups.protocols.relay.SiteMaster;
-import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.stack.Protocol;
 import org.jgroups.util.*;
 
 import javax.management.MBeanServer;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
-import javax.transaction.TransactionManager;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.text.NumberFormat;
@@ -36,27 +30,27 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.hazelcast.nio.IOUtil.closeResource;
+
 
 /**
  * Tests the UNICAST by invoking unicast RPCs between a sender and a receiver. Mimicks the DIST mode in Infinispan
  *
  * @author Bela Ban
  */
-public class Test extends ReceiverAdapter {
-    protected EmbeddedCacheManager   mgr;
-    protected Cache<Integer,byte[]>  cache, async_cache, sync_cache;
-    protected TransactionManager     txmgr;
-    protected ForkChannel            channel;
+public class HcTest extends ReceiverAdapter {
+    protected JChannel               channel;
     protected Address                local_addr;
     protected RpcDispatcher          disp;
     protected final List<Address>    members=new ArrayList<Address>();
     protected volatile View          view;
-    protected final List<Address>    site_masters=new ArrayList<Address>();
     protected final AtomicInteger    num_requests=new AtomicInteger(0);
     protected final AtomicInteger    num_reads=new AtomicInteger(0);
     protected final AtomicInteger    num_writes=new AtomicInteger(0);
     protected volatile boolean       looping=true;
     protected Thread                 event_loop_thread;
+
+    protected IMap<Integer,byte[]>   cache;
 
 
     // ============ configurable properties ==================
@@ -78,7 +72,6 @@ public class Test extends ReceiverAdapter {
     private static final short    PUT                   =  3;
     private static final short    GET_CONFIG            =  4;
     private static final short    SET                   =  5;
-    private static final short    TOGGLE_TXMGR          =  6;
     private static final short    QUIT_ALL              =  7;
 
     private final AtomicInteger   COUNTER=new AtomicInteger(1);
@@ -88,14 +81,13 @@ public class Test extends ReceiverAdapter {
 
     static {
         try {
-            METHODS[START_UPERF]  = Test.class.getMethod("startUPerfTest");
-            METHODS[START_ISPN]   = Test.class.getMethod("startIspnTest");
-            METHODS[GET]          = Test.class.getMethod("get", long.class);
-            METHODS[PUT]          = Test.class.getMethod("put", long.class, byte[].class);
-            METHODS[GET_CONFIG]   = Test.class.getMethod("getConfig");
-            METHODS[SET]          = Test.class.getMethod("set", String.class, Object.class);
-            METHODS[TOGGLE_TXMGR] = Test.class.getMethod("toggleTXs");
-            METHODS[QUIT_ALL]     = Test.class.getMethod("quitAll");
+            METHODS[START_UPERF]  = HcTest.class.getMethod("startUPerfTest");
+            METHODS[START_ISPN]   = HcTest.class.getMethod("startIspnTest");
+            METHODS[GET]          = HcTest.class.getMethod("get", long.class);
+            METHODS[PUT]          = HcTest.class.getMethod("put", long.class, byte[].class);
+            METHODS[GET_CONFIG]   = HcTest.class.getMethod("getConfig");
+            METHODS[SET]          = HcTest.class.getMethod("set", String.class, Object.class);
+            METHODS[QUIT_ALL]     = HcTest.class.getMethod("quitAll");
 
             ClassConfigurator.add((short)11000, Results.class);
             f=NumberFormat.getNumberInstance();
@@ -112,60 +104,28 @@ public class Test extends ReceiverAdapter {
     }
 
 
-    public void init(String cfg, String cache_name, String name, boolean xsite, long uuid, int bind_port) throws Throwable {
+    public void init(String cfg, String cache_name, String name, long uuid, int bind_port) throws Throwable {
         try {
-            mgr=new DefaultCacheManager(cfg);
-            mgr.addListener(new MyListener());
+            com.hazelcast.config.Config conf=new FileSystemXmlConfig(cfg);
+            HazelcastInstance hc=Hazelcast.newHazelcastInstance(conf);
+            this.cache=hc.getMap("hc-perf");
 
-
-            /*CustomTransport transport=(CustomTransport)mgr.getTransport();
-
-            if(uuid > 0)
-                transport.setUUID(uuid);
-            if(name != null)
-                transport.setLogicalName(name);
-            if(bind_port > 0)
-                transport.setPort(bind_port); */
-
-            JGroupsTransport transport=(JGroupsTransport)mgr.getTransport();
-            cache=mgr.getCache(cache_name); // joins the cluster
-            async_cache=cache.getAdvancedCache().withFlags(async_flags);
-            sync_cache=cache.getAdvancedCache().withFlags(sync_flags);
-
-            JChannel main_channel=(JChannel)transport.getChannel();
-            main_channel.getProtocolStack().getTransport().registerProbeHandler(new IspnPerfTestProbeHandler());
+            channel=new JChannel("/home/bela/fast.xml");
             try {
                 MBeanServer server=Util.getMBeanServer();
-                JmxConfigurator.registerChannel(main_channel, server, "jgroups", main_channel.getClusterName(), true);
+                JmxConfigurator.registerChannel(channel, server, "jgroups", channel.getClusterName(), true);
             }
             catch(Throwable ex) {
                 System.err.println("registering the channel in JMX failed: " + ex);
             }
 
-            channel=new ForkChannel(main_channel, "cfg", "cfg-ch");
             disp=new RpcDispatcher(channel, null, this, this);
             disp.setMethodLookup(new MethodLookup() {
                 public Method findMethod(short id) {
                     return METHODS[id];
                 }
             });
-
-            if(xsite) {
-                List<String> site_names=getSites(channel);
-                for(String site_name: site_names) {
-                    try {
-                        SiteMaster sm=new SiteMaster(site_name);
-                        site_masters.add(sm);
-                    }
-                    catch(Throwable t) {
-                        System.err.println("failed creating site master: " + t);
-                    }
-                }
-            }
-
             channel.connect("config-cluster");
-
-            txmgr=cache.getAdvancedCache().getTransactionManager();
             local_addr=channel.getAddress();
 
             if(members.size() >= 2) {
@@ -194,8 +154,7 @@ public class Test extends ReceiverAdapter {
 
     void stop() {
         Util.close(channel);
-        cache.stop();
-        mgr.stop();
+        cache.destroy();
     }
 
     protected void startEventThread() {
@@ -206,7 +165,7 @@ public class Test extends ReceiverAdapter {
                 }
                 catch(Throwable ex) {
                     ex.printStackTrace();
-                    Test.this.stop();
+                    HcTest.this.stop();
                 }
             }
         };
@@ -226,22 +185,14 @@ public class Test extends ReceiverAdapter {
         this.view=new_view;
         members.clear();
         members.addAll(new_view.getMembers());
-        addSiteMastersToMembers();
     }
 
-    protected void addSiteMastersToMembers() {
-        if(!site_masters.isEmpty()) {
-            for(Address sm: site_masters)
-                if(!members.contains(sm))
-                    members.add(sm);
-        }
-    }
+
 
     // =================================== callbacks ======================================
 
     public Results startUPerfTest() throws Throwable {
         BUFFER=new byte[msg_size];
-        addSiteMastersToMembers();
 
         System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length) + ", sync=" + sync +
                              ", oob=" + oob + ", msg_bundling=" + msg_bundling + ", use_anycast_addrs=" + use_anycast_addrs);
@@ -273,8 +224,7 @@ public class Test extends ReceiverAdapter {
         num_writes.set(0);
 
         BUFFER=new byte[msg_size];
-        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length) +
-                             ", sync=" + sync + ", transactional=" + (txmgr != null));
+        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length)+ ", sync=" + sync );
 
         // The first call needs to be synchronous with OOB !
         final CountDownLatch latch=new CountDownLatch(1);
@@ -314,12 +264,6 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    public void toggleTXs() {
-        if(txmgr != null)
-            txmgr=null;
-        else
-            txmgr=cache.getAdvancedCache().getTransactionManager();
-    }
 
     public byte[] get(long key) {
         return BUFFER;
@@ -332,7 +276,7 @@ public class Test extends ReceiverAdapter {
 
     public Config getConfig() {
         Config config=new Config();
-        for(Field field: Util.getAllDeclaredFields(Test.class)) {
+        for(Field field: Util.getAllDeclaredFields(HcTest.class)) {
             if(field.isAnnotationPresent(Property.class)) {
                 config.add(field.getName(), Util.getField(field, this));
             }
@@ -353,15 +297,12 @@ public class Test extends ReceiverAdapter {
     public void eventLoop() throws Throwable {
         int c;
 
-        addSiteMastersToMembers();
-
         while(looping) {
             c=Util.keyPress("[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
                               "\n[6] Set sender threads (" + num_threads + ") [7] Set num RPCs (" + num_rpcs + ") " +
                               "[8] Set payload size (" + Util.printBytes(msg_size) + ")" +
                               " [9] Set anycast count (" + anycast_count + ")" +
                               "\n[p] Populate cache [c] Clear cache [v] Print versions" +
-                              "\n[t] Toggle TXs (enabled="+ (txmgr != null) + ")"  +
                               "\n[o] Toggle OOB (" + oob + ") [s] Toggle sync (" + sync +
                               ") [r] Set read percentage (" + f.format(read_percentage) + ") [g] get_before_put (" + get_before_put + ") " +
                               "\n[a] Toggle use_anycast_addrs (" + use_anycast_addrs + ") [b] Toggle msg_bundling (" +
@@ -422,11 +363,8 @@ public class Test extends ReceiverAdapter {
                 case 'p':
                     populateCache();
                     break;
-                case 't':
-                    sendToggleTXs();
-                    break;
                 case 'v':
-                    System.out.println("JGroups: " + org.jgroups.Version.printDescription() +
+                    System.out.println("JGroups: " + Version.printDescription() +
                                          ", Infinispan: " + org.infinispan.Version.printVersion() + "\n");
                     break;
                 case 'q':
@@ -587,12 +525,7 @@ public class Test extends ReceiverAdapter {
         for(int i=1; i <= num_rpcs; i++) {
             Transaction tx=null;
             try {
-                if(txmgr != null) {
-                    txmgr.begin();
-                    tx=txmgr.getTransaction();
-                }
-                Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
-                tmp_cache.put(i, BUFFER);
+                cache.put(i, BUFFER);
                 num_writes.incrementAndGet();
                 if(print > 0 && i > 0 && i % print == 0)
                     System.out.print(".");
@@ -613,14 +546,7 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    protected void sendToggleTXs() {
-        try {
-            disp.callRemoteMethods(null, new MethodCall(TOGGLE_TXMGR), RequestOptions.SYNC());
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
+
 
     protected  class Invoker extends Thread {
         private final List<Address>  dests=new ArrayList<Address>();
@@ -757,25 +683,15 @@ public class Test extends ReceiverAdapter {
 
                 // try the operation until it is successful
                 while(true) {
-                    Transaction tx=null;
                     try {
-                        if(txmgr != null) {
-                            txmgr.begin();
-                            tx=txmgr.getTransaction();
-                        }
-
-                        Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
                         if(is_this_a_read) {
-                            tmp_cache.get(key);
+                            cache.get(key);
                             num_reads.incrementAndGet();
                         }
                         else {
-                            tmp_cache.put(key, BUFFER);
+                            cache.put(key, BUFFER);
                             num_writes.incrementAndGet();
                         }
-
-                        if(tx != null)
-                            tx.commit();
 
                         if(print > 0 && i % print == 0)
                             System.out.print(".");
@@ -783,9 +699,6 @@ public class Test extends ReceiverAdapter {
                     }
                     catch(Throwable t) {
                         t.printStackTrace();
-                        if(tx != null) {
-                            try {tx.rollback();} catch(SystemException e) {}
-                        }
                     }
                 }
             }
@@ -863,75 +776,14 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    protected class IspnPerfTestProbeHandler implements DiagnosticsHandler.ProbeHandler {
-        protected static final String GET_ST="st", ENABLE_ST="enable-st", DISABLE_ST="disable-st",
-          CACHE_SIZE="cache-size";
-
-        public Map<String,String> handleProbe(String... keys) {
-            Map<String,String> map=new HashMap<String,String>();
-            for(String key: keys) {
-                if(GET_ST.equals(key))
-                    map.put(GET_ST, String.valueOf(isRebalancingEnabled()));
-                if(ENABLE_ST.equals(key))
-                    setRebalancing(true);
-                if(DISABLE_ST.equals(key))
-                    setRebalancing(false);
-                if(CACHE_SIZE.equals(key))
-                    map.put(CACHE_SIZE, String.valueOf(cache.size()));
-            }
-            return map;
-        }
-
-        public String[] supportedKeys() {
-            return new String[]{GET_ST, ENABLE_ST, DISABLE_ST, CACHE_SIZE};
-        }
-
-        protected boolean isRebalancingEnabled() {
-            LocalTopologyManagerImpl topo_mgr=(LocalTopologyManagerImpl)mgr.getGlobalComponentRegistry().getComponent(LocalTopologyManager.class);
-            try {
-                return topo_mgr.isRebalancingEnabled();
-            }
-            catch(Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-
-        protected void setRebalancing(boolean flag) {
-            LocalTopologyManagerImpl topo_mgr=(LocalTopologyManagerImpl)mgr.getGlobalComponentRegistry().getComponent(LocalTopologyManager.class);
-            try {
-                topo_mgr.setRebalancingEnabled(flag);
-            }
-            catch(Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @Listener
-    public static class MyListener {
-        @ViewChanged
-        public static void viewChanged(ViewChangedEvent evt) {
-            Transport transport=evt.getCacheManager().getTransport();
-            if(transport instanceof JGroupsTransport) {
-                Channel ch=((JGroupsTransport)transport).getChannel();
-                View view=ch.getView();
-                System.out.println("** view: " + view);
-            }
-            else
-                System.out.println("** view: " + evt);
-        }
-    }
-
 
 
 
 
     public static void main(String[] args) {
-        String           config_file="infinispan.xml";
+        String           config_file="/home/bela/hazelcast.xml";
         String           cache_name="clusteredCache";
         String           name=null;
-        boolean          xsite=true;
         boolean          run_event_loop=true;
         long             uuid=0;
         int              port=0;
@@ -947,10 +799,6 @@ public class Test extends ReceiverAdapter {
             }
             if("-name".equals(args[i])) {
                 name=args[++i];
-                continue;
-            }
-            if("-xsite".equals(args[i])) {
-                xsite=Boolean.valueOf(args[++i]);
                 continue;
             }
             if("-nohup".equals(args[i])) {
@@ -969,10 +817,13 @@ public class Test extends ReceiverAdapter {
             return;
         }
 
-        Test test=null;
+        BuildInfo info=getBuildInfo();
+        System.out.println("info = " + info);
+
+        HcTest test=null;
         try {
-            test=new Test();
-            test.init(config_file, cache_name, name, xsite, uuid, port);
+            test=new HcTest();
+            test.init(config_file, cache_name, name, uuid, port);
             if(run_event_loop)
                 test.startEventThread();
         }
@@ -987,6 +838,51 @@ public class Test extends ReceiverAdapter {
         System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name name] [-xsite <true | false>] " +
                              "[-nohup] [-uuid <UUID>] [-port <bind port>]");
     }
+
+    public static BuildInfo getBuildInfo() {
+           final InputStream inRuntimeProperties =
+                   BuildInfoProvider.class.getClassLoader().getResourceAsStream("hazelcast-runtime.properties");
+           Properties runtimeProperties = new Properties();
+           try {
+               if (inRuntimeProperties != null) {
+                   runtimeProperties.load(inRuntimeProperties);
+               }
+           } catch (Exception ignored) {
+               EmptyStatement.ignore(ignored);
+           } finally {
+               closeResource(inRuntimeProperties);
+           }
+
+           String version = runtimeProperties.getProperty("hazelcast.version");
+           String distribution = runtimeProperties.getProperty("hazelcast.distribution");
+           String revision = runtimeProperties.getProperty("hazelcast.git.revision", "");
+           if (!revision.isEmpty() && revision.equals("${git.commit.id.abbrev}")) {
+               revision = "";
+           }
+           boolean enterprise = !"Hazelcast".equals(distribution);
+
+           // override BUILD_NUMBER with a system property
+
+        String prop=System.getProperty("hazelcast.build");
+        System.out.println("prop = " + prop);
+        System.out.println("runtimeProperties = " + runtimeProperties);
+
+           String build;
+           Integer hazelcastBuild = Integer.getInteger("hazelcast.build", -1);
+           if (hazelcastBuild == -1) {
+               build = runtimeProperties.getProperty("hazelcast.build");
+           } else {
+               build = String.valueOf(hazelcastBuild);
+           }
+
+        System.out.println("build = " + build);
+
+           int buildNumber = Integer.parseInt(build);
+
+           String sv = runtimeProperties.getProperty("hazelcast.serialization.version");
+           byte serialVersion = Byte.parseByte(sv);
+           return new BuildInfo(version, build, revision, buildNumber, enterprise, serialVersion);
+       }
 
 
 }
