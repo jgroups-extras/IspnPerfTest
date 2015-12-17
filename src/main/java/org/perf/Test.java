@@ -1,7 +1,6 @@
 package org.perf;
 
 import org.infinispan.Cache;
-import org.infinispan.DecoratedCache;
 import org.infinispan.context.Flag;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -117,18 +116,21 @@ public class Test extends ReceiverAdapter {
         try {
             mgr=new DefaultCacheManager(cfg);
             mgr.addListener(new MyListener());
-            CustomTransport transport=(CustomTransport)mgr.getTransport();
+
+
+            /*CustomTransport transport=(CustomTransport)mgr.getTransport();
 
             if(uuid > 0)
                 transport.setUUID(uuid);
             if(name != null)
                 transport.setLogicalName(name);
             if(bind_port > 0)
-                transport.setPort(bind_port);
+                transport.setPort(bind_port); */
 
+            JGroupsTransport transport=(JGroupsTransport)mgr.getTransport();
             cache=mgr.getCache(cache_name); // joins the cluster
-            async_cache=new DecoratedCache<Integer,byte[]>(cache.getAdvancedCache(), async_flags);
-            sync_cache=new DecoratedCache<Integer,byte[]>(cache.getAdvancedCache(), sync_flags);
+            async_cache=cache.getAdvancedCache().withFlags(async_flags);
+            sync_cache=cache.getAdvancedCache().withFlags(sync_flags);
 
             JChannel main_channel=(JChannel)transport.getChannel();
             main_channel.getProtocolStack().getTransport().registerProbeHandler(new IspnPerfTestProbeHandler());
