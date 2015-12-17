@@ -15,7 +15,7 @@
     <property name="tmp.dir"          value="${root.dir}/tmp"/>
     <property name="conf.dir"         value="${root.dir}/conf"/>
     <property name="bin.dir"          value="${root.dir}/bin"/>
-    <property name="ivy.version"      value="2.3.0" />
+    <property name="ivy.version"      value="2.4.0" />
 
 
     <path id="jg.classpath">
