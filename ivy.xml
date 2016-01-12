@@ -4,7 +4,7 @@
     <info organisation="org.perf" module="ispn-perf-test" revision="1.0.0"/>
 
     <dependencies>
-        <dependency org="org.jgroups"              name="jgroups"              rev="3.6.7-SNAPSHOT"/>
+        <dependency org="org.jgroups"              name="jgroups"              rev="3.6.7.Final"/>
         <dependency org="org.infinispan"           name="infinispan-core"      rev="8.+"/>
         <dependency org="org.infinispan"           name="infinispan-commons"   rev="8.+"/>
         <dependency org="log4j"                    name="log4j"                rev="1.2.+"/>
