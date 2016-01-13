@@ -8,7 +8,7 @@
 
     <property name="version"          value="1.0.0"/>
     <property name="root.dir"         value="${basedir}"/>
-    <property name="src.dir"          value="${root.dir}/src/main/java"/>
+    <property name="src.dir"          value="${root.dir}/src"/>
     <property name="compile.dir"      value="${root.dir}/classes"/>
     <property name="lib.dir"          value="${root.dir}/lib"/>
     <property name="dist.dir"         value="${root.dir}/dist"/>
