@@ -1,7 +1,6 @@
 #!/bin/bash
 
 
-## Starts a local node using infinispan.xml as Infinispan config and local.xml as JGroups config
 # Author: Bela Ban
 
 PT=$HOME/IspnPerfTest
@@ -19,8 +18,7 @@ if [ -f $HOME/logging.properties ]; then
     LOG="$LOG -Djava.util.logging.config.file=$HOME/logging.properties"
 fi;
 
-JG_FLAGS="-Djgroups.bind_addr=$IP_ADDR -Djboss.tcpping.initial_hosts=$IP_ADDR[7800]"
-JG_FLAGS="$JG_FLAGS -Djava.net.preferIPv4Stack=true"
+JG_FLAGS="-Djava.net.preferIPv4Stack=true"
 FLAGS="-server -Xmx1G -Xms1G"
 FLAGS="$FLAGS -XX:CompileThreshold=10000 -XX:+AggressiveHeap -XX:ThreadStackSize=64K -XX:SurvivorRatio=8"
 FLAGS="$FLAGS -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15"
@@ -42,7 +40,7 @@ EXPERIMENTAL="$EXPERIMENTAL -XX:+EliminateLocks -XX:+UseBiasedLocking"
 
 # Enable flight recorder with our custom profile:
 #JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:StartFlightRecording=compress=false,delay=30s,duration=300s,name=$IP_ADDR,filename=$IP_ADDR.jfr,settings=profile_2ms.jfc"
-JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
+#JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
 
 export proc_id=$$
 

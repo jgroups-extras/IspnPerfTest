@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Tests the UNICAST by invoking unicast RPCs between a sender and a receiver. Mimicks the DIST mode in Infinispan
+ * Tests the UNICAST by invoking unicast RPCs between a sender and a receiver. Mimics the DIST mode in Infinispan
  *
  * @author Bela Ban
  */

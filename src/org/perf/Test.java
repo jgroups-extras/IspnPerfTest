@@ -1,57 +1,42 @@
 package org.perf;
 
-import org.infinispan.Cache;
+import org.cache.CacheFactory;
 import org.infinispan.context.Flag;
-import org.infinispan.manager.DefaultCacheManager;
-import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.notifications.Listener;
-import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
-import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
-import org.infinispan.remoting.transport.Transport;
-import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.infinispan.topology.LocalTopologyManager;
-import org.infinispan.topology.LocalTopologyManagerImpl;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
-import org.jgroups.blocks.*;
+import org.jgroups.blocks.MethodCall;
+import org.jgroups.blocks.RequestOptions;
+import org.jgroups.blocks.ResponseMode;
+import org.jgroups.blocks.RpcDispatcher;
 import org.jgroups.conf.ClassConfigurator;
-import org.jgroups.fork.ForkChannel;
 import org.jgroups.jmx.JmxConfigurator;
-import org.jgroups.protocols.relay.RELAY2;
-import org.jgroups.protocols.relay.SiteMaster;
-import org.jgroups.stack.DiagnosticsHandler;
-import org.jgroups.stack.Protocol;
 import org.jgroups.util.*;
 
 import javax.management.MBeanServer;
-import javax.transaction.SystemException;
-import javax.transaction.Transaction;
-import javax.transaction.TransactionManager;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Tests the UNICAST by invoking unicast RPCs between a sender and a receiver. Mimicks the DIST mode in Infinispan
- *
+ * Mimics distributed mode by invoking N (default:20000) requests, 20% writes and 80% reads on random keys in range
+ * [1 .. N]. Every member inthe cluster does this and the initiator waits until everyone is done, tallies the results
+ * (sent to it by every member) and prints stats (throughput).
  * @author Bela Ban
  */
 public class Test extends ReceiverAdapter {
-    protected EmbeddedCacheManager   mgr;
-    protected Cache<Integer,byte[]>  cache, async_cache, sync_cache;
-    protected TransactionManager     txmgr;
-    protected ForkChannel            channel;
+    protected CacheFactory<Integer,byte[]> cache_factory;
+
+    protected org.cache.Cache<Integer,byte[]>  cache;
+    protected JChannel               channel;
     protected Address                local_addr;
     protected RpcDispatcher          disp;
-    protected final List<Address>    members=new ArrayList<Address>();
+    protected final List<Address>    members=new ArrayList<>();
     protected volatile View          view;
-    protected final List<Address>    site_masters=new ArrayList<Address>();
     protected final AtomicInteger    num_requests=new AtomicInteger(0);
     protected final AtomicInteger    num_reads=new AtomicInteger(0);
     protected final AtomicInteger    num_writes=new AtomicInteger(0);
@@ -78,13 +63,18 @@ public class Test extends ReceiverAdapter {
     private static final short    PUT                   =  3;
     private static final short    GET_CONFIG            =  4;
     private static final short    SET                   =  5;
-    private static final short    TOGGLE_TXMGR          =  6;
-    private static final short    QUIT_ALL              =  7;
+    private static final short    QUIT_ALL              =  6;
 
     private final AtomicInteger   COUNTER=new AtomicInteger(1);
     private byte[]                BUFFER=new byte[msg_size];
-    static NumberFormat           f;
     static final Flag[]           async_flags, sync_flags;
+
+    protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
+      "\n[6] Set sender threads (%d) [7] Set num RPCs (%d) [8] Set payload size (%s) [9] Set anycast count (%d)" +
+      "\n[p] Populate cache [c] Clear cache [v] Print versions" +
+      "\n[o] Toggle OOB (%b) [s] Toggle sync (%b) [r] Set read percentage (%.2f) [g] get_before_put (%b) " +
+      "\n[a] Toggle use_anycast_addrs (%b) [b] Toggle msg_bundling (%b)" +
+      "\n[q] Quit [X] quit all\n";
 
     static {
         try {
@@ -94,14 +84,9 @@ public class Test extends ReceiverAdapter {
             METHODS[PUT]          = Test.class.getMethod("put", long.class, byte[].class);
             METHODS[GET_CONFIG]   = Test.class.getMethod("getConfig");
             METHODS[SET]          = Test.class.getMethod("set", String.class, Object.class);
-            METHODS[TOGGLE_TXMGR] = Test.class.getMethod("toggleTXs");
             METHODS[QUIT_ALL]     = Test.class.getMethod("quitAll");
 
             ClassConfigurator.add((short)11000, Results.class);
-            f=NumberFormat.getNumberInstance();
-            f.setGroupingUsed(false);
-            f.setMinimumFractionDigits(2);
-            f.setMaximumFractionDigits(2);
         }
         catch(NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -112,61 +97,26 @@ public class Test extends ReceiverAdapter {
     }
 
 
-    public void init(String cfg, String cache_name, String name, boolean xsite, long uuid, int bind_port) throws Throwable {
+    public void init(String factory_name, String cfg, String jgroups_config, String cache_name) throws Exception {
         try {
-            mgr=new DefaultCacheManager(cfg);
-            mgr.addListener(new MyListener());
+            Class<CacheFactory> clazz=Util.loadClass(factory_name, (Class)null);
+            cache_factory=clazz.newInstance();
+            cache_factory.init(cfg);
+            cache=cache_factory.create(cache_name);
 
+            channel=new JChannel(jgroups_config);
+            disp=new RpcDispatcher(channel, null, this, this);
+            disp.setMethodLookup(id -> METHODS[id]);
+            channel.connect("config-cluster");
+            local_addr=channel.getAddress();
 
-            /*CustomTransport transport=(CustomTransport)mgr.getTransport();
-
-            if(uuid > 0)
-                transport.setUUID(uuid);
-            if(name != null)
-                transport.setLogicalName(name);
-            if(bind_port > 0)
-                transport.setPort(bind_port); */
-
-            JGroupsTransport transport=(JGroupsTransport)mgr.getTransport();
-            cache=mgr.getCache(cache_name); // joins the cluster
-            async_cache=cache.getAdvancedCache().withFlags(async_flags);
-            sync_cache=cache.getAdvancedCache().withFlags(sync_flags);
-
-            JChannel main_channel=(JChannel)transport.getChannel();
-            main_channel.getProtocolStack().getTransport().registerProbeHandler(new IspnPerfTestProbeHandler());
             try {
                 MBeanServer server=Util.getMBeanServer();
-                JmxConfigurator.registerChannel(main_channel, server, "jgroups", main_channel.getClusterName(), true);
+                JmxConfigurator.registerChannel(channel, server, "control-channel", channel.getClusterName(), true);
             }
             catch(Throwable ex) {
                 System.err.println("registering the channel in JMX failed: " + ex);
             }
-
-            channel=new ForkChannel(main_channel, "cfg", "cfg-ch");
-            disp=new RpcDispatcher(channel, null, this, this);
-            disp.setMethodLookup(new MethodLookup() {
-                public Method findMethod(short id) {
-                    return METHODS[id];
-                }
-            });
-
-            if(xsite) {
-                List<String> site_names=getSites(channel);
-                for(String site_name: site_names) {
-                    try {
-                        SiteMaster sm=new SiteMaster(site_name);
-                        site_masters.add(sm);
-                    }
-                    catch(Throwable t) {
-                        System.err.println("failed creating site master: " + t);
-                    }
-                }
-            }
-
-            channel.connect("config-cluster");
-
-            txmgr=cache.getAdvancedCache().getTransactionManager();
-            local_addr=channel.getAddress();
 
             if(members.size() >= 2) {
                 Address coord=members.get(0);
@@ -194,8 +144,7 @@ public class Test extends ReceiverAdapter {
 
     void stop() {
         Util.close(channel);
-        cache.stop();
-        mgr.stop();
+        cache_factory.destroy();
     }
 
     protected void startEventThread() {
@@ -226,22 +175,14 @@ public class Test extends ReceiverAdapter {
         this.view=new_view;
         members.clear();
         members.addAll(new_view.getMembers());
-        addSiteMastersToMembers();
     }
 
-    protected void addSiteMastersToMembers() {
-        if(!site_masters.isEmpty()) {
-            for(Address sm: site_masters)
-                if(!members.contains(sm))
-                    members.add(sm);
-        }
-    }
+
 
     // =================================== callbacks ======================================
 
     public Results startUPerfTest() throws Throwable {
         BUFFER=new byte[msg_size];
-        addSiteMastersToMembers();
 
         System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length) + ", sync=" + sync +
                              ", oob=" + oob + ", msg_bundling=" + msg_bundling + ", use_anycast_addrs=" + use_anycast_addrs);
@@ -273,8 +214,7 @@ public class Test extends ReceiverAdapter {
         num_writes.set(0);
 
         BUFFER=new byte[msg_size];
-        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length) +
-                             ", sync=" + sync + ", transactional=" + (txmgr != null));
+        System.out.printf("invoking %d RPCs of %s, sync=%b\n", num_rpcs, Util.printBytes(BUFFER.length), sync);
 
         // The first call needs to be synchronous with OOB !
         final CountDownLatch latch=new CountDownLatch(1);
@@ -314,18 +254,14 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    public void toggleTXs() {
-        if(txmgr != null)
-            txmgr=null;
-        else
-            txmgr=cache.getAdvancedCache().getTransactionManager();
-    }
 
+    @SuppressWarnings("UnusedParameters")
     public byte[] get(long key) {
         return BUFFER;
     }
 
 
+    @SuppressWarnings("UnusedParameters")
     public void put(long key, byte[] val) {
 
     }
@@ -351,30 +287,20 @@ public class Test extends ReceiverAdapter {
 
 
     public void eventLoop() throws Throwable {
-        int c;
-
-        addSiteMastersToMembers();
-
         while(looping) {
-            c=Util.keyPress("[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
-                              "\n[6] Set sender threads (" + num_threads + ") [7] Set num RPCs (" + num_rpcs + ") " +
-                              "[8] Set payload size (" + Util.printBytes(msg_size) + ")" +
-                              " [9] Set anycast count (" + anycast_count + ")" +
-                              "\n[p] Populate cache [c] Clear cache [v] Print versions" +
-                              "\n[t] Toggle TXs (enabled="+ (txmgr != null) + ")"  +
-                              "\n[o] Toggle OOB (" + oob + ") [s] Toggle sync (" + sync +
-                              ") [r] Set read percentage (" + f.format(read_percentage) + ") [g] get_before_put (" + get_before_put + ") " +
-                              "\n[a] Toggle use_anycast_addrs (" + use_anycast_addrs + ") [b] Toggle msg_bundling (" +
-                              (msg_bundling? "on" : "off") + ")" +
-                              "\n[q] Quit [X] quit all\n");
+            int c=Util.keyPress(String.format(input_str,
+                                              num_threads, num_rpcs, Util.printBytes(msg_size), anycast_count, oob, sync,
+                                              read_percentage, get_before_put, use_anycast_addrs, msg_bundling));
+
+
             switch(c) {
                 case -1:
                     break;
                 case '1':
-                    startUPerfBenchmark();
+                    startBenchmark(new MethodCall(START_UPERF));
                     break;
                 case '2':
-                    startIspnBenchmark();
+                    startBenchmark(new MethodCall(START_ISPN));
                     break;
                 case '3':
                     printView();
@@ -422,9 +348,6 @@ public class Test extends ReceiverAdapter {
                 case 'p':
                     populateCache();
                     break;
-                case 't':
-                    sendToggleTXs();
-                    break;
                 case 'v':
                     System.out.println("JGroups: " + org.jgroups.Version.printDescription() +
                                          ", Infinispan: " + org.infinispan.Version.printVersion() + "\n");
@@ -434,8 +357,8 @@ public class Test extends ReceiverAdapter {
                     return;
                 case 'X':
                     try {
-                        RequestOptions options=new RequestOptions(ResponseMode.GET_NONE, 0).setExclusionList(local_addr);
-                        options.setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
+                        RequestOptions options=new RequestOptions(ResponseMode.GET_NONE, 500)
+                          .setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
                         disp.callRemoteMethods(null, new MethodCall(QUIT_ALL), options);
                     }
                     catch(Throwable t) {
@@ -453,21 +376,19 @@ public class Test extends ReceiverAdapter {
 
 
     /** Kicks off the benchmark on all cluster nodes */
-    void startUPerfBenchmark() {
+    protected void startBenchmark(MethodCall call) {
         RspList<Results> responses=null;
         try {
-            RequestOptions options=new RequestOptions(ResponseMode.GET_ALL, 0);
-            options.setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
-            responses=disp.callRemoteMethods(null, new MethodCall(START_UPERF), options);
+            RequestOptions opts=new RequestOptions(ResponseMode.GET_ALL, 0)
+              .setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
+            responses=disp.callRemoteMethods(null, call, opts);
         }
         catch(Throwable t) {
             System.err.println("starting the benchmark failed: " + t);
             return;
         }
 
-        long total_reqs=0;
-        long total_time=0;
-
+        long total_reqs=0, total_time=0;
         System.out.println("\n======================= Results: ===========================");
         for(Map.Entry<Address,Rsp<Results>> entry: responses.entrySet()) {
             Address mbr=entry.getKey();
@@ -482,52 +403,11 @@ public class Test extends ReceiverAdapter {
         double total_reqs_sec=total_reqs / ( total_time/ 1000.0);
         double throughput=total_reqs_sec * msg_size;
         double ms_per_req=total_time / (double)total_reqs;
-        Protocol prot=channel.getProtocolStack().findProtocol(Util.getUnicastProtocols());
         System.out.println("\n");
-        System.out.println(Util.bold("Average of " + f.format(total_reqs_sec) + " requests / sec (" +
-                                       Util.printBytes(throughput) + " / sec), " +
-                                       f.format(ms_per_req) + " ms /request (prot=" + prot.getName() + ")"));
+        System.out.println(Util.bold(String.format("Average of %.2f requests / sec (%s / sec), %.2f ms /request",
+                                                   total_reqs_sec, Util.printBytes(throughput), ms_per_req)));
         System.out.println("\n\n");
     }
-
-
-    void startIspnBenchmark() {
-        RspList<Results> responses=null;
-        try {
-            RequestOptions options=new RequestOptions(ResponseMode.GET_ALL, 0);
-            options.setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
-            responses=disp.callRemoteMethods(null, new MethodCall(START_ISPN), options);
-        }
-        catch(Throwable t) {
-            System.err.println("starting the benchmark failed: " + t);
-            return;
-        }
-
-        long total_reqs=0;
-        long total_time=0;
-
-        System.out.println("\n======================= Results: ===========================");
-        for(Map.Entry<Address,Rsp<Results>> entry: responses.entrySet()) {
-            Address mbr=entry.getKey();
-            Rsp<Results> rsp=entry.getValue();
-            Results result=rsp.getValue();
-            if(result != null) {
-                total_reqs+=result.num_gets + result.num_puts;
-                total_time+=result.time;
-            }
-            System.out.println(mbr + ": " + result);
-        }
-        double total_reqs_sec=total_reqs / ( total_time/ 1000.0);
-        double throughput=total_reqs_sec * msg_size;
-        double ms_per_req=total_time / (double)total_reqs;
-        Protocol prot=channel.getProtocolStack().findProtocol(Util.getUnicastProtocols());
-        System.out.println("\n");
-        System.out.println(Util.bold("Average of " + f.format(total_reqs_sec) + " requests / sec (" +
-                                       Util.printBytes(throughput) + " / sec), " +
-                                       f.format(ms_per_req) + " ms /request (prot=" + prot.getName() + ")"));
-        System.out.println("\n\n");
-    }
-    
 
 
     static double getReadPercentage() throws Exception {
@@ -564,11 +444,6 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    protected static List<String> getSites(JChannel channel) {
-        RELAY2 relay=(RELAY2)channel.getProtocolStack().findProtocol(RELAY2.class);
-        return relay != null? relay.siteNames() : new ArrayList<String>(0);
-    }
-
 
 
     protected void printCacheSize() {
@@ -585,45 +460,21 @@ public class Test extends ReceiverAdapter {
     protected void populateCache() {
         int    print=num_rpcs / 10;
         for(int i=1; i <= num_rpcs; i++) {
-            Transaction tx=null;
             try {
-                if(txmgr != null) {
-                    txmgr.begin();
-                    tx=txmgr.getTransaction();
-                }
-                Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
-                tmp_cache.put(i, BUFFER);
+                cache.put(i, BUFFER);
                 num_writes.incrementAndGet();
                 if(print > 0 && i > 0 && i % print == 0)
                     System.out.print(".");
-                if(tx != null)
-                    tx.commit();
             }
             catch(Throwable t) {
                 t.printStackTrace();
-                if(tx != null) {
-                    try {
-                        tx.rollback();
-                    }
-                    catch(SystemException e) {
-                        e.printStackTrace();
-                    }
-                }
             }
         }
     }
 
-    protected void sendToggleTXs() {
-        try {
-            disp.callRemoteMethods(null, new MethodCall(TOGGLE_TXMGR), RequestOptions.SYNC());
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     protected  class Invoker extends Thread {
-        private final List<Address>  dests=new ArrayList<Address>();
+        private final List<Address>  dests=new ArrayList<>();
         private final int            num_rpcs_to_invoke;
         private final AtomicInteger  num_rpcs_invoked;
         private int                  num_gets=0;
@@ -713,7 +564,7 @@ public class Test extends ReceiverAdapter {
         }
 
         private Collection<Address> pickAnycastTargets() {
-            Collection<Address> anycast_targets=new ArrayList<Address>(anycast_count);
+            Collection<Address> anycast_targets=new ArrayList<>(anycast_count);
             int index=dests.indexOf(local_addr);
             for(int i=index + 1; i < index + 1 + anycast_count; i++) {
                 int new_index=i % dests.size();
@@ -757,35 +608,21 @@ public class Test extends ReceiverAdapter {
 
                 // try the operation until it is successful
                 while(true) {
-                    Transaction tx=null;
                     try {
-                        if(txmgr != null) {
-                            txmgr.begin();
-                            tx=txmgr.getTransaction();
-                        }
-
-                        Cache<Integer,byte[]> tmp_cache=sync? sync_cache : async_cache;
                         if(is_this_a_read) {
-                            tmp_cache.get(key);
+                            cache.get(key);
                             num_reads.incrementAndGet();
                         }
                         else {
-                            tmp_cache.put(key, BUFFER);
+                            cache.put(key, BUFFER);
                             num_writes.incrementAndGet();
                         }
-
-                        if(tx != null)
-                            tx.commit();
-
                         if(print > 0 && i % print == 0)
                             System.out.print(".");
                         break;
                     }
                     catch(Throwable t) {
                         t.printStackTrace();
-                        if(tx != null) {
-                            try {tx.rollback();} catch(SystemException e) {}
-                        }
                     }
                 }
             }
@@ -794,13 +631,9 @@ public class Test extends ReceiverAdapter {
 
 
     public static class Results implements Streamable {
-        long num_gets=0;
-        long num_puts=0;
-        long time=0;
+        long num_gets, num_puts, time;
 
-        public Results() {
-            
-        }
+        public Results() {}
 
         public Results(int num_gets, int num_puts, long time) {
             this.num_gets=num_gets;
@@ -823,16 +656,15 @@ public class Test extends ReceiverAdapter {
         public String toString() {
             long total_reqs=num_gets + num_puts;
             double total_reqs_per_sec=total_reqs / (time / 1000.0);
-            return f.format(total_reqs_per_sec) + " reqs/sec (" + num_gets + " GETs, " + num_puts + " PUTs total)";
+            return String.format("%.2f reqs/sec (%d GETs, %d PUTs total)", total_reqs_per_sec, num_gets, num_puts);
         }
     }
 
 
     public static class Config implements Streamable {
-        protected Map<String,Object> values=new HashMap<String,Object>();
+        protected final Map<String,Object> values=new HashMap<>();
 
-        public Config() {
-        }
+        public Config() {}
 
         public Config add(String key, Object value) {
             values.put(key, value);
@@ -863,66 +695,6 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    protected class IspnPerfTestProbeHandler implements DiagnosticsHandler.ProbeHandler {
-        protected static final String GET_ST="st", ENABLE_ST="enable-st", DISABLE_ST="disable-st",
-          CACHE_SIZE="cache-size";
-
-        public Map<String,String> handleProbe(String... keys) {
-            Map<String,String> map=new HashMap<String,String>();
-            for(String key: keys) {
-                if(GET_ST.equals(key))
-                    map.put(GET_ST, String.valueOf(isRebalancingEnabled()));
-                if(ENABLE_ST.equals(key))
-                    setRebalancing(true);
-                if(DISABLE_ST.equals(key))
-                    setRebalancing(false);
-                if(CACHE_SIZE.equals(key))
-                    map.put(CACHE_SIZE, String.valueOf(cache.size()));
-            }
-            return map;
-        }
-
-        public String[] supportedKeys() {
-            return new String[]{GET_ST, ENABLE_ST, DISABLE_ST, CACHE_SIZE};
-        }
-
-        protected boolean isRebalancingEnabled() {
-            LocalTopologyManagerImpl topo_mgr=(LocalTopologyManagerImpl)mgr.getGlobalComponentRegistry().getComponent(LocalTopologyManager.class);
-            try {
-                return topo_mgr.isRebalancingEnabled();
-            }
-            catch(Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-
-        protected void setRebalancing(boolean flag) {
-            LocalTopologyManagerImpl topo_mgr=(LocalTopologyManagerImpl)mgr.getGlobalComponentRegistry().getComponent(LocalTopologyManager.class);
-            try {
-                topo_mgr.setRebalancingEnabled(flag);
-            }
-            catch(Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @Listener
-    public static class MyListener {
-        @ViewChanged
-        public static void viewChanged(ViewChangedEvent evt) {
-            Transport transport=evt.getCacheManager().getTransport();
-            if(transport instanceof JGroupsTransport) {
-                Channel ch=((JGroupsTransport)transport).getChannel();
-                View view=ch.getView();
-                System.out.println("** view: " + view);
-            }
-            else
-                System.out.println("** view: " + evt);
-        }
-    }
-
 
 
 
@@ -930,11 +702,9 @@ public class Test extends ReceiverAdapter {
     public static void main(String[] args) {
         String           config_file="infinispan.xml";
         String           cache_name="clusteredCache";
-        String           name=null;
-        boolean          xsite=true;
+        String           cache_factory_name="org.cache.impl.InfinispanCacheFactory";
+        String           jgroups_config="control.xml";
         boolean          run_event_loop=true;
-        long             uuid=0;
-        int              port=0;
 
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
@@ -945,24 +715,16 @@ public class Test extends ReceiverAdapter {
                 cache_name=args[++i];
                 continue;
             }
-            if("-name".equals(args[i])) {
-                name=args[++i];
-                continue;
-            }
-            if("-xsite".equals(args[i])) {
-                xsite=Boolean.valueOf(args[++i]);
+            if("-cache_factory_name".equals(args[i])) {
+                cache_factory_name=args[++i];
                 continue;
             }
             if("-nohup".equals(args[i])) {
                 run_event_loop=false;
                 continue;
             }
-            if("-uuid".equals(args[i])) {
-                uuid=Long.parseLong(args[++i]);
-                continue;
-            }
-            if("-port".equals(args[i])) {
-                port=Integer.valueOf(args[++i]);
+            if("-jgroups-cfg".equals(args[i])) {
+                jgroups_config=args[++i];
                 continue;
             }
             help();
@@ -972,7 +734,7 @@ public class Test extends ReceiverAdapter {
         Test test=null;
         try {
             test=new Test();
-            test.init(config_file, cache_name, name, xsite, uuid, port);
+            test.init(cache_factory_name, config_file, jgroups_config, cache_name);
             if(run_event_loop)
                 test.startEventThread();
         }
@@ -984,8 +746,8 @@ public class Test extends ReceiverAdapter {
     }
 
     static void help() {
-        System.out.println("Test [-cfg <config-file>] [-cache <cache-name>] [-name name] [-xsite <true | false>] " +
-                             "[-nohup] [-uuid <UUID>] [-port <bind port>]");
+        System.out.println("Test [-cache_factory_name <cache factory classname>] [-cfg <config-file>] " +
+                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]");
     }
 
 

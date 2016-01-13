@@ -4,5 +4,13 @@ IspnPerfTest
 
 Author: Bela Ban
 
-Tests cross-site (xsite) replication in Infinispan. Start a few instances in LON (lon.sh), NYC (nyc.sh) and SFO (sfo.sh).
-'1' makes 10'000 modifications and prints perf stats after the modifications.
+Tests performance of Infinispan and other data caches.
+
+Oracle Coherence test
+---------------------
+To run the Coherence test, you'll need to
+
+* download the Coherence JAR (requires registration) into the local maven repo
+* uncomment the Coherence section in ivy.xml, and run "ant clean-all compile" to fetch the coherence jar from
+  the local maven repo
+* move CohTest.java.txt to CohTest.java
