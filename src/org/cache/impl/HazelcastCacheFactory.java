@@ -1,10 +1,10 @@
 package org.cache.impl;
 
+import com.hazelcast.config.FileSystemXmlConfig;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.infinispan.context.Flag;
-import org.infinispan.manager.DefaultCacheManager;
-import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.notifications.Listener;
 import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
 import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
@@ -19,26 +19,24 @@ import org.jgroups.View;
  */
 @SuppressWarnings("unused")
 @Listener
-public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
-    protected EmbeddedCacheManager mgr;
+public class HazelcastCacheFactory<K,V> implements CacheFactory<K,V> {
+    protected HazelcastInstance hc;
 
     /** Empty constructor needed for an instance to be created via reflection */
-    public InfinispanCacheFactory() {
+    public HazelcastCacheFactory() {
     }
 
     public void init(String config) throws Exception {
-        mgr=new DefaultCacheManager(config);
-        mgr.addListener(this);
+        com.hazelcast.config.Config conf=new FileSystemXmlConfig(config);
+        hc=Hazelcast.newHazelcastInstance(conf);
     }
 
     public void destroy() {
-        mgr.stop();
+        hc.shutdown();
     }
 
     public Cache<K,V> create(String cache_name) {
-        org.infinispan.Cache<K,V> cache=mgr.getCache(cache_name);
-        cache=cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP);
-        return new InfinispanCache(cache);
+        return new HazelcastCache<>(hc.getMap(cache_name));
     }
 
     @ViewChanged

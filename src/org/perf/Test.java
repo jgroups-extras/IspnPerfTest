@@ -1,7 +1,8 @@
 package org.perf;
 
 import org.cache.CacheFactory;
-import org.infinispan.context.Flag;
+import org.cache.impl.HazelcastCacheFactory;
+import org.cache.impl.InfinispanCacheFactory;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
 import org.jgroups.blocks.MethodCall;
@@ -49,31 +50,31 @@ public class Test extends ReceiverAdapter {
     @Property protected int     num_threads=25;
     @Property protected int     num_rpcs=20000, msg_size=1000;
     @Property protected int     anycast_count=2;
-    @Property protected boolean use_anycast_addrs;
     @Property protected boolean msg_bundling=true;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
     @Property protected boolean get_before_put=false; // invoke a sync GET before a PUT
     // ... add your own here, just don't forget to annotate them with @Property
     // =======================================================
 
-    private static final Method[] METHODS=new Method[16];
-    private static final short    START_UPERF           =  0;
-    private static final short    START_ISPN            =  1;
-    private static final short    GET                   =  2;
-    private static final short    PUT                   =  3;
-    private static final short    GET_CONFIG            =  4;
-    private static final short    SET                   =  5;
-    private static final short    QUIT_ALL              =  6;
+    protected static final Method[] METHODS=new Method[16];
+    protected static final short    START_UPERF           =  0;
+    protected static final short    START_ISPN            =  1;
+    protected static final short    GET                   =  2;
+    protected static final short    PUT                   =  3;
+    protected static final short    GET_CONFIG            =  4;
+    protected static final short    SET                   =  5;
+    protected static final short    QUIT_ALL              =  6;
 
-    private final AtomicInteger   COUNTER=new AtomicInteger(1);
-    private byte[]                BUFFER=new byte[msg_size];
-    static final Flag[]           async_flags, sync_flags;
+    protected final AtomicInteger   COUNTER=new AtomicInteger(1);
+    protected byte[]                BUFFER=new byte[msg_size];
+    protected static final String   infinispan_factory=InfinispanCacheFactory.class.getName();
+    protected static final String   hazelcast_factory=HazelcastCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
       "\n[6] Set sender threads (%d) [7] Set num RPCs (%d) [8] Set payload size (%s) [9] Set anycast count (%d)" +
       "\n[p] Populate cache [c] Clear cache [v] Print versions" +
       "\n[o] Toggle OOB (%b) [s] Toggle sync (%b) [r] Set read percentage (%.2f) [g] get_before_put (%b) " +
-      "\n[a] Toggle use_anycast_addrs (%b) [b] Toggle msg_bundling (%b)" +
+      "\n[a] [b] Toggle msg_bundling (%b)" +
       "\n[q] Quit [X] quit all\n";
 
     static {
@@ -91,9 +92,6 @@ public class Test extends ReceiverAdapter {
         catch(NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
-
-        sync_flags=new Flag[] {Flag.FORCE_SYNCHRONOUS, Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP};
-        async_flags=new Flag[] {Flag.FORCE_ASYNCHRONOUS, Flag.IGNORE_RETURN_VALUES, Flag.SKIP_REMOTE_LOOKUP};
     }
 
 
@@ -184,8 +182,8 @@ public class Test extends ReceiverAdapter {
     public Results startUPerfTest() throws Throwable {
         BUFFER=new byte[msg_size];
 
-        System.out.println("invoking " + num_rpcs + " RPCs of " + Util.printBytes(BUFFER.length) + ", sync=" + sync +
-                             ", oob=" + oob + ", msg_bundling=" + msg_bundling + ", use_anycast_addrs=" + use_anycast_addrs);
+        System.out.printf("invoking %d RPCs of %s, sync=%b, oob=%b, msg_bundling=%b",
+                          num_rpcs, Util.printBytes(BUFFER.length), sync, oob, msg_bundling);
         int total_gets=0, total_puts=0;
         final AtomicInteger num_rpcs_invoked=new AtomicInteger(0);
 
@@ -290,9 +288,7 @@ public class Test extends ReceiverAdapter {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
                                               num_threads, num_rpcs, Util.printBytes(msg_size), anycast_count, oob, sync,
-                                              read_percentage, get_before_put, use_anycast_addrs, msg_bundling));
-
-
+                                              read_percentage, get_before_put, msg_bundling));
             switch(c) {
                 case -1:
                     break;
@@ -322,9 +318,6 @@ public class Test extends ReceiverAdapter {
                     if(tmp >= 0)
                         changeFieldAcrossCluster("anycast_count", tmp);
                     break;
-                case 'a':
-                    changeFieldAcrossCluster("use_anycast_addrs", !use_anycast_addrs);
-                    break;
                 case 'c':
                     clearCache();
                     break;
@@ -349,8 +342,8 @@ public class Test extends ReceiverAdapter {
                     populateCache();
                     break;
                 case 'v':
-                    System.out.println("JGroups: " + org.jgroups.Version.printDescription() +
-                                         ", Infinispan: " + org.infinispan.Version.printVersion() + "\n");
+                    System.out.printf("JGroups: %s\n, Infinispan: %s\n",
+                                      org.jgroups.Version.printDescription(), org.infinispan.Version.printVersion());
                     break;
                 case 'q':
                     stop();
@@ -474,12 +467,12 @@ public class Test extends ReceiverAdapter {
 
 
     protected  class Invoker extends Thread {
-        private final List<Address>  dests=new ArrayList<>();
-        private final int            num_rpcs_to_invoke;
-        private final AtomicInteger  num_rpcs_invoked;
-        private int                  num_gets=0;
-        private int                  num_puts=0;
-        private final int            PRINT;
+        protected final List<Address>  dests=new ArrayList<>();
+        protected final int            num_rpcs_to_invoke;
+        protected final AtomicInteger  num_rpcs_invoked;
+        protected int                  num_gets=0;
+        protected int                  num_puts=0;
+        protected final int            PRINT;
 
 
         public Invoker(Collection<Address> dests, int num_rpcs_to_invoke, AtomicInteger num_rpcs_invoked) {
@@ -512,9 +505,6 @@ public class Test extends ReceiverAdapter {
                 get_options.setFlags(Message.Flag.DONT_BUNDLE);
                 put_options.setFlags(Message.Flag.DONT_BUNDLE);
             }
-            if(use_anycast_addrs)
-                put_options.useAnycastAddresses(true);
-
             while(true) {
                 long i=num_rpcs_invoked.getAndIncrement();
                 if(i >= num_rpcs_to_invoke)
@@ -556,14 +546,14 @@ public class Test extends ReceiverAdapter {
             }
         }
 
-        private Address pickTarget() {
+        protected Address pickTarget() {
             return Util.pickRandomElement(dests);
             /*int index=dests.indexOf(local_addr);
             int new_index=(index +1) % dests.size();
             return dests.get(new_index);*/
         }
 
-        private Collection<Address> pickAnycastTargets() {
+        protected Collection<Address> pickAnycastTargets() {
             Collection<Address> anycast_targets=new ArrayList<>(anycast_count);
             int index=dests.indexOf(local_addr);
             for(int i=index + 1; i < index + 1 + anycast_count; i++) {
@@ -715,7 +705,7 @@ public class Test extends ReceiverAdapter {
                 cache_name=args[++i];
                 continue;
             }
-            if("-cache_factory_name".equals(args[i])) {
+            if("-factory".equals(args[i])) {
                 cache_factory_name=args[++i];
                 continue;
             }
@@ -734,6 +724,14 @@ public class Test extends ReceiverAdapter {
         Test test=null;
         try {
             test=new Test();
+            switch(cache_factory_name) {
+                case "ispn":
+                    cache_factory_name=infinispan_factory;
+                    break;
+                case "hc":
+                    cache_factory_name=hazelcast_factory;
+                    break;
+            }
             test.init(cache_factory_name, config_file, jgroups_config, cache_name);
             if(run_event_loop)
                 test.startEventThread();
@@ -746,8 +744,9 @@ public class Test extends ReceiverAdapter {
     }
 
     static void help() {
-        System.out.println("Test [-cache_factory_name <cache factory classname>] [-cfg <config-file>] " +
-                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]");
+        System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
+                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
+                             "Valid factory names: %s (ispn) %s (hc)\n\n", infinispan_factory, hazelcast_factory);
     }
 
 
