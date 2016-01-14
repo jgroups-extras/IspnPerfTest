@@ -12,6 +12,7 @@
         <dependency org="org.apache.logging.log4j"       name="log4j-core"           rev="2.+"/>
         <dependency org="com.hazelcast"                  name="hazelcast"            rev="3.+"/>
         <dependency org="com.oracle.coherence.incubator" name="coherence-common" rev="12.3.1"/>
+       <!-- <dependency org="com.oracle.coherence.incubator" name="coherence-incubator-all" rev="12.3.1"/>-->
         <exclude org="*" ext="*" type="source"/>
         <exclude org="*" ext="*" type="javadoc"/>
     </dependencies>
