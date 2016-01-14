@@ -47,7 +47,7 @@ public class Test extends ReceiverAdapter {
 
 
     // ============ configurable properties ==================
-    @Property protected boolean sync=true, oob=false;
+    @Property protected boolean sync=true, oob=true;
     @Property protected int     num_threads=25;
     @Property protected int     num_rpcs=20000, msg_size=1000;
     @Property protected int     anycast_count=2;
@@ -238,7 +238,6 @@ public class Test extends ReceiverAdapter {
     }
 
     public void quitAll() {
-        Util.sleepRandom(10, 10000);
         System.out.println("-- received quitAll(): shutting down");
         stopEventThread();
     }
