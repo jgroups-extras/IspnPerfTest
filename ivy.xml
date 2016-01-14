@@ -5,14 +5,13 @@
 
     <dependencies>
         <dependency org="org.jgroups"                    name="jgroups"              rev="3.6.+"/>
-        <dependency org="org.infinispan"                 name="infinispan-core"      rev="8.+"/>
-        <dependency org="org.infinispan"                 name="infinispan-commons"   rev="8.+"/>
+        <dependency org="org.infinispan"                 name="infinispan-embedded"      rev="8.2.0-SNAPSHOT"/>
+       <!-- <dependency org="org.infinispan"                 name="infinispan-commons"   rev="8.2.0-SNAPSHOT"/>-->
         <dependency org="log4j"                          name="log4j"                rev="1.2.+"/>
         <dependency org="org.apache.logging.log4j"       name="log4j-api"            rev="2.+"/>
         <dependency org="org.apache.logging.log4j"       name="log4j-core"           rev="2.+"/>
         <dependency org="com.hazelcast"                  name="hazelcast"            rev="3.+"/>
         <dependency org="com.oracle.coherence.incubator" name="coherence-common" rev="12.3.1"/>
-       <!-- <dependency org="com.oracle.coherence.incubator" name="coherence-incubator-all" rev="12.3.1"/>-->
         <exclude org="*" ext="*" type="source"/>
         <exclude org="*" ext="*" type="javadoc"/>
     </dependencies>
