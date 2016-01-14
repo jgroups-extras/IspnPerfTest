@@ -1,6 +1,7 @@
 package org.perf;
 
 import org.cache.CacheFactory;
+import org.cache.impl.CoherenceCacheFactory;
 import org.cache.impl.HazelcastCacheFactory;
 import org.cache.impl.InfinispanCacheFactory;
 import org.jgroups.*;
@@ -69,6 +70,7 @@ public class Test extends ReceiverAdapter {
     protected byte[]                BUFFER=new byte[msg_size];
     protected static final String   infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String   hazelcast_factory=HazelcastCacheFactory.class.getName();
+    protected static final String   coherence_factory=CoherenceCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
       "\n[6] Set sender threads (%d) [7] Set num RPCs (%d) [8] Set payload size (%s) [9] Set anycast count (%d)" +
@@ -691,7 +693,7 @@ public class Test extends ReceiverAdapter {
 
     public static void main(String[] args) {
         String           config_file="infinispan.xml";
-        String           cache_name="clusteredCache";
+        String           cache_name="perf-cache";
         String           cache_factory_name="org.cache.impl.InfinispanCacheFactory";
         String           jgroups_config="control.xml";
         boolean          run_event_loop=true;
@@ -731,6 +733,9 @@ public class Test extends ReceiverAdapter {
                 case "hc":
                     cache_factory_name=hazelcast_factory;
                     break;
+                case "coh":
+                    cache_factory_name=coherence_factory;
+                    break;
             }
             test.init(cache_factory_name, config_file, jgroups_config, cache_name);
             if(run_event_loop)
@@ -746,7 +751,8 @@ public class Test extends ReceiverAdapter {
     static void help() {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
                              "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
-                             "Valid factory names: %s (ispn) %s (hc)\n\n", infinispan_factory, hazelcast_factory);
+                             "Valid factory names: %s (ispn), %s (hc), %s (coh)\n\n",
+                          infinispan_factory, hazelcast_factory, coherence_factory);
     }
 
 

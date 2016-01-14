@@ -6,7 +6,7 @@
 
    <caching-scheme-mapping>
       <cache-mapping>
-         <cache-name>coh-perf</cache-name>
+         <cache-name>perf-cache</cache-name>
          <scheme-name>distributed</scheme-name>
       </cache-mapping>
    </caching-scheme-mapping>

@@ -44,4 +44,4 @@ EXPERIMENTAL="$EXPERIMENTAL -XX:+EliminateLocks -XX:+UseBiasedLocking"
 
 export proc_id=$$
 
-java -classpath $CP -Dproc_id=${proc_id} $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC $GC_FLAGS org.perf.Test $*
+java $CONFIG -classpath $CP -Dproc_id=${proc_id} $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC $GC_FLAGS org.perf.Test $*

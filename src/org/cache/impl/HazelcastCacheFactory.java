@@ -6,12 +6,6 @@ import com.hazelcast.core.HazelcastInstance;
 import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.infinispan.notifications.Listener;
-import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
-import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
-import org.infinispan.remoting.transport.Transport;
-import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.jgroups.Channel;
-import org.jgroups.View;
 
 /**
  * @author Bela Ban
@@ -39,15 +33,5 @@ public class HazelcastCacheFactory<K,V> implements CacheFactory<K,V> {
         return new HazelcastCache<>(hc.getMap(cache_name));
     }
 
-    @ViewChanged
-    public static void viewChanged(ViewChangedEvent evt) {
-        Transport transport=evt.getCacheManager().getTransport();
-        if(transport instanceof JGroupsTransport) {
-            Channel ch=((JGroupsTransport)transport).getChannel();
-            View view=ch.getView();
-            System.out.println("** view: " + view);
-        }
-        else
-            System.out.println("** view: " + evt);
-    }
+
 }
