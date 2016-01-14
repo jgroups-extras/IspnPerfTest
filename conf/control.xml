@@ -14,7 +14,7 @@
          bind_addr="127.0.0.1"
          mcast_addr="235.5.5.5"
          mcast_port="${jgroups.udp.mcast_port:55588}"
-         ip_ttl="0"
+         ip_ttl="1"
          tos="8"
          ucast_recv_buf_size="5M"
          ucast_send_buf_size="5M"
