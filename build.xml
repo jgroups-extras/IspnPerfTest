@@ -72,6 +72,14 @@
             </fileset>
             <globmapper from="byteman*.jar" to="byteman.jar"/>
         </move>
+
+        <!-- Moves jgroups-x.y.z.jar to 0jgroups-x.y.z.jar, to be in the front of the claspath (ahead of infinispan-embeddesd -->
+        <!--<move todir="${lib.dir}">
+            <fileset dir="${lib.dir}">
+                <include name="jgroups-*.jar"/>
+            </fileset>
+            <globmapper from="jgroups-*.jar" to="0jgroups.jar"/>
+        </move>-->
     </target>
 
 
