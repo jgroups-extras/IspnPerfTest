@@ -343,7 +343,7 @@ public class Test extends ReceiverAdapter {
                     populateCache();
                     break;
                 case 'v':
-                    System.out.printf("JGroups: %s\n, Infinispan: %s\n",
+                    System.out.printf("JGroups: %s, Infinispan: %s\n",
                                       org.jgroups.Version.printDescription(), org.infinispan.Version.printVersion());
                     break;
                 case 'q':
