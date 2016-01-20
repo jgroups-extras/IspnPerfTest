@@ -6,6 +6,10 @@ Author: Bela Ban
 
 Tests performance of Infinispan and other data caches.
 
+To run: bin/perf-test.sh -cfg infinispan.xml (for Infinispan)
+
+
+
 Oracle Coherence test
 ---------------------
 To run the Coherence test, you'll need to
