@@ -12,7 +12,7 @@
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
     <UDP
          bind_addr="127.0.0.1"
-         mcast_addr="235.5.5.5"
+         mcast_addr="229.5.5.5"
          mcast_port="${jgroups.udp.mcast_port:55588}"
          ip_ttl="1"
          tos="8"
