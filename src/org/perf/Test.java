@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * Mimics distributed mode by invoking N (default:20000) requests, 20% writes and 80% reads on random keys in range
+ * Mimics distributed mode by invoking N (default:50000) requests, 20% writes and 80% reads on random keys in range
  * [1 .. N]. Every member inthe cluster does this and the initiator waits until everyone is done, tallies the results
  * (sent to it by every member) and prints stats (throughput).
  * @author Bela Ban
@@ -49,7 +49,7 @@ public class Test extends ReceiverAdapter {
     // ============ configurable properties ==================
     @Property protected boolean sync=true, oob=true;
     @Property protected int     num_threads=25;
-    @Property protected int     num_rpcs=20000, msg_size=1000;
+    @Property protected int     num_rpcs=50000, msg_size=1000;
     @Property protected int     anycast_count=2;
     @Property protected boolean msg_bundling=true;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
