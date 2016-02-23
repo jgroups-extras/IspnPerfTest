@@ -17,7 +17,8 @@ public class HazelcastCache<K,V> implements Cache<K,V> {
     }
 
     public V put(K key, V value) {
-        return cache.put(key, value);
+        cache.set(key, value);
+        return null;
     }
 
     public V get(K key) {
