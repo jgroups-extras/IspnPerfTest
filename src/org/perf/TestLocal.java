@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TestLocal extends ReceiverAdapter {
     protected CacheFactory<Integer,byte[]>     cache_factory;
     protected org.cache.Cache<Integer,byte[]>  cache;
-    protected JChannel channel;
+    protected JChannel               channel;
     protected Address                local_addr;
     protected RpcDispatcher          disp;
     protected final List<Address>    members=new ArrayList<>();
@@ -692,7 +692,6 @@ public class TestLocal extends ReceiverAdapter {
         String           cache_name="perf-cache";
         String           cache_factory_name="org.cache.impl.InfinispanCacheFactory";
         String           jgroups_config="control.xml";
-        boolean          run_event_loop=true;
 
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
@@ -705,10 +704,6 @@ public class TestLocal extends ReceiverAdapter {
             }
             if("-factory".equals(args[i])) {
                 cache_factory_name=args[++i];
-                continue;
-            }
-            if("-nohup".equals(args[i])) {
-                run_event_loop=false;
                 continue;
             }
             if("-jgroups-cfg".equals(args[i])) {
@@ -748,7 +743,7 @@ public class TestLocal extends ReceiverAdapter {
 
     static void help() {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
-                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
+                             "[-cache <cache-name>] [-jgroups-cfg]\n" +
                              "Valid factory names: %s (ispn), %s (hc), %s (coh)\n\n",
                           infinispan_factory, hazelcast_factory, coherence_factory);
     }
