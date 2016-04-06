@@ -3,8 +3,8 @@
 
 # Author: Bela Ban
 
-PT=$HOME/IspnPerfTest
-CP=$PT/classes:$PT/lib/*:$PT/conf
+PT="$(dirname "$(dirname "$(readlink "$0")")")"
+CP=$PT/target/infinispan-perf-1.0-SNAPSHOT-jar-with-dependencies.jar:$PT/conf
 
 if [ -f $HOME/log4j.properties ]; then
     LOG="-Dlog4j.configuration=file:$HOME/log4j.properties"

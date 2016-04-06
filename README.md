@@ -6,17 +6,47 @@ Author: Bela Ban
 
 Tests performance of Infinispan and other data caches.
 
-To run: bin/perf-test.sh -cfg infinispan.xml (for Infinispan)
 
+Requirements
+============
+
+* Create an Oracle account at <https://profile.oracle.com/myprofile/account/create-account.jspx>
+* Accept the license for the Maven Repo at <https://www.oracle.com/webapps/maven/register/license.html>
+* Add to your maven-settings.xml the Oracle account credentials (usually located on MAVEN_HOME/conf/settings.xml or HOME/.m2/settings.xml):
+
+```
+<server>
+    <id>maven.oracle.com</id>
+    <username>put Oracle username</username>
+    <password>put Oracle password</password>
+    <configuration>
+      <basicAuthScope>
+        <host>ANY</host>
+        <port>ANY</port>
+        <realm>OAM 11g</realm>
+      </basicAuthScope>
+      <httpConfiguration>
+        <all>
+          <params>
+            <property>
+              <name>http.protocol.allow-circular-redirects</name>
+              <value>%b,true</value>
+            </property>
+          </params>
+        </all>
+      </httpConfiguration>
+    </configuration>
+</server>
+```
+* Build with ```mvn clean install```
+
+Infinispan Test
+---------------
+
+To run: bin/perf-test.sh -cfg infinispan.xml (for Infinispan)
 
 
 Oracle Coherence test
 ---------------------
-To run the Coherence test, you'll need to
 
-* download the Coherence JAR (requires registration) into the local maven repo (see [1] for details)
-* uncomment the Coherence section in ivy.xml, and run "ant clean-all compile" to fetch the coherence jar from
-  the local maven repo
-* ant clean-all compile, then run ./bin/coh-per-test.sh
-
-[1] http://coherence-community.github.io/coherence-incubator/12.1.0/building.html
+./bin/coh-per-test.sh
