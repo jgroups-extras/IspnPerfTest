@@ -9,6 +9,9 @@
     <property name="nexus-public-and-snapshots"
                value="https://repository.jboss.org/nexus/content/groups/public-jboss"/>
 
+    <property name="coherence-repo"
+              value="https://maven.oracle.com"/>
+
 
     <property
             name="m2-location"
