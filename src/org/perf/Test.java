@@ -184,7 +184,7 @@ public class Test extends ReceiverAdapter {
     public Results startUPerfTest() throws Throwable {
         BUFFER=new byte[msg_size];
 
-        System.out.printf("invoking %d RPCs of %s, sync=%b, oob=%b, msg_bundling=%b",
+        System.out.printf("invoking %d RPCs of %s, sync=%b, oob=%b, msg_bundling=%b\n",
                           num_rpcs, Util.printBytes(BUFFER.length), sync, oob, msg_bundling);
         int total_gets=0, total_puts=0;
         final AtomicInteger num_rpcs_invoked=new AtomicInteger(0);
