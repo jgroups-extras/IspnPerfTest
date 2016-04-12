@@ -53,7 +53,7 @@ public class Test extends ReceiverAdapter {
     @Property protected int     anycast_count=2;
     @Property protected boolean msg_bundling=true;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
-    @Property protected boolean get_before_put=false; // invoke a sync GET before a PUT
+    @Property protected boolean random_keys=true;
     // ... add your own here, just don't forget to annotate them with @Property
     // =======================================================
 
@@ -75,8 +75,8 @@ public class Test extends ReceiverAdapter {
     protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
       "\n[6] Set sender threads (%d) [7] Set num RPCs (%d) [8] Set payload size (%s) [9] Set anycast count (%d)" +
       "\n[p] Populate cache [c] Clear cache [v] Print versions" +
-      "\n[o] Toggle OOB (%b) [s] Toggle sync (%b) [r] Set read percentage (%.2f) [g] get_before_put (%b) " +
-      "\n[a] [b] Toggle msg_bundling (%b)" +
+      "\n[o] Toggle OOB (%b) [s] Toggle sync (%b) [r] Set read percentage (%.2f) " +
+      "\n[b] Toggle msg_bundling (%b) [k] random keys (%b)" +
       "\n[q] Quit [X] quit all\n";
 
     static {
@@ -289,7 +289,7 @@ public class Test extends ReceiverAdapter {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
                                               num_threads, num_rpcs, Util.printBytes(msg_size), anycast_count, oob, sync,
-                                              read_percentage, get_before_put, msg_bundling));
+                                              read_percentage, msg_bundling, random_keys));
             switch(c) {
                 case -1:
                     break;
@@ -336,11 +336,11 @@ public class Test extends ReceiverAdapter {
                 case 'b':
                     changeFieldAcrossCluster("msg_bundling", !msg_bundling);
                     break;
-                case 'g':
-                    changeFieldAcrossCluster("get_before_put", !get_before_put);
-                    break;
                 case 'p':
                     populateCache();
+                    break;
+                case 'k':
+                    changeFieldAcrossCluster("random_keys", !random_keys);
                     break;
                 case 'v':
                     System.out.printf("JGroups: %s, Infinispan: %s\n",
@@ -496,7 +496,6 @@ public class Test extends ReceiverAdapter {
             MethodCall put_call=new MethodCall(PUT, put_args);
             RequestOptions get_options=new RequestOptions(ResponseMode.GET_ALL, 40000, false, null);
             RequestOptions put_options=new RequestOptions(sync ? ResponseMode.GET_ALL : ResponseMode.GET_NONE, 40000, true, null);
-            RequestOptions get_before_put_options=new RequestOptions(ResponseMode.GET_FIRST, 40000, true, null, Message.Flag.DONT_BUNDLE, Message.Flag.OOB);
 
             if(oob) {
                 get_options.setFlags(Message.Flag.OOB);
@@ -519,24 +518,20 @@ public class Test extends ReceiverAdapter {
                     if(get) { // sync GET
                         Address target=pickTarget();
                         if(target != null && target.equals(local_addr)) {
-                            // System.out.println("direct invocation on " + local_addr);
+                            // System.out.printf("-- local get(%d)\n", i);
                             get(1); // invoke the call directly if local
                         }
                         else {
                             get_args[0]=i;
+                            // System.out.printf("-- remote get(%d) on %s\n", i, target);
                             disp.callRemoteMethod(target, get_call, get_options);
                         }
                         num_gets++;
                     }
                     else {    // sync or async (based on value of 'sync') PUT
                         final Collection<Address> targets=pickAnycastTargets();
-                        if(get_before_put) {
-                            // sync GET
-                            get_args[0]=i;
-                            disp.callRemoteMethods(targets, get_call, get_before_put_options);
-                            num_gets++;
-                        }
                         put_args[0]=i;
+                        // System.out.printf("-- put(%d) on %s\n", i, targets);
                         disp.callRemoteMethods(targets, put_call, put_options);
                         num_puts++;
                     }
@@ -549,9 +544,6 @@ public class Test extends ReceiverAdapter {
 
         protected Address pickTarget() {
             return Util.pickRandomElement(dests);
-            /*int index=dests.indexOf(local_addr);
-            int new_index=(index +1) % dests.size();
-            return dests.get(new_index);*/
         }
 
         protected Collection<Address> pickAnycastTargets() {
@@ -601,10 +593,12 @@ public class Test extends ReceiverAdapter {
                 while(true) {
                     try {
                         if(is_this_a_read) {
+                            // System.out.printf("-- get(%d)\n", key);
                             cache.get(key);
                             num_reads.incrementAndGet();
                         }
                         else {
+                            // System.out.printf("-- put(%d)\n", key);
                             cache.put(key, BUFFER);
                             num_writes.incrementAndGet();
                         }
@@ -691,7 +685,7 @@ public class Test extends ReceiverAdapter {
 
 
     public static void main(String[] args) {
-        String           config_file="infinispan.xml";
+        String           config_file="dist-sync.xml";
         String           cache_name="perf-cache";
         String           cache_factory_name="org.cache.impl.InfinispanCacheFactory";
         String           jgroups_config="control.xml";
