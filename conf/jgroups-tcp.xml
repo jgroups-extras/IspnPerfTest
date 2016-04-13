@@ -19,24 +19,24 @@
          thread_naming_pattern="cl"
 
          timer_type="new3"
-         timer.min_threads="4"
+         timer.min_threads="2"
          timer.max_threads="10"
          timer.keep_alive_time="3000"
          timer.queue_max_size="500"
 
-         thread_pool.min_threads="2"
+         thread_pool.min_threads="0"
          thread_pool.max_threads="20"
-         thread_pool.keep_alive_time="5000"
+         thread_pool.keep_alive_time="30000"
          thread_pool.queue_enabled="false"
-         thread_pool.queue_max_size="100000"
-         thread_pool.rejection_policy="discard"
+         thread_pool.queue_max_size="1000"
+         thread_pool.rejection_policy="abort"
 
-         oob_thread_pool.min_threads="4"
+         oob_thread_pool.min_threads="0"
          oob_thread_pool.max_threads="150"
-         oob_thread_pool.keep_alive_time="5000"
+         oob_thread_pool.keep_alive_time="30000"
          oob_thread_pool.queue_enabled="false"
          oob_thread_pool.queue_max_size="100"
-         oob_thread_pool.rejection_policy="discard"/>
+         oob_thread_pool.rejection_policy="abort"/>
 
     <MPING />
     <MERGE3 max_interval="30000"
