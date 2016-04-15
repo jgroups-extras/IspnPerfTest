@@ -1,8 +1,9 @@
-package org.cache.impl;
+package org.cache.impl.coh;
 
 import com.tangosol.net.NamedCache;
 import org.cache.Cache;
 import org.cache.CacheFactory;
+import org.cache.impl.coh.CoherenceCache;
 import org.infinispan.notifications.Listener;
 
 /**

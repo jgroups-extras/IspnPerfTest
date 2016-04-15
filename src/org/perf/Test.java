@@ -69,7 +69,7 @@ public class Test extends ReceiverAdapter {
     protected byte[]                BUFFER=new byte[msg_size];
     protected static final String   infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String   hazelcast_factory=HazelcastCacheFactory.class.getName();
-    protected static final String   coherence_factory="org.cache.impl.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
+    protected static final String   coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
 
     protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
       "\n[6] Set sender threads (%d) [7] Set num RPCs (%d) [8] Set payload size (%s) [9] Set anycast count (%d)" +

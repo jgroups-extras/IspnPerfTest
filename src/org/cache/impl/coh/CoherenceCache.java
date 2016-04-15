@@ -1,4 +1,4 @@
-package org.cache.impl;
+package org.cache.impl.coh;
 
 import com.tangosol.net.NamedCache;
 import org.cache.Cache;
