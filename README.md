@@ -6,8 +6,13 @@ Author: Bela Ban
 
 Tests performance of Infinispan and other data grids.
 
-There's a dual build: one can either use ant/ivy or maven. To build using ant, execute 'ant'. To use maven, execute
-'mvn install'.
+There's a dual build: one can either use ant/ivy or maven. 
+
+Ant and ivy build
+-----------------
+* Execute `ant` to retrieve all dependent JARs and compile all source files except the Coherence files
+* Execute `ant compile-coh` to retrieve the Coherence JAR and then compile all source files. Note that ivy-coh.xml is
+  used to retrieve the Coherence JAR file. See below for how to set up the Oracle maven repo for Coherence.
 
 To run: bin/perf-test.sh (for Infinispan), bin/hc-perf-test.sh (for Hazelcast) and bin/coh-perf-test.sh (for Coherence)
 
@@ -48,11 +53,10 @@ Hazelcast test
 Oracle Coherence test
 ---------------------
 To run the Coherence test, you'll need to
-* download the Coherence JAR (requires registration) into the local maven repo (see [1] for details)
-* uncomment the Coherence section in ivy.xml, and run "ant clean-all compile" to fetch the coherence jar from
-  the local maven repo
-* ant clean-all compile, then run ./bin/coh-per-test.sh
-* The configuration used for Coherence is conf/coh.xml
+* Download the Coherence JAR (requires registration) into the local maven repo, or setup a maven repo for 
+  Oracle Coherence (see [1] for details)
+* Run `ant compile-coh`, then run `./bin/coh-per-test.sh`
+* The configuration used for Coherence is `conf/coh.xml`
 
 
 [1] http://coherence-community.github.io/coherence-incubator/12.1.0/building.html

@@ -60,6 +60,7 @@
 
     <target name="retrieve" depends="check-jars-exist,get-ivy,define-ivy-task" unless="jars.exist"
             description="Retrieves all dependent libs defined in ivy.xml unless already present">
+        <ivy:resolve file="ivy.xml"/>
         <ivy:retrieve type="jar,bundle,source"  />
 
         <!-- Move byteman-x.y.z.jar to byteman.jar (needed by -javaagent:byteman.jar in byteman tests) -->
@@ -72,16 +73,14 @@
             </fileset>
             <globmapper from="byteman*.jar" to="byteman.jar"/>
         </move>
-
-        <!-- Moves jgroups-x.y.z.jar to 0jgroups-x.y.z.jar, to be in the front of the claspath (ahead of infinispan-embeddesd -->
-        <!--<move todir="${lib.dir}">
-            <fileset dir="${lib.dir}">
-                <include name="jgroups-*.jar"/>
-            </fileset>
-            <globmapper from="jgroups-*.jar" to="0jgroups.jar"/>
-        </move>-->
     </target>
 
+
+    <target name="retrieve-coh" depends="define-ivy-task"
+            description="Retrieves the Coherence lib defined in ivy-coh.xml unless already present">
+        <ivy:resolve file="ivy-coh.xml"/>
+        <ivy:retrieve type="jar,bundle,source"  />
+    </target>
 
 
 
@@ -106,10 +105,12 @@
                deprecation="off"
                optimize="off"
                listfiles="false"
-               includes="org/perf/**">
+               excludes="org/cache/impl/Coherence*">
             <src path="${src.dir}"/>
         </javac>
     </target>
+
+    <target name="compile-coh" depends="compile,retrieve-coh" description="Compiles all Java files plus the coherence classes"/>
 
 
     <target name="jar"
