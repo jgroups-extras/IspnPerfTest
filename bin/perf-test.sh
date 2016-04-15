@@ -24,6 +24,9 @@ FLAGS="$FLAGS -XX:CompileThreshold=10000 -XX:+AggressiveHeap -XX:ThreadStackSize
 FLAGS="$FLAGS -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15"
 FLAGS="$FLAGS -Xshare:off"
 
+# Number of HC reader and writer threads: N is 1 selector, N reader threads and N writer threads
+HAZELCAST="-Dhazelcast.io.thread.count=200"
+
 # JMX="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=7777 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
 JMX="-Dcom.sun.management.jmxremote"
 #EXPERIMENTAL="-XX:+UseFastAccessorMethods -XX:+UseTLAB"
@@ -44,4 +47,4 @@ EXPERIMENTAL="$EXPERIMENTAL -XX:+EliminateLocks -XX:+UseBiasedLocking"
 
 export proc_id=$$
 
-java $CONFIG -classpath $CP -Dproc_id=${proc_id} $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC $GC_FLAGS org.perf.Test $*
+java $CONFIG -classpath $CP $HAZELCAST -Dproc_id=${proc_id} $DEBUG $LOG $JG_FLAGS $FLAGS $EXPERIMENTAL $JMX $JMC $GC_FLAGS org.perf.Test $*
