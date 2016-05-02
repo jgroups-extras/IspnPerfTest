@@ -19,7 +19,7 @@ if [ -f $HOME/logging.properties ]; then
 fi;
 
 JG_FLAGS="-Djava.net.preferIPv4Stack=true"
-FLAGS="-server -Xmx1G -Xms1G"
+FLAGS="-server -Xmx1G -Xms500m"
 FLAGS="$FLAGS -XX:CompileThreshold=10000 -XX:+AggressiveHeap -XX:ThreadStackSize=64K -XX:SurvivorRatio=8"
 FLAGS="$FLAGS -XX:TargetSurvivorRatio=90 -XX:MaxTenuringThreshold=15"
 FLAGS="$FLAGS -Xshare:off"

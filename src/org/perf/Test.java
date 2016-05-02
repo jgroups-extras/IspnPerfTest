@@ -52,7 +52,8 @@ public class Test extends ReceiverAdapter {
     @Property protected int     anycast_count=2;
     @Property protected boolean msg_bundling=true;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
-    @Property protected boolean random_keys=true;
+    @Property protected boolean print_details;
+    @Property protected boolean print_invokers;
     // ... add your own here, just don't forget to annotate them with @Property
     // =======================================================
 
@@ -75,7 +76,7 @@ public class Test extends ReceiverAdapter {
       "\n[6] Set sender threads (%d) [7] Set num RPCs (%d) [8] Set payload size (%s) [9] Set anycast count (%d)" +
       "\n[p] Populate cache [c] Clear cache [v] Print versions" +
       "\n[o] Toggle OOB (%b) [s] Toggle sync (%b) [r] Set read percentage (%.2f) " +
-      "\n[b] Toggle msg_bundling (%b) [k] random keys (%b)" +
+      "\n[b] Toggle msg_bundling (%b) [d] print details (%b)  [i] print invokers (%b)" +
       "\n[q] Quit [X] quit all\n";
 
     static {
@@ -187,24 +188,46 @@ public class Test extends ReceiverAdapter {
                           num_rpcs, Util.printBytes(BUFFER.length), sync, oob, msg_bundling);
         int total_gets=0, total_puts=0;
         final AtomicInteger num_rpcs_invoked=new AtomicInteger(0);
-
+        final CountDownLatch latch=new CountDownLatch(num_threads+1);
         Invoker[] invokers=new Invoker[num_threads];
-        for(int i=0; i < invokers.length; i++)
-            invokers[i]=new Invoker(members, num_rpcs, num_rpcs_invoked);
+        for(int i=0; i < invokers.length; i++) {
+            invokers[i]=new Invoker(members, latch, num_rpcs, num_rpcs_invoked);
+            invokers[i].start();
+        }
 
         long start=System.currentTimeMillis();
+        latch.countDown();
         for(Invoker invoker: invokers)
-            invoker.start();
-
-        for(Invoker invoker: invokers) {
             invoker.join();
-            total_gets+=invoker.numGets();
-            total_puts+=invoker.numPuts();
-        }
 
         long total_time=System.currentTimeMillis() - start;
         System.out.println("\ndone (in " + total_time + " ms)");
-        return new Results(total_gets, total_puts, total_time);
+
+        AverageMinMax get_avg=null, put_avg=null;
+        if(print_invokers)
+            System.out.printf("Round trip times (min/avg/max us):\n");
+        for(Invoker inv: invokers) {
+            if(print_invokers)
+                System.out.printf("%s: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n", inv.getId(),
+                                  inv.get_avg.min()/1000.0, inv.get_avg.average()/1000.0, inv.get_avg.max()/1000.0,
+                                  inv.put_avg.min()/1000.0, inv.put_avg.average()/1000.0, inv.put_avg.max()/1000.0);
+            if(get_avg == null)
+                get_avg=inv.get_avg;
+            else
+                get_avg.merge(inv.get_avg);
+            if(put_avg == null)
+                put_avg=inv.put_avg;
+            else
+                put_avg.merge(inv.put_avg);
+            total_gets+=inv.num_gets;
+            total_puts+=inv.num_puts;
+        }
+        if(print_details || print_invokers)
+            System.out.printf("\nall: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n",
+                              get_avg.min()/1000.0, get_avg.average()/1000.0, get_avg.max()/1000.0,
+                              put_avg.min()/1000.0, put_avg.average()/1000.0, put_avg.max()/1000.0);
+
+        return new Results(total_gets, total_puts, total_time, get_avg, put_avg);
     }
 
     public Results startIspnTest() throws Throwable {
@@ -212,28 +235,56 @@ public class Test extends ReceiverAdapter {
         num_reads.set(0);
         num_writes.set(0);
 
-        BUFFER=new byte[msg_size];
-        System.out.printf("invoking %d RPCs of %s, sync=%b\n", num_rpcs, Util.printBytes(BUFFER.length), sync);
+        try {
+            BUFFER=new byte[msg_size];
+            System.out.printf("invoking %d RPCs of %s, sync=%b\n", num_rpcs, Util.printBytes(BUFFER.length), sync);
 
-        // The first call needs to be synchronous with OOB !
-        final CountDownLatch latch=new CountDownLatch(1);
-        CacheInvoker[] invokers=new CacheInvoker[num_threads];
-        for(int i=0; i < invokers.length; i++) {
-            invokers[i]=new CacheInvoker(latch);
-            invokers[i].setName("invoker-" + i);
-            invokers[i].start();
+            // The first call needs to be synchronous with OOB !
+            final CountDownLatch latch=new CountDownLatch(num_threads+1);
+            CacheInvoker[] invokers=new CacheInvoker[num_threads];
+            for(int i=0; i < invokers.length; i++) {
+                invokers[i]=new CacheInvoker(latch);
+                invokers[i].setName("invoker-" + i);
+                invokers[i].start();
+            }
+
+            long start=System.currentTimeMillis();
+            latch.countDown(); // starts all sender threads
+
+            for(CacheInvoker invoker : invokers)
+                invoker.join();
+            long time=System.currentTimeMillis() - start;
+            System.out.println("\ndone (in " + time + " ms)\n");
+
+            AverageMinMax get_avg=null, put_avg=null;
+            if(print_invokers)
+                System.out.printf("Round trip times (min/avg/max us):\n");
+            for(CacheInvoker inv: invokers) {
+                if(print_invokers)
+                    System.out.printf("%s: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n", inv.getId(),
+                                      inv.get_avg.min()/1000.0, inv.get_avg.average()/1000.0, inv.get_avg.max()/1000.0,
+                                      inv.put_avg.min()/1000.0, inv.put_avg.average()/1000.0, inv.put_avg.max()/1000.0);
+                if(get_avg == null)
+                    get_avg=inv.get_avg;
+                else
+                    get_avg.merge(inv.get_avg);
+                if(put_avg == null)
+                    put_avg=inv.put_avg;
+                else
+                    put_avg.merge(inv.put_avg);
+            }
+            if(print_details || print_invokers)
+                System.out.printf("\nall: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n",
+                                  get_avg.min()/1000.0, get_avg.average()/1000.0, get_avg.max()/1000.0,
+                                  put_avg.min()/1000.0, put_avg.average()/1000.0, put_avg.max()/1000.0);
+            return new Results(num_reads.get(), num_writes.get(), time, get_avg, put_avg);
+        }
+        catch(Throwable t) {
+            t.printStackTrace();
+            return null;
         }
 
-        long start=System.currentTimeMillis();
-        latch.countDown();
 
-        for(CacheInvoker invoker: invokers)
-            invoker.join();
-        long time=System.currentTimeMillis() - start;
-
-        System.out.println("\ndone (in " + time + " ms)");
-
-        return new Results(num_reads.get(), num_writes.get(), time);
     }
 
     public void quitAll() {
@@ -288,7 +339,7 @@ public class Test extends ReceiverAdapter {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
                                               num_threads, num_rpcs, Util.printBytes(msg_size), anycast_count, oob, sync,
-                                              read_percentage, msg_bundling, random_keys));
+                                              read_percentage, msg_bundling, print_details, print_invokers));
             switch(c) {
                 case -1:
                     break;
@@ -321,6 +372,12 @@ public class Test extends ReceiverAdapter {
                 case 'c':
                     clearCache();
                     break;
+                case 'd':
+                    changeFieldAcrossCluster("print_details", !print_details);
+                    break;
+                 case 'i':
+                    changeFieldAcrossCluster("print_invokers", !print_invokers);
+                    break;
                 case 'o':
                     changeFieldAcrossCluster("oob", !oob);
                     break;
@@ -337,9 +394,6 @@ public class Test extends ReceiverAdapter {
                     break;
                 case 'p':
                     populateCache();
-                    break;
-                case 'k':
-                    changeFieldAcrossCluster("random_keys", !random_keys);
                     break;
                 case 'v':
                     System.out.printf("JGroups: %s, Infinispan: %s\n",
@@ -382,23 +436,39 @@ public class Test extends ReceiverAdapter {
         }
 
         long total_reqs=0, total_time=0;
+        AverageMinMax get_avg=null, put_avg=null;
         System.out.println("\n======================= Results: ===========================");
         for(Map.Entry<Address,Rsp<Results>> entry: responses.entrySet()) {
             Address mbr=entry.getKey();
             Rsp<Results> rsp=entry.getValue();
+            if(rsp.hasException()) {
+                Throwable t=rsp.getException();
+                System.out.printf("%s: %s (cause=%s)\n", mbr, t, t.getCause());
+                continue;
+            }
+
             Results result=rsp.getValue();
             if(result != null) {
                 total_reqs+=result.num_gets + result.num_puts;
                 total_time+=result.time;
+                if(get_avg == null)
+                    get_avg=result.get_avg;
+                else
+                    get_avg.merge(result.get_avg);
+                if(put_avg == null)
+                    put_avg=result.put_avg;
+                else
+                    put_avg.merge(result.put_avg);
             }
             System.out.println(mbr + ": " + result);
         }
         double total_reqs_sec=total_reqs / ( total_time/ 1000.0);
         double throughput=total_reqs_sec * msg_size;
-        double ms_per_req=total_time / (double)total_reqs;
         System.out.println("\n");
-        System.out.println(Util.bold(String.format("Average of %.2f requests / sec (%s / sec), %.2f ms /request",
-                                                   total_reqs_sec, Util.printBytes(throughput), ms_per_req)));
+        System.out.println(Util.bold(String.format("Throughput: %.2f reqs/sec/node (%s/sec)\n" +
+                                                     "Roundtrip:  gets %s, puts %s\n",
+                                                   total_reqs_sec, Util.printBytes(throughput),
+                                                   print(get_avg, print_details), print(put_avg, print_details))));
         System.out.println("\n\n");
     }
 
@@ -437,7 +507,11 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-
+    protected static String print(AverageMinMax avg, boolean details) {
+        return details? String.format("min/avg/max = %.2f/%.2f/%.2f us",
+                                      avg.min() / 1000.0, avg.average() / 1000.0, avg.max() / 1000.0) :
+          String.format("avg = %.2f us", avg.average() / 1000.0);
+    }
 
     protected void printCacheSize() {
         int size=cache.size();
@@ -467,15 +541,19 @@ public class Test extends ReceiverAdapter {
 
 
     protected  class Invoker extends Thread {
+        protected final CountDownLatch latch;
         protected final List<Address>  dests=new ArrayList<>();
         protected final int            num_rpcs_to_invoke;
         protected final AtomicInteger  num_rpcs_invoked;
-        protected int                  num_gets=0;
-        protected int                  num_puts=0;
+        protected int                  num_gets;
+        protected int                  num_puts;
+        protected final AverageMinMax  get_avg=new AverageMinMax(); // in ns
+        protected final AverageMinMax  put_avg=new AverageMinMax(); // in ns
         protected final int            PRINT;
 
 
-        public Invoker(Collection<Address> dests, int num_rpcs_to_invoke, AtomicInteger num_rpcs_invoked) {
+        public Invoker(Collection<Address> dests, CountDownLatch latch, int num_rpcs_to_invoke, AtomicInteger num_rpcs_invoked) {
+            this.latch=latch;
             this.num_rpcs_invoked=num_rpcs_invoked;
             this.dests.addAll(dests);
             this.num_rpcs_to_invoke=num_rpcs_to_invoke;
@@ -504,6 +582,8 @@ public class Test extends ReceiverAdapter {
                 get_options.setFlags(Message.Flag.DONT_BUNDLE);
                 put_options.setFlags(Message.Flag.DONT_BUNDLE);
             }
+
+            latch.countDown();
             while(true) {
                 long i=num_rpcs_invoked.getAndIncrement();
                 if(i >= num_rpcs_to_invoke)
@@ -516,22 +596,25 @@ public class Test extends ReceiverAdapter {
                 try {
                     if(get) { // sync GET
                         Address target=pickTarget();
+                        long start=System.nanoTime();
                         if(target != null && target.equals(local_addr)) {
-                            // System.out.printf("-- local get(%d)\n", i);
                             get(1); // invoke the call directly if local
                         }
                         else {
                             get_args[0]=i;
-                            // System.out.printf("-- remote get(%d) on %s\n", i, target);
                             disp.callRemoteMethod(target, get_call, get_options);
                         }
+                        long time=System.nanoTime()-start;
+                        get_avg.add(time);
                         num_gets++;
                     }
                     else {    // sync or async (based on value of 'sync') PUT
                         final Collection<Address> targets=pickAnycastTargets();
                         put_args[0]=i;
-                        // System.out.printf("-- put(%d) on %s\n", i, targets);
+                        long start=System.nanoTime();
                         disp.callRemoteMethods(targets, put_call, put_options);
+                        long time=System.nanoTime()-start;
+                        put_avg.add(time);
                         num_puts++;
                     }
                 }
@@ -563,20 +646,16 @@ public class Test extends ReceiverAdapter {
     protected class CacheInvoker extends Thread {
         protected final CountDownLatch latch;
         protected final int            print=num_rpcs / 10;
+        protected final AverageMinMax  get_avg=new AverageMinMax(); // in ns
+        protected final AverageMinMax  put_avg=new AverageMinMax(); // in ns
+
 
         public CacheInvoker(CountDownLatch latch) {
             this.latch=latch;
         }
 
         public void run() {
-            try {
-                latch.await();
-            }
-            catch(InterruptedException e) {
-                e.printStackTrace();
-                return;
-            }
-
+            latch.countDown();
             for(;;) {
                 int i=num_requests.incrementAndGet();
                 if(i > num_rpcs) {
@@ -592,13 +671,17 @@ public class Test extends ReceiverAdapter {
                 while(true) {
                     try {
                         if(is_this_a_read) {
-                            // System.out.printf("-- get(%d)\n", key);
+                            long start=System.nanoTime();
                             cache.get(key);
+                            long time=System.nanoTime() - start;
+                            get_avg.add(time);
                             num_reads.incrementAndGet();
                         }
                         else {
-                            // System.out.printf("-- put(%d)\n", key);
+                            long start=System.nanoTime();
                             cache.put(key, BUFFER);
+                            long time=System.nanoTime() - start;
+                            put_avg.add(time);
                             num_writes.incrementAndGet();
                         }
                         if(print > 0 && i % print == 0)
@@ -615,32 +698,40 @@ public class Test extends ReceiverAdapter {
 
 
     public static class Results implements Streamable {
-        long num_gets, num_puts, time;
+        long num_gets, num_puts, time; // ms
+        AverageMinMax get_avg, put_avg;
 
         public Results() {}
 
-        public Results(int num_gets, int num_puts, long time) {
+        public Results(int num_gets, int num_puts, long time, AverageMinMax get_avg, AverageMinMax put_avg) {
             this.num_gets=num_gets;
             this.num_puts=num_puts;
             this.time=time;
+            this.get_avg=get_avg;
+            this.put_avg=put_avg;
         }
 
         public void writeTo(DataOutput out) throws Exception {
             out.writeLong(num_gets);
             out.writeLong(num_puts);
             out.writeLong(time);
+            Util.writeStreamable(get_avg, out);
+            Util.writeStreamable(put_avg, out);
         }
 
         public void readFrom(DataInput in) throws Exception {
             num_gets=in.readLong();
             num_puts=in.readLong();
             time=in.readLong();
+            get_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
+            put_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
         }
 
         public String toString() {
             long total_reqs=num_gets + num_puts;
             double total_reqs_per_sec=total_reqs / (time / 1000.0);
-            return String.format("%.2f reqs/sec (%d GETs, %d PUTs total)", total_reqs_per_sec, num_gets, num_puts);
+            return String.format("%.2f reqs/sec (%d GETs, %d PUTs), avg RTT (us) = %.2f get, %.2f put",
+                                 total_reqs_per_sec, num_gets, num_puts, get_avg.average()/1000.0, put_avg.average()/1000.0);
         }
     }
 
