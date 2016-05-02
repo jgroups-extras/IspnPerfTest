@@ -72,12 +72,12 @@ public class Test extends ReceiverAdapter {
     protected static final String   hazelcast_factory=HazelcastCacheFactory.class.getName();
     protected static final String   coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
 
-    protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] Print view [4] Print cache size" +
-      "\n[6] Set sender threads (%d) [7] Set num RPCs (%d) [8] Set payload size (%s) [9] Set anycast count (%d)" +
-      "\n[p] Populate cache [c] Clear cache [v] Print versions" +
-      "\n[o] Toggle OOB (%b) [s] Toggle sync (%b) [r] Set read percentage (%.2f) " +
-      "\n[b] Toggle msg_bundling (%b) [d] print details (%b)  [i] print invokers (%b)" +
-      "\n[q] Quit [X] quit all\n";
+    protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] View [4] Cache size" +
+      "\n[6] Sender threads (%d) [7] Num RPCs (%d) [8] Msg size (%s) [9] Anycast count (%d)" +
+      "\n[p] Populate cache [c] Clear cache [v] Versions" +
+      "\n[o] OOB (%b) [s] Sync (%b) [r] Read percentage (%.2f) " +
+      "\n[b] Msg bundling (%b) [d] Details (%b)  [i] Invokers (%b)" +
+      "\n[q] Quit [X] Quit all\n";
 
     static {
         try {
