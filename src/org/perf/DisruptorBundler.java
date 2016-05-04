@@ -1,8 +1,6 @@
 package org.perf;
 
-import com.lmax.disruptor.EventFactory;
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.SleepingWaitStrategy;
+import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import org.jgroups.Message;
@@ -21,15 +19,23 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
     protected Disruptor<MessageEvent>                     disruptor;
     protected com.lmax.disruptor.RingBuffer<MessageEvent> buf;
 
+    // <-- change this to experiment with different wait strategies
+    // strategy=new SleepingWaitStrategy(); // fastest but high CPU
+    // strategy=new YieldingWaitStrategy(); // ditto
+    // strategy=new BusySpinWaitStrategy();
+    protected final WaitStrategy                          strategy=new BlockingWaitStrategy();
+
 
     public DisruptorBundler() {
 
     }
 
     public DisruptorBundler(int capacity) {
+
+
+
         disruptor=new Disruptor<>(new MessageEventFactory(), capacity, new DefaultThreadFactory("disruptor", false, true),
-                                  ProducerType.MULTI,
-                                  new SleepingWaitStrategy()); // <-- change this to experiment with different wait strategies
+                                  ProducerType.MULTI, strategy);
         disruptor.handleEventsWith(this);
     }
 
@@ -38,7 +44,7 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
     public void init(TP transport) {
         super.init(transport);
         disruptor=new Disruptor<>(new MessageEventFactory(), transport.getBundlerCapacity(), new DefaultThreadFactory("disruptor", false, true),
-                                  ProducerType.MULTI, new SleepingWaitStrategy());
+                                  ProducerType.MULTI, strategy);
         disruptor.handleEventsWith(this);
     }
 
