@@ -13,6 +13,7 @@
         <dependency org="org.apache.logging.log4j"       name="log4j-api"              rev="2.+"/>
         <dependency org="org.apache.logging.log4j"       name="log4j-core"             rev="2.+"/>
         <dependency org="com.hazelcast"                  name="hazelcast"              rev="3.+"/>
+        <dependency org="com.lmax"                       name="disruptor"              rev="3.+"/>
         <!--dependency org="com.oracle.coherence"           name="coherence"              rev="12.1.2-0-4"/-->
         <!--<exclude org="*" ext="*" type="source"/>-->
         <exclude org="*" ext="*" type="javadoc"/>
