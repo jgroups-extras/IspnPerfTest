@@ -2,13 +2,20 @@
 
 <infinispan
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="urn:infinispan:config:7.2 http://www.infinispan.org/schemas/infinispan-config-8.2.xsd"
-        xmlns="urn:infinispan:config:8.2">
+        xsi:schemaLocation="urn:infinispan:config:9.0 http://www.infinispan.org/schemas/infinispan-config-9.0.xsd"
+        xmlns="urn:infinispan:config:9.0">
 
 
     <jgroups>
         <stack-file name="jgroupsStack" path="jgroups-tcp.xml"/>
     </jgroups>
+
+    <threads>
+        <thread-factory name="transport-factory"/>
+        <blocking-bounded-queue-thread-pool name="custom-remote" core-threads="0" max-threads="1000"
+                                            keepalive-time="60000" queue-length="5" thread-factory="transport-factory"/>
+    </threads>
+
 
     <cache-container name="default" default-cache="testCache">
         <transport stack="jgroupsStack" lock-timeout="600000" cluster="default" />
