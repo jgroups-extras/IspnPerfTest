@@ -188,7 +188,7 @@ public class Test extends ReceiverAdapter {
                           num_rpcs, Util.printBytes(BUFFER.length), sync, oob, msg_bundling);
         int total_gets=0, total_puts=0;
         final AtomicInteger num_rpcs_invoked=new AtomicInteger(0);
-        final CountDownLatch latch=new CountDownLatch(num_threads+1);
+        final CountDownLatch latch=new CountDownLatch(1);
         Invoker[] invokers=new Invoker[num_threads];
         for(int i=0; i < invokers.length; i++) {
             invokers[i]=new Invoker(members, latch, num_rpcs, num_rpcs_invoked);
@@ -240,7 +240,7 @@ public class Test extends ReceiverAdapter {
             System.out.printf("invoking %d RPCs of %s, sync=%b\n", num_rpcs, Util.printBytes(BUFFER.length), sync);
 
             // The first call needs to be synchronous with OOB !
-            final CountDownLatch latch=new CountDownLatch(num_threads+1);
+            final CountDownLatch latch=new CountDownLatch(1);
             CacheInvoker[] invokers=new CacheInvoker[num_threads];
             for(int i=0; i < invokers.length; i++) {
                 invokers[i]=new CacheInvoker(latch);
@@ -583,7 +583,12 @@ public class Test extends ReceiverAdapter {
                 put_options.setFlags(Message.Flag.DONT_BUNDLE);
             }
 
-            latch.countDown();
+            try {
+                latch.await();
+            }
+            catch(InterruptedException e) {
+                e.printStackTrace();
+            }
             while(true) {
                 long i=num_rpcs_invoked.getAndIncrement();
                 if(i >= num_rpcs_to_invoke)
@@ -655,7 +660,12 @@ public class Test extends ReceiverAdapter {
         }
 
         public void run() {
-            latch.countDown();
+            try {
+                latch.await();
+            }
+            catch(InterruptedException e) {
+                e.printStackTrace();
+            }
             for(;;) {
                 int i=num_requests.incrementAndGet();
                 if(i > num_rpcs) {
