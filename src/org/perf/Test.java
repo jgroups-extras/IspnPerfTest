@@ -573,6 +573,7 @@ public class Test extends ReceiverAdapter {
             MethodCall put_call=new MethodCall(PUT, put_args);
             RequestOptions get_options=new RequestOptions(ResponseMode.GET_ALL, 40000, false, null);
             RequestOptions put_options=new RequestOptions(sync ? ResponseMode.GET_ALL : ResponseMode.GET_NONE, 40000, true, null);
+            final List<Address> targets=new ArrayList<>(anycast_count);
 
             if(oob) {
                 get_options.setFlags(Message.Flag.OOB);
@@ -614,7 +615,8 @@ public class Test extends ReceiverAdapter {
                         num_gets++;
                     }
                     else {    // sync or async (based on value of 'sync') PUT
-                        final Collection<Address> targets=pickAnycastTargets();
+                        targets.clear();
+                        pickAnycastTargets(targets);
                         put_args[0]=i;
                         long start=System.nanoTime();
                         disp.callRemoteMethods(targets, put_call, put_options);
@@ -633,8 +635,7 @@ public class Test extends ReceiverAdapter {
             return Util.pickRandomElement(dests);
         }
 
-        protected Collection<Address> pickAnycastTargets() {
-            Collection<Address> anycast_targets=new ArrayList<>(anycast_count);
+        protected void pickAnycastTargets(List<Address> anycast_targets) {
             int index=dests.indexOf(local_addr);
             for(int i=index + 1; i < index + 1 + anycast_count; i++) {
                 int new_index=i % dests.size();
@@ -642,7 +643,6 @@ public class Test extends ReceiverAdapter {
                 if(!anycast_targets.contains(tmp))
                     anycast_targets.add(tmp);
             }
-            return anycast_targets;
         }
     }
 
