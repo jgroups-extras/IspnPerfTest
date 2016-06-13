@@ -107,7 +107,7 @@ public class Test extends ReceiverAdapter {
             channel=new JChannel(jgroups_config);
             disp=new RpcDispatcher(channel, null, this, this);
             disp.setMethodLookup(id -> METHODS[id]);
-            channel.connect("config-cluster");
+            channel.connect("cfg");
             local_addr=channel.getAddress();
 
             try {
