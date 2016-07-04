@@ -20,10 +20,10 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
     protected com.lmax.disruptor.RingBuffer<MessageEvent> buf;
 
     // <-- change this to experiment with different wait strategies
-    // strategy=new SleepingWaitStrategy(); // fastest but high CPU
+    protected final WaitStrategy strategy=new SleepingWaitStrategy(); // fastest but high CPU
     // strategy=new YieldingWaitStrategy(); // ditto
     // strategy=new BusySpinWaitStrategy();
-    protected final WaitStrategy                          strategy=new BlockingWaitStrategy();
+    // protected final WaitStrategy strategy=new BlockingWaitStrategy();
 
 
     public DisruptorBundler() {
@@ -39,7 +39,7 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
         disruptor.handleEventsWith(this);
     }
 
-    public int getBufferSize() {return buf.getBufferSize();}
+    public int size() {return buf.getBufferSize();}
 
     public void init(TP transport) {
         super.init(transport);
