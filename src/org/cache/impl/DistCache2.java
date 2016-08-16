@@ -7,50 +7,51 @@ import org.jgroups.MembershipListener;
 import org.jgroups.View;
 import org.jgroups.blocks.MethodCall;
 import org.jgroups.blocks.RequestOptions;
-import org.jgroups.blocks.ResponseMode;
 import org.jgroups.blocks.RpcDispatcher;
 import org.jgroups.util.FutureListener;
-import org.jgroups.util.Rsp;
-import org.jgroups.util.RspList;
 import org.jgroups.util.Util;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Cache which simulates the way Infinispan works, but doesn't support rehashing. Fixed replication count of 2
+ * Cache which simulates the way Infinispan works, but doesn't support rehashing. Fixed replication count of 2.
+ * A PUT is sent via a blocking unicast RPC to the primary, which locks the cache, sends a BACKUP to the backup node
+ * *asynchronously*, then returns from PUT. The cost of a PUT is more or less 2x latency.
  * @author Bela Ban
  * @since x.y
  */
-public class DistCache<K,V> implements Cache<K,V>, Closeable {
+public class DistCache2<K,V> implements Cache<K,V>, Closeable {
     protected final Map<K,V>     map=new ConcurrentHashMap<>();
     protected JChannel           ch;
     protected RpcDispatcher      disp;
     protected Address            local_addr;
     protected volatile Address[] members;
-    protected boolean            mcast_puts;
+    protected final Lock         lock=new ReentrantLock(true); // serializes access to the cache for puts (fair = fifo order of reqs)
 
     protected static final Map<Short,Method> methods=Util.createConcurrentMap(8);
-    protected static final short PUT   = 1;
-    protected static final short GET   = 2;
-    protected static final short CLEAR = 3;
+    protected static final short PUT    = 1;
+    protected static final short GET    = 2;
+    protected static final short CLEAR  = 3;
+    protected static final short BACKUP = 4;
     protected static final MethodCall     CLEAR_CALL;
     protected static final RequestOptions SYNC_OPTS=RequestOptions.SYNC();
-    protected static final RequestOptions GET_FIRST_OPTS=RequestOptions.SYNC().setMode(ResponseMode.GET_FIRST);
+    protected static final RequestOptions ASYNC_OPTS=RequestOptions.ASYNC();
 
     static {
         try {
-            methods.put(PUT, DistCache.class.getMethod("_put", Object.class, Object.class));
-            methods.put(GET, DistCache.class.getMethod("_get", Object.class));
-            methods.put(CLEAR, DistCache.class.getMethod("_clear"));
+            methods.put(PUT, DistCache2.class.getMethod("_put", Object.class, Object.class));
+            methods.put(GET, DistCache2.class.getMethod("_get", Object.class));
+            methods.put(CLEAR, DistCache2.class.getMethod("_clear"));
+            methods.put(BACKUP, DistCache2.class.getMethod("_backup", Object.class, Object.class));
             CLEAR_CALL=new MethodCall(CLEAR);
         }
         catch(Throwable t) {
@@ -59,7 +60,7 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
     }
 
 
-    public DistCache(String config) throws Exception {
+    public DistCache2(String config) throws Exception {
         ch=new JChannel(config);
         disp=new RpcDispatcher(ch, this);
         disp.setMethodLookup(methods::get);
@@ -76,15 +77,28 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
         this.local_addr=ch.getAddress();
     }
 
-    public DistCache setMcastPuts(boolean flag) {this.mcast_puts=flag; return this;}
-    public boolean   getMcastPuts()             {return mcast_puts;}
 
     public void close() throws IOException {
         Util.close(disp, ch);
     }
 
+    /**
+     * Invokes a blocking _put(key,value) on the primary, which locks the local cache, makes the change,
+     * invokes a non-blocking _backup(key,value) on the backup and returns. This ensures that the backups apply the
+     * changes in the same way as the primary nodes.
+     * @param key the new key
+     * @param value the new value
+     */
     public V put(K key, V value) {
-        return mcast_puts? putWithMcast(key, value) : putWithUnicasts(key, value);
+        int hash=hash(key);
+        Address primary=pickMember(hash, 0);
+        MethodCall put_call=new MethodCall(PUT, key, value);
+        try {
+            return disp.callRemoteMethod(primary, put_call, SYNC_OPTS);
+        }
+        catch(Throwable t) {
+            throw new RuntimeException(t);
+        }
     }
 
 
@@ -129,8 +143,28 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
     }
 
     public V _put(K key, V value) {
-        return map.put(key, value);
+        V retval;
+        MethodCall backup_call=new MethodCall(BACKUP, key, value);
+
+        lock.lock();
+        try {
+            retval=map.put(key,value);
+            int hash=hash(key);
+            Address backup=pickMember(hash, 1);
+            disp.callRemoteMethod(backup, backup_call, ASYNC_OPTS);
+            return retval;
+        }
+        catch(Throwable t) {
+            throw new RuntimeException(t);
+        }
+        finally {
+            lock.unlock();
+        }
     }
+
+    public void _backup(K key, V value) {
+            map.put(key, value);
+        }
 
     public V _get(K key) {
         return map.get(key);
@@ -140,70 +174,7 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
         map.clear();
     }
 
-    /**
-     * Picks the primary and secondary owner and sends a multicast Returns the first result.
-     * @param key the new key
-     * @param value the new value
-     * @return the previous value (or null) associated with key
-     */
-    protected V putWithMcast(K key, V value) {
-        int hash=hash(key);
-        Address primary=pickMember(hash, 0), secondary=pickMember(hash, 1);
-        MethodCall put_call=new MethodCall(PUT, key, value);
 
-        try {
-            RspList<V> rsps=disp.callRemoteMethods(Arrays.asList(primary, secondary), put_call, GET_FIRST_OPTS);
-            for(Rsp<V> rsp: rsps) {
-                if(rsp.wasReceived())
-                    return rsp.getValue();
-            }
-            throw new RuntimeException("no valid response received");
-        }
-        catch(Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Picks the primary and secondary owner and sends 2 blocking unicasts. Waits for the first of the 2 futures that
-     * return.
-     * @param key the new key
-     * @param value the new value
-     */
-    protected V putWithUnicasts(K key, V value) {
-        int hash=hash(key);
-        Address primary=pickMember(hash, 0), secondary=pickMember(hash, 1);
-        MethodCall put_call=new MethodCall(PUT, key, value);
-
-        final CompletableFuture<V> f1=new CompletableFuture<>(), f2=new CompletableFuture<>();
-
-        FutureListener<V> l1=createListener(f1), l2=createListener(f2);
-
-        try {
-            disp.callRemoteMethodWithFuture(primary, put_call, GET_FIRST_OPTS, l1)
-              .setListener(l1);
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-
-        try {
-            disp.callRemoteMethodWithFuture(secondary, put_call, GET_FIRST_OPTS, l2)
-              .setListener(l2);
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-
-        CompletableFuture<Void> all=CompletableFuture.allOf(f1, f2);
-        try {
-            all.get(10000, TimeUnit.MILLISECONDS);
-            return f1.get();
-        }
-        catch(Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
 
     protected FutureListener<V> createListener(CompletableFuture<V> f) {
         return future -> {
