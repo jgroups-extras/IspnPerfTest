@@ -8,7 +8,7 @@ import java.util.Set;
 /**
  * Cache wrapper using {@link org.jgroups.blocks.ReplCache}
  * @author Bela Ban
- * @since x.y
+ * @since  1.0
  */
 public class JGroupsCache<K,V> implements Cache<K,V> {
     protected final ReplCache<K,V> cache;

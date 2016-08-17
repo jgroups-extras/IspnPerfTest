@@ -25,7 +25,7 @@ a single instance in a cluser, performance will be much better than if 4 cluster
 other and serialize data over the network.
 
 Once every node has 50'000 keys, press '2' in one instance. This will tell every node to start their tests and tally
-the results when done. The test does 50'0000 gets (80%) and puts (20%) on randomly selected keys.
+the results when done. The test invokes 50'000 gets (80%) and puts (20%) on randomly selected keys.
 
 Note that there's a JGroups cluster created (via conf/control.xml) which is used to send configuration changes across
 the cluster, and allow new members to join a cluster and get the current configuration. This is minimal traffic and
@@ -57,6 +57,24 @@ To run the Coherence test, you'll need to
   Oracle Coherence (see [1] for details)
 * Run `ant compile-coh`, then run `./bin/coh-per-test.sh`
 * The configuration used for Coherence is `conf/coh.xml`
+
+
+JGroups ReplCache test
+----------------------
+This is a test based on JGroups' ReplCache which multicasts all changes and nodes accept or reject the changes based
+on the consistent hash of the keys. Geared towards IP multicasting and sub-optimal with TCP.
+
+To run:
+* Run `bin/jg-perf-test.sh`
+
+
+DistCache test
+--------------
+This simple JGroups based cache mimicks Infinispan's DIST mode (with a fixed replication count of 2). A PUT is sent
+to the primary node, which locks the cache and (asynchronously) updates the backup node.
+
+To run:
+* Run `bin/dist-perf-test.sh`
 
 
 [1] http://coherence-community.github.io/coherence-incubator/12.1.0/building.html

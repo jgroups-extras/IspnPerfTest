@@ -6,11 +6,11 @@ import org.jgroups.util.Util;
 
 /**
  * @author Bela Ban
- * @since x.y
+ * @since  1.0
  */
-public class DistCache2Factory<K,V> implements CacheFactory<K,V> {
-    protected String     config;
-    protected DistCache2 cache;
+public class DistCacheFactory<K,V> implements CacheFactory<K,V> {
+    protected String    config;
+    protected DistCache cache;
 
     public void init(String config) throws Exception {
         this.config=config;
@@ -22,7 +22,7 @@ public class DistCache2Factory<K,V> implements CacheFactory<K,V> {
 
     public Cache<K,V> create(String cache_name) {
         try {
-            cache=new DistCache2(config);
+            cache=new DistCache(config).setConsistentGets(true);
             return cache;
         }
         catch(Exception e) {
