@@ -1,10 +1,7 @@
 package org.cache.impl;
 
 import org.cache.Cache;
-import org.jgroups.Address;
-import org.jgroups.JChannel;
-import org.jgroups.MembershipListener;
-import org.jgroups.View;
+import org.jgroups.*;
 import org.jgroups.blocks.MethodCall;
 import org.jgroups.blocks.RequestOptions;
 import org.jgroups.blocks.RpcDispatcher;
@@ -44,6 +41,7 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
     protected volatile Address[] members;
     protected final Lock         lock=new ReentrantLock(true); // serializes access to the cache for puts (fair = fifo order of reqs)
     protected boolean            consistent_gets=true; // if true, GETs are ordered correctly wrt PUTs
+    protected boolean            sync_backups=true; // whether a BACKUP call is sync or async
 
     protected static final Map<Short,Method> methods=Util.createConcurrentMap(8);
     protected static final short PUT    = 1;
@@ -52,7 +50,8 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
     protected static final short BACKUP = 4;
     protected static final MethodCall     CLEAR_CALL;
     protected static final RequestOptions SYNC_OPTS=RequestOptions.SYNC();
-    protected static final RequestOptions ASYNC_OPTS=RequestOptions.ASYNC();
+    protected static final RequestOptions ASYNC_BACKUP=RequestOptions.ASYNC();
+    protected static final RequestOptions SYNC_BACKUP=RequestOptions.SYNC().setFlags(Message.Flag.OOB);
 
     static {
         try {
@@ -87,6 +86,8 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
 
     public boolean   getConsistentGets()             {return consistent_gets;}
     public DistCache setConsistentGets(boolean flag) {consistent_gets=flag; return this;}
+    public boolean   getSyncBackups()                {return sync_backups;}
+    public DistCache setSyncBackups(boolean flag )   {this.sync_backups=flag; return this;}
 
     public void close() throws IOException {
         Util.close(disp, ch);
@@ -165,7 +166,8 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
             retval=map.put(key,value);
             int hash=hash(key);
             Address backup=pickMember(hash, 1);
-            disp.callRemoteMethod(backup, backup_call, ASYNC_OPTS);
+            RequestOptions opts=sync_backups? SYNC_BACKUP : ASYNC_BACKUP;
+            disp.callRemoteMethod(backup, backup_call, opts);
             return retval;
         }
         catch(Throwable t) {

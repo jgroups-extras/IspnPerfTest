@@ -22,7 +22,7 @@ public class DistCacheFactory<K,V> implements CacheFactory<K,V> {
 
     public Cache<K,V> create(String cache_name) {
         try {
-            cache=new DistCache(config).setConsistentGets(true);
+            cache=new DistCache(config).setConsistentGets(false).setSyncBackups(true);
             return cache;
         }
         catch(Exception e) {
