@@ -1,10 +1,7 @@
 package org.perf;
 
 import org.cache.CacheFactory;
-import org.cache.impl.DistCacheFactory;
-import org.cache.impl.HazelcastCacheFactory;
-import org.cache.impl.InfinispanCacheFactory;
-import org.cache.impl.JGroupsCacheFactory;
+import org.cache.impl.*;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
 import org.jgroups.blocks.MethodCall;
@@ -75,6 +72,7 @@ public class Test extends ReceiverAdapter {
     protected static final String   coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String   jg_factory=JGroupsCacheFactory.class.getName();
     protected static final String   dist_factory=DistCacheFactory.class.getName();
+    protected static final String   tri_factory=TriCache.class.getName();
 
     protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] View [4] Cache size" +
       "\n[6] Sender threads (%d) [7] Num RPCs (%d) [8] Msg size (%s) [9] Anycast count (%d)" +
@@ -839,6 +837,9 @@ public class Test extends ReceiverAdapter {
                 case "dist":
                     cache_factory_name=dist_factory;
                     break;
+                case "tri":
+                    cache_factory_name=tri_factory;
+                    break;
             }
             test.init(cache_factory_name, config_file, jgroups_config, cache_name);
             if(run_event_loop)
@@ -853,9 +854,10 @@ public class Test extends ReceiverAdapter {
 
     static void help() {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
-                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
-                             "Valid factory names:\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  jg:   %s\n  dist: %s\n\n",
-                          infinispan_factory, hazelcast_factory, coherence_factory, jg_factory, dist_factory);
+                            "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
+                            "Valid factory names:" +
+                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  jg:   %s\n  dist: %s\n  tri:  %s\n\n",
+                          infinispan_factory, hazelcast_factory, coherence_factory, jg_factory, dist_factory, tri_factory);
     }
 
 
