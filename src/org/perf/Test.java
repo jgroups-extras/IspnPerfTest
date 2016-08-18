@@ -299,11 +299,6 @@ public class Test extends ReceiverAdapter {
                 case '6':
                     changeFieldAcrossCluster("msg_size", Util.readIntFromStdin("Message size: "));
                     break;
-                case '7':
-                    int tmp=getAnycastCount();
-                    if(tmp >= 0)
-                        changeFieldAcrossCluster("anycast_count", tmp);
-                    break;
                 case 'c':
                     clearCache();
                     break;
