@@ -211,6 +211,8 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         // reuse data again
         data.type=ACK;
         data.key=null;
+        //As we're comparing against Infinispan's Cache.withFlags(Flag.IGNORE_RETURN_VALUES); and Hazelcast's cache.set:
+        data.value=null;
         Address dest=data.original_sender;
         data.original_sender=null;
         boolean local=Objects.equals(local_addr, dest);
