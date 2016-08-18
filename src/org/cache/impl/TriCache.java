@@ -27,8 +27,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * the change and sends an ACK back to the caller.
  * <p>
  * GETs always go to the primary node.
- * <p>
- * There are currently no optimizations, e.g. when the cluster size is 1, or the primary is the original sender etc
  * @author Bela Ban
  * @since  1.0
  */
@@ -79,7 +77,10 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         try {
             Data data=new Data(PUT, req_id, key, value, null);
-            send(primary, data);
+            if(Objects.equals(primary, local_addr))
+                _put(data, local_addr);
+            else
+                send(primary, data);
             return future.get(10000, TimeUnit.MILLISECONDS);
         }
         catch(Exception e) {
@@ -121,7 +122,13 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     public void clear() {
-        // todo
+        Data data=new Data(CLEAR, 0, null, null, null);
+        try {
+            send(null, data);
+        }
+        catch(Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public int size() {
@@ -147,6 +154,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                     _get(data, msg.src());
                     break;
                 case CLEAR:
+                    _clear();
                     break;
                 case BACKUP:
                     _backup(data);
@@ -178,12 +186,18 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         data.original_sender=sender;
         int hash=hash((K)data.key);
         Address backup=pickMember(hash, 1);
-        Message msg=createMessage(backup, data);
+        boolean primary_is_backup=Objects.equals(local_addr, backup);
+        Message msg=primary_is_backup? null : createMessage(backup, data);
 
         lock.lock();
         try {
             map.put((K)data.key, (V)data.value);
-            ch.send(msg);
+            if(primary_is_backup) { // primary == backup (e.g. when cluster size is 1: ack directly
+                data.type=ACK;
+                _ack(data);
+            }
+            else
+                ch.send(msg);
         }
         finally {
             lock.unlock();
@@ -198,9 +212,13 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         data.key=null;
         Address dest=data.original_sender;
         data.original_sender=null;
-
-        Message ack_msg=createMessage(dest, data);
-        ch.send(ack_msg);
+        boolean local=Objects.equals(local_addr, dest);
+        if(local)
+            _ack(data);
+        else {
+            Message ack_msg=createMessage(dest, data);
+            ch.send(ack_msg);
+        }
     }
 
     public void _get(Data data, Address sender) throws Exception {
@@ -221,7 +239,13 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     public void _clear() {
-        map.clear();
+        lock.lock();
+        try {
+            map.clear();
+        }
+        finally {
+            lock.unlock();
+        }
     }
 
     protected int hash(K key) {
