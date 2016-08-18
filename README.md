@@ -18,7 +18,7 @@ To run: bin/perf-test.sh (for Infinispan), bin/hc-perf-test.sh (for Hazelcast) a
 
 Run 4 instances (for example) and then populate the cache (press 'p'). This will insert keys 1 - 50'000, each with
 a byte[] value of 1000 bytes. If the number of keys or the value size should be changed, do this before populating the
-cache, after having started the instances. This is done via '7' (number of keys) and '8' (value size).
+cache, after having started the instances. This is done via '5' (number of keys) and '6' (payload size).
 
 Make sure that the cluster forms correctly, or else performance numbers will not be correct, e.g. if there is only
 a single instance in a cluser, performance will be much better than if 4 cluster nodes have to communicate with each
@@ -75,6 +75,17 @@ to the primary node, which locks the cache and (asynchronously) updates the back
 
 To run:
 * Run `bin/dist-perf-test.sh`
+
+
+TriCache test
+-------------
+This cache mimicks the 'triangle approach' in Infinispan in which a PUT is sent to the primary by the originator,
+the primary then forwards it to the backup, and the backup sends an ACK with the previous value back to the
+originator. All calls are asynchronous and the caller blocks until it gets the ACK from the backup node, or the
+timeout kicks in.
+
+To run:
+* Run `bin/tri-perf-test.sh`
 
 
 [1] http://coherence-community.github.io/coherence-incubator/12.1.0/building.html

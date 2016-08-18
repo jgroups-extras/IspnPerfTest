@@ -24,7 +24,8 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Cache which simulates the way Infinispan "triangle" works, but doesn't support rehashing. Fixed replication count of 2.
  * A PUT is sent to the primary which applies the change and forwards it to the backup node. The backup node also applies
- * the change and sends an ACK back to the caller.
+ * the change and sends an ACK back to the caller. The caller blocks until it gets the ACK with the value, or a timeout
+ * kicks in.
  * <p>
  * GETs always go to the primary node.
  * @author Bela Ban
