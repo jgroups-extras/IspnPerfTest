@@ -1,5 +1,6 @@
 package org.perf;
 
+import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.cache.impl.*;
 import org.jgroups.*;
@@ -17,39 +18,38 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
  * Mimics distributed mode by invoking N (default:50000) requests, 20% writes and 80% reads on random keys in range
- * [1 .. N]. Every member inthe cluster does this and the initiator waits until everyone is done, tallies the results
+ * [1 .. N]. Every member in the cluster does this and the initiator waits until everyone is done, tallies the results
  * (sent to it by every member) and prints stats (throughput).
  * @author Bela Ban
  */
 public class Test extends ReceiverAdapter {
     protected CacheFactory<Integer,byte[]> cache_factory;
-
-    protected org.cache.Cache<Integer,byte[]>  cache;
-    protected JChannel               channel;
-    protected Address                local_addr;
-    protected RpcDispatcher          disp;
-    protected final List<Address>    members=new ArrayList<>();
-    protected volatile View          view;
-    protected final AtomicInteger    num_requests=new AtomicInteger(0);
-    protected final AtomicInteger    num_reads=new AtomicInteger(0);
-    protected final AtomicInteger    num_writes=new AtomicInteger(0);
-    protected volatile boolean       looping=true;
-    protected Thread                 event_loop_thread;
+    protected Cache<Integer,byte[]>        cache;
+    protected JChannel                     channel;
+    protected Address                      local_addr;
+    protected RpcDispatcher                disp;
+    protected final List<Address>          members=new ArrayList<>();
+    protected volatile View                view;
+    protected final AtomicInteger          num_requests=new AtomicInteger(0);
+    protected final AtomicInteger          num_reads=new AtomicInteger(0);
+    protected final AtomicInteger          num_writes=new AtomicInteger(0);
+    protected volatile boolean             looping=true;
+    protected Thread                       event_loop_thread;
 
 
     // ============ configurable properties ==================
-    @Property protected boolean sync=true, oob=true;
     @Property protected int     num_threads=25;
     @Property protected int     num_rpcs=50000, msg_size=1000;
-    @Property protected int     anycast_count=2;
-    @Property protected boolean msg_bundling=true;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
     @Property protected boolean print_details;
     @Property protected boolean print_invokers;
@@ -57,7 +57,6 @@ public class Test extends ReceiverAdapter {
     // =======================================================
 
     protected static final Method[] METHODS=new Method[16];
-    protected static final short    START_UPERF           =  0;
     protected static final short    START_ISPN            =  1;
     protected static final short    GET                   =  2;
     protected static final short    PUT                   =  3;
@@ -65,7 +64,6 @@ public class Test extends ReceiverAdapter {
     protected static final short    SET                   =  5;
     protected static final short    QUIT_ALL              =  6;
 
-    protected final AtomicInteger   COUNTER=new AtomicInteger(1);
     protected byte[]                BUFFER=new byte[msg_size];
     protected static final String   infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String   hazelcast_factory=HazelcastCacheFactory.class.getName();
@@ -74,19 +72,16 @@ public class Test extends ReceiverAdapter {
     protected static final String   dist_factory=DistCacheFactory.class.getName();
     protected static final String   tri_factory=TriCache.class.getName();
 
-    protected static final String input_str="[1] Start UPerf test [2] Start cache test [3] View [4] Cache size" +
-      "\n[6] Sender threads (%d) [7] Num RPCs (%d) [8] Msg size (%s) [9] Anycast count (%d)" +
+    protected static final String input_str="[1] Start cache test [2] View [3] Cache size" +
+      "\n[4] Sender threads (%d) [5] Num RPCs (%d) [6] Msg size (%s)" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
-      "\n[o] OOB (%b) [s] Sync (%b) [r] Read percentage (%.2f) " +
-      "\n[b] Msg bundling (%b) [d] Details (%b)  [i] Invokers (%b)" +
+      "\n[r] Read percentage (%.2f) " +
+      "\n[d] Details (%b)  [i] Invokers (%b)" +
       "\n[q] Quit [X] Quit all\n";
 
     static {
         try {
-            METHODS[START_UPERF]  = Test.class.getMethod("startUPerfTest");
             METHODS[START_ISPN]   = Test.class.getMethod("startIspnTest");
-            METHODS[GET]          = Test.class.getMethod("get", long.class);
-            METHODS[PUT]          = Test.class.getMethod("put", long.class, byte[].class);
             METHODS[GET_CONFIG]   = Test.class.getMethod("getConfig");
             METHODS[SET]          = Test.class.getMethod("set", String.class, Object.class);
             METHODS[QUIT_ALL]     = Test.class.getMethod("quitAll");
@@ -183,54 +178,6 @@ public class Test extends ReceiverAdapter {
 
     // =================================== callbacks ======================================
 
-    public Results startUPerfTest() throws Throwable {
-        BUFFER=new byte[msg_size];
-
-        System.out.printf("invoking %d RPCs of %s, sync=%b, oob=%b, msg_bundling=%b\n",
-                          num_rpcs, Util.printBytes(BUFFER.length), sync, oob, msg_bundling);
-        int total_gets=0, total_puts=0;
-        final AtomicInteger num_rpcs_invoked=new AtomicInteger(0);
-        final CountDownLatch latch=new CountDownLatch(1);
-        Invoker[] invokers=new Invoker[num_threads];
-        for(int i=0; i < invokers.length; i++) {
-            invokers[i]=new Invoker(members, latch, num_rpcs, num_rpcs_invoked);
-            invokers[i].start();
-        }
-
-        long start=System.currentTimeMillis();
-        latch.countDown();
-        for(Invoker invoker: invokers)
-            invoker.join();
-
-        long total_time=System.currentTimeMillis() - start;
-        System.out.println("\ndone (in " + total_time + " ms)");
-
-        AverageMinMax get_avg=null, put_avg=null;
-        if(print_invokers)
-            System.out.printf("Round trip times (min/avg/max us):\n");
-        for(Invoker inv: invokers) {
-            if(print_invokers)
-                System.out.printf("%s: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n", inv.getId(),
-                                  inv.get_avg.min()/1000.0, inv.get_avg.average()/1000.0, inv.get_avg.max()/1000.0,
-                                  inv.put_avg.min()/1000.0, inv.put_avg.average()/1000.0, inv.put_avg.max()/1000.0);
-            if(get_avg == null)
-                get_avg=inv.get_avg;
-            else
-                get_avg.merge(inv.get_avg);
-            if(put_avg == null)
-                put_avg=inv.put_avg;
-            else
-                put_avg.merge(inv.put_avg);
-            total_gets+=inv.num_gets;
-            total_puts+=inv.num_puts;
-        }
-        if(print_details || print_invokers)
-            System.out.printf("\nall: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n",
-                              get_avg.min()/1000.0, get_avg.average()/1000.0, get_avg.max()/1000.0,
-                              put_avg.min()/1000.0, put_avg.average()/1000.0, put_avg.max()/1000.0);
-
-        return new Results(total_gets, total_puts, total_time, get_avg, put_avg);
-    }
 
     public Results startIspnTest() throws Throwable {
         num_requests.set(0);
@@ -239,7 +186,7 @@ public class Test extends ReceiverAdapter {
 
         try {
             BUFFER=new byte[msg_size];
-            System.out.printf("invoking %d RPCs of %s, sync=%b\n", num_rpcs, Util.printBytes(BUFFER.length), sync);
+            System.out.printf("invoking %d RPCs of %s\n", num_rpcs, Util.printBytes(BUFFER.length));
 
             // The first call needs to be synchronous with OOB !
             final CountDownLatch latch=new CountDownLatch(1);
@@ -306,17 +253,6 @@ public class Test extends ReceiverAdapter {
     }
 
 
-    @SuppressWarnings("UnusedParameters")
-    public byte[] get(long key) {
-        return BUFFER;
-    }
-
-
-    @SuppressWarnings("UnusedParameters")
-    public void put(long key, byte[] val) {
-
-    }
-
     public Config getConfig() {
         Config config=new Config();
         for(Field field: Util.getAllDeclaredFields(Test.class)) {
@@ -340,33 +276,30 @@ public class Test extends ReceiverAdapter {
     public void eventLoop() throws Throwable {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
-                                              num_threads, num_rpcs, Util.printBytes(msg_size), anycast_count, oob, sync,
-                                              read_percentage, msg_bundling, print_details, print_invokers));
+                                              num_threads, num_rpcs, Util.printBytes(msg_size),
+                                              read_percentage, print_details, print_invokers));
             switch(c) {
                 case -1:
                     break;
                 case '1':
-                    startBenchmark(new MethodCall(START_UPERF));
-                    break;
-                case '2':
                     startBenchmark(new MethodCall(START_ISPN));
                     break;
-                case '3':
+                case '2':
                     printView();
                     break;
-                case '4':
+                case '3':
                     printCacheSize();
                     break;
-                case '6':
+                case '4':
                     changeFieldAcrossCluster("num_threads", Util.readIntFromStdin("Number of sender threads: "));
                     break;
-                case '7':
+                case '5':
                     changeFieldAcrossCluster("num_rpcs", Util.readIntFromStdin("Number of RPCs: "));
                     break;
-                case '8':
+                case '6':
                     changeFieldAcrossCluster("msg_size", Util.readIntFromStdin("Message size: "));
                     break;
-                case '9':
+                case '7':
                     int tmp=getAnycastCount();
                     if(tmp >= 0)
                         changeFieldAcrossCluster("anycast_count", tmp);
@@ -380,19 +313,10 @@ public class Test extends ReceiverAdapter {
                  case 'i':
                     changeFieldAcrossCluster("print_invokers", !print_invokers);
                     break;
-                case 'o':
-                    changeFieldAcrossCluster("oob", !oob);
-                    break;
-                case 's':
-                    changeFieldAcrossCluster("sync", !sync);
-                    break;
                 case 'r':
                     double percentage= getReadPercentage();
                     if(percentage >= 0)
                         changeFieldAcrossCluster("read_percentage", percentage);
-                    break;
-                case 'b':
-                    changeFieldAcrossCluster("msg_bundling", !msg_bundling);
                     break;
                 case 'p':
                     populateCache();
@@ -537,113 +461,6 @@ public class Test extends ReceiverAdapter {
             }
             catch(Throwable t) {
                 t.printStackTrace();
-            }
-        }
-    }
-
-
-    protected  class Invoker extends Thread {
-        protected final CountDownLatch latch;
-        protected final List<Address>  dests=new ArrayList<>();
-        protected final int            num_rpcs_to_invoke;
-        protected final AtomicInteger  num_rpcs_invoked;
-        protected int                  num_gets;
-        protected int                  num_puts;
-        protected final AverageMinMax  get_avg=new AverageMinMax(); // in ns
-        protected final AverageMinMax  put_avg=new AverageMinMax(); // in ns
-        protected final int            PRINT;
-
-
-        public Invoker(Collection<Address> dests, CountDownLatch latch, int num_rpcs_to_invoke, AtomicInteger num_rpcs_invoked) {
-            this.latch=latch;
-            this.num_rpcs_invoked=num_rpcs_invoked;
-            this.dests.addAll(dests);
-            this.num_rpcs_to_invoke=num_rpcs_to_invoke;
-            PRINT=Math.max(num_rpcs_to_invoke / 10, 10);
-            setName("Invoker-" + COUNTER.getAndIncrement());
-        }
-
-        
-        public int numGets() {return num_gets;}
-        public int numPuts() {return num_puts;}
-
-
-        public void run() {
-            Object[] put_args={0, BUFFER};
-            Object[] get_args={0};
-            MethodCall get_call=new MethodCall(GET, get_args);
-            MethodCall put_call=new MethodCall(PUT, put_args);
-            RequestOptions get_options=new RequestOptions(ResponseMode.GET_ALL, 40000, false, null);
-            RequestOptions put_options=new RequestOptions(sync ? ResponseMode.GET_ALL : ResponseMode.GET_NONE, 40000, true, null);
-            final List<Address> targets=new ArrayList<>(anycast_count);
-
-            if(oob) {
-                get_options.setFlags(Message.Flag.OOB);
-                put_options.setFlags(Message.Flag.OOB);
-            }
-            if(!msg_bundling) {
-                get_options.setFlags(Message.Flag.DONT_BUNDLE);
-                put_options.setFlags(Message.Flag.DONT_BUNDLE);
-            }
-
-            try {
-                latch.await();
-            }
-            catch(InterruptedException e) {
-                e.printStackTrace();
-            }
-            while(true) {
-                long i=num_rpcs_invoked.getAndIncrement();
-                if(i >= num_rpcs_to_invoke)
-                    break;
-                if(i > 0 && i % PRINT == 0)
-                    System.out.print(".");
-                
-                boolean get=Util.tossWeightedCoin(read_percentage);
-
-                try {
-                    if(get) { // sync GET
-                        Address target=pickTarget();
-                        long start=System.nanoTime();
-                        if(target != null && target.equals(local_addr)) {
-                            get(1); // invoke the call directly if local
-                        }
-                        else {
-                            get_args[0]=i;
-                            disp.callRemoteMethod(target, get_call, get_options);
-                        }
-                        long time=System.nanoTime()-start;
-                        get_avg.add(time);
-                        num_gets++;
-                    }
-                    else {    // sync or async (based on value of 'sync') PUT
-                        targets.clear();
-                        pickAnycastTargets(targets);
-                        put_args[0]=i;
-                        long start=System.nanoTime();
-                        disp.callRemoteMethods(targets, put_call, put_options);
-                        long time=System.nanoTime()-start;
-                        put_avg.add(time);
-                        num_puts++;
-                    }
-                }
-                catch(Throwable throwable) {
-                    throwable.printStackTrace();
-                }
-            }
-        }
-
-        protected Address pickTarget() {
-            return Util.pickRandomElement(dests);
-        }
-
-        protected void pickAnycastTargets(List<Address> anycast_targets) {
-            int index=dests.indexOf(local_addr);
-            for(int i=index + 1; i < index + 1 + anycast_count; i++) {
-                int new_index=i % dests.size();
-                Address tmp=dests.get(new_index);
-                if(!anycast_targets.contains(tmp))
-                    anycast_targets.add(tmp);
             }
         }
     }

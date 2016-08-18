@@ -187,7 +187,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         int hash=hash((K)data.key);
         Address backup=pickMember(hash, 1);
         boolean primary_is_backup=Objects.equals(local_addr, backup);
-        Message msg=primary_is_backup? null : createMessage(backup, data);
+        Message backup_msg=primary_is_backup? null : createMessage(backup, data);
 
         lock.lock();
         try {
@@ -197,7 +197,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                 _ack(data);
             }
             else
-                ch.send(msg);
+                ch.send(backup_msg); // this will call _backup in the backup node
         }
         finally {
             lock.unlock();

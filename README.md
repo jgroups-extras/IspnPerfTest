@@ -24,7 +24,7 @@ Make sure that the cluster forms correctly, or else performance numbers will not
 a single instance in a cluser, performance will be much better than if 4 cluster nodes have to communicate with each
 other and serialize data over the network.
 
-Once every node has 50'000 keys, press '2' in one instance. This will tell every node to start their tests and tally
+Once every node has 50'000 keys, press '1' in one instance. This will tell every node to start their tests and tally
 the results when done. The test invokes 50'000 gets (80%) and puts (20%) on randomly selected keys.
 
 Note that there's a JGroups cluster created (via conf/control.xml) which is used to send configuration changes across
