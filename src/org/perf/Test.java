@@ -473,18 +473,6 @@ public class Test extends ReceiverAdapter {
             inserter.start();
         for(Thread inserter: inserters)
             inserter.join();
-
-        /*for(int i=1; i <= num_keys; i++) {
-            try {
-                cache.put(i, BUFFER);
-                num_writes.incrementAndGet();
-                if(print > 0 && i > 0 && i % print == 0)
-                    System.out.print(".");
-            }
-            catch(Throwable t) {
-                t.printStackTrace();
-            }
-        }*/
     }
 
 
