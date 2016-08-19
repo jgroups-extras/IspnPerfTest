@@ -49,7 +49,7 @@ public class Test extends ReceiverAdapter {
 
     // ============ configurable properties ==================
     @Property protected int     num_threads=25;
-    @Property protected int     num_rpcs=50000, msg_size=1000;
+    @Property protected int     num_keys=50000, num_rpcs=50000, msg_size=1000;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
     @Property protected boolean print_details;
     @Property protected boolean print_invokers;
@@ -58,8 +58,6 @@ public class Test extends ReceiverAdapter {
 
     protected static final Method[] METHODS=new Method[16];
     protected static final short    START_ISPN            =  1;
-    protected static final short    GET                   =  2;
-    protected static final short    PUT                   =  3;
     protected static final short    GET_CONFIG            =  4;
     protected static final short    SET                   =  5;
     protected static final short    QUIT_ALL              =  6;
@@ -73,7 +71,7 @@ public class Test extends ReceiverAdapter {
     protected static final String   tri_factory=TriCache.class.getName();
 
     protected static final String input_str="[1] Start cache test [2] View [3] Cache size" +
-      "\n[4] Sender threads (%d) [5] Num RPCs (%d) [6] Msg size (%s)" +
+      "\n[4] Sender threads (%d) [5] Num keys (%d) [6] Num RPCs (%d) [7] Msg size (%s)" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b)" +
@@ -276,7 +274,7 @@ public class Test extends ReceiverAdapter {
     public void eventLoop() throws Throwable {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
-                                              num_threads, num_rpcs, Util.printBytes(msg_size),
+                                              num_threads, num_keys, num_rpcs, Util.printBytes(msg_size),
                                               read_percentage, print_details, print_invokers));
             switch(c) {
                 case -1:
@@ -294,9 +292,12 @@ public class Test extends ReceiverAdapter {
                     changeFieldAcrossCluster("num_threads", Util.readIntFromStdin("Number of sender threads: "));
                     break;
                 case '5':
-                    changeFieldAcrossCluster("num_rpcs", Util.readIntFromStdin("Number of RPCs: "));
+                    changeFieldAcrossCluster("num_keys", Util.readIntFromStdin("Number of keys: "));
                     break;
                 case '6':
+                    changeFieldAcrossCluster("num_rpcs", Util.readIntFromStdin("Number of RPCs: "));
+                    break;
+                case '7':
                     changeFieldAcrossCluster("msg_size", Util.readIntFromStdin("Message size: "));
                     break;
                 case 'c':
@@ -446,8 +447,8 @@ public class Test extends ReceiverAdapter {
 
     // Creates num_rpcs elements
     protected void populateCache() {
-        int    print=num_rpcs / 10;
-        for(int i=1; i <= num_rpcs; i++) {
+        int    print=num_keys / 10;
+        for(int i=1; i <= num_keys; i++) {
             try {
                 cache.put(i, BUFFER);
                 num_writes.incrementAndGet();
@@ -488,7 +489,7 @@ public class Test extends ReceiverAdapter {
                 }
 
                 // get a random key in range [0 .. num_rpcs-1]
-                int key=(int)Util.random(num_rpcs) -1;
+                int key=(int)Util.random(num_keys) -1;
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
                 // try the operation until it is successful
