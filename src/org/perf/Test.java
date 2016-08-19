@@ -445,10 +445,36 @@ public class Test extends ReceiverAdapter {
         cache.clear();
     }
 
-    // Creates num_rpcs elements
-    protected void populateCache() {
-        int    print=num_keys / 10;
-        for(int i=1; i <= num_keys; i++) {
+    // Inserts num_keys keys into the cache (in parallel)
+    protected void populateCache() throws InterruptedException {
+        final AtomicInteger key=new AtomicInteger(1);
+        final int           print=num_keys / 10;
+
+        Thread[] inserters=new Thread[10];
+        for(int i=0; i < inserters.length; i++) {
+            inserters[i]=new Thread(() -> {
+                for(;;) {
+                    int k=key.getAndIncrement();
+                    if(k > num_keys)
+                        return;
+                    try {
+                        cache.put(k, BUFFER);
+                        num_writes.incrementAndGet();
+                        if(print > 0 && k > 0 && k % print == 0)
+                            System.out.print(".");
+                    }
+                    catch(Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+            });
+        }
+        for(Thread inserter: inserters)
+            inserter.start();
+        for(Thread inserter: inserters)
+            inserter.join();
+
+        /*for(int i=1; i <= num_keys; i++) {
             try {
                 cache.put(i, BUFFER);
                 num_writes.incrementAndGet();
@@ -458,7 +484,7 @@ public class Test extends ReceiverAdapter {
             catch(Throwable t) {
                 t.printStackTrace();
             }
-        }
+        }*/
     }
 
 
