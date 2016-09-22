@@ -11,15 +11,16 @@
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
   <TCP bind_addr="127.0.0.1"
-         bind_port="7800"
-         recv_buf_size="20M"
-         send_buf_size="5M"
-         max_bundle_size="64K"
-         enable_diagnostics="true"
+       bind_port="7800"
+       recv_buf_size="20M"
+       send_buf_size="5M"
+       max_bundle_size="64K"
+       enable_diagnostics="true"
 
-         thread_pool.min_threads="0"
-         thread_pool.max_threads="1000"
-         thread_pool.keep_alive_time="30000" />
+       thread_pool.min_threads="0"
+       thread_pool.use_fork_join_pool="false"
+       thread_pool.max_threads="200"
+       thread_pool.keep_alive_time="30000" />
 
     <MPING mcast_addr="232.6.6.6" mcast_port="7675"/>
     <MERGE3 max_interval="30000"
