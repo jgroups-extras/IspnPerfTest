@@ -100,7 +100,7 @@ public class Test extends ReceiverAdapter {
             cache=cache_factory.create(cache_name);
 
             channel=new JChannel(jgroups_config);
-            disp=new RpcDispatcher(channel, null, this, this);
+            disp=new RpcDispatcher(channel, this).setMembershipListener(this);
             disp.setMethodLookup(id -> METHODS[id]);
             channel.connect("cfg");
             local_addr=channel.getAddress();
