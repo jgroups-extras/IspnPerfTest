@@ -81,7 +81,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
             if(Objects.equals(primary, local_addr))
                 _put(data, local_addr);
             else
-                send(primary, data);
+                send(primary, data, false);
             return future.get(10000, TimeUnit.MILLISECONDS);
         }
         catch(Exception e) {
@@ -111,7 +111,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         try {
             Data data=new Data(GET, req_id, key, null, null);
-            send(dest, data);
+            send(dest, data, false);
             return future.get(10000, TimeUnit.MILLISECONDS);
         }
         catch(Exception e) {
@@ -125,7 +125,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     public void clear() {
         Data data=new Data(CLEAR, 0, null, null, null);
         try {
-            send(null, data);
+            send(null, data, false);
         }
         catch(Exception e) {
             throw new RuntimeException(e);
@@ -188,7 +188,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         int hash=hash((K)data.key);
         Address backup=pickMember(hash, 1);
         boolean primary_is_backup=Objects.equals(local_addr, backup);
-        Message backup_msg=primary_is_backup? null : createMessage(backup, data);
+        Message backup_msg=primary_is_backup? null : createMessage(backup, data, false);
 
         lock.lock();
         try {
@@ -219,7 +219,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         if(local)
             _ack(data);
         else {
-            Message ack_msg=createMessage(dest, data);
+            Message ack_msg=createMessage(dest, data, true);
             ch.send(ack_msg);
         }
     }
@@ -229,7 +229,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         data.type=ACK;
         K key=(K)data.key;
         data.value=map.get(key);
-        Message get_rsp=createMessage(sender, data);
+        Message get_rsp=createMessage(sender, data, true);
         ch.send(get_rsp);
     }
 
@@ -255,14 +255,17 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         return key.hashCode();
     }
 
-    protected static Message createMessage(Address dest, Data data) throws Exception {
+    protected static Message createMessage(Address dest, Data data, boolean oob) throws Exception {
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(1200);
         data.writeTo(out);
-        return new Message(dest, out.buffer(), 0, out.position());
+        Message msg=new Message(dest, out.buffer(), 0, out.position());
+        if(oob)
+            msg.setFlag(Message.Flag.OOB);
+        return msg;
     }
 
-    protected void send(Address dest, Data data) throws Exception {
-        ch.send(createMessage(dest, data));
+    protected void send(Address dest, Data data, boolean oob) throws Exception {
+        ch.send(createMessage(dest, data, oob));
     }
 
     protected Address pickMember(int hash, int offset) {
