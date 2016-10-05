@@ -562,8 +562,8 @@ public class Test extends ReceiverAdapter {
             num_gets=in.readLong();
             num_puts=in.readLong();
             time=in.readLong();
-            get_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
-            put_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
+            get_avg=Util.readStreamable(AverageMinMax.class, in);
+            put_avg=Util.readStreamable(AverageMinMax.class, in);
         }
 
         public String toString() {
