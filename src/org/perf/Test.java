@@ -71,7 +71,7 @@ public class Test extends ReceiverAdapter {
     protected static final String   tri_factory=TriCache.class.getName();
 
     protected static final String input_str="[1] Start cache test [2] View [3] Cache size" +
-      "\n[4] Sender threads (%d) [5] Num keys (%d) [6] Num RPCs (%d) [7] Msg size (%s)" +
+      "\n[4] Threads (%d) [5] Num keys (%d) [6] Num RPCs (%d) [7] Msg size (%s)" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b)" +
