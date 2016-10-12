@@ -6,12 +6,6 @@ import org.infinispan.context.Flag;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.notifications.Listener;
-import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
-import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
-import org.infinispan.remoting.transport.Transport;
-import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.jgroups.JChannel;
-import org.jgroups.View;
 
 /**
  * @author Bela Ban
@@ -42,7 +36,7 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
         return new InfinispanCache(cache);
     }
 
-    @ViewChanged
+  /*  @ViewChanged
     public static void viewChanged(ViewChangedEvent evt) {
         Transport transport=evt.getCacheManager().getTransport();
         if(transport instanceof JGroupsTransport) {
@@ -52,5 +46,5 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
         }
         else
             System.out.println("** view: " + evt);
-    }
+    }*/
 }

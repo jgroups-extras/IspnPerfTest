@@ -18,7 +18,6 @@
        enable_diagnostics="true"
 
        thread_pool.min_threads="0"
-       thread_pool.use_fork_join_pool="false"
        thread_pool.max_threads="200"
        thread_pool.keep_alive_time="30000" />
 
