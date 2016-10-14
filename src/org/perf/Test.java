@@ -100,7 +100,8 @@ public class Test extends ReceiverAdapter {
             cache=cache_factory.create(cache_name);
 
             channel=new JChannel(jgroups_config);
-            disp=new RpcDispatcher(channel, this).setMembershipListener(this);
+            disp=new RpcDispatcher(channel, this);
+            disp.setMembershipListener(this);
             disp.setMethodLookup(id -> METHODS[id]);
             channel.connect("cfg");
             local_addr=channel.getAddress();
@@ -562,8 +563,8 @@ public class Test extends ReceiverAdapter {
             num_gets=in.readLong();
             num_puts=in.readLong();
             time=in.readLong();
-            get_avg=Util.readStreamable(AverageMinMax.class, in);
-            put_avg=Util.readStreamable(AverageMinMax.class, in);
+            get_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
+            put_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
         }
 
         public String toString() {

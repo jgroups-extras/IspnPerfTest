@@ -10,7 +10,7 @@ import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
 import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
 import org.infinispan.remoting.transport.Transport;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.jgroups.JChannel;
+import org.jgroups.Channel;
 import org.jgroups.View;
 
 /**
@@ -46,7 +46,7 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
     public static void viewChanged(ViewChangedEvent evt) {
         Transport transport=evt.getCacheManager().getTransport();
         if(transport instanceof JGroupsTransport) {
-            JChannel ch=((JGroupsTransport)transport).getChannel();
+            Channel ch=((JGroupsTransport)transport).getChannel();
             View view=ch.getView();
             System.out.println("** view: " + view);
         }

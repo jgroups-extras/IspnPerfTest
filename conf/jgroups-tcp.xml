@@ -17,10 +17,17 @@
        max_bundle_size="64K"
        enable_diagnostics="true"
 
+       thread_pool.enabled="true"
        thread_pool.min_threads="0"
-       thread_pool.use_fork_join_pool="false"
        thread_pool.max_threads="200"
-       thread_pool.keep_alive_time="30000" />
+       thread_pool.keep_alive_time="30000"
+       thread_pool.queue_enabled="false"
+
+       oob_thread_pool.enabled="true"
+       oob_thread_pool.min_threads="0"
+       oob_thread_pool.max_threads="200"
+       oob_thread_pool.keep_alive_time="30000"
+       oob_thread_pool.queue_enabled="false"/>
 
     <MPING mcast_addr="232.6.6.6" mcast_port="7675"/>
     <MERGE3 max_interval="30000"

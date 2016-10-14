@@ -146,7 +146,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
     public void receive(Message msg) {
         try {
-            Data data=Util.streamableFromByteBuffer(Data.class, msg.getRawBuffer(), msg.getOffset(), msg.getLength());
+            Data data=(Data)Util.streamableFromByteBuffer(Data.class, msg.getRawBuffer(), msg.getOffset(), msg.getLength());
             switch(data.type) {
                 case PUT:
                     _put(data, msg.src());
