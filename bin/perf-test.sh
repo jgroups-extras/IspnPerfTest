@@ -20,7 +20,9 @@ fi;
 
 JG_FLAGS="-Djava.net.preferIPv4Stack=true"
 FLAGS="-server -Xmx2G"
-FLAGS="$FLAGS -XX:+UseG1GC"
+
+## don't use G1 for now
+#FLAGS="$FLAGS -XX:+UseG1GC"
 
 # Number of HC reader and writer threads: N is 1 selector, N reader threads and N writer threads
 HAZELCAST="-Dhazelcast.io.thread.count=200"
