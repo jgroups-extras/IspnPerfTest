@@ -49,7 +49,7 @@ public class Test extends ReceiverAdapter {
     @Property protected int     num_threads=25;
     @Property protected int     num_keys=50000, time_secs=30, msg_size=1000;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
-    @Property protected boolean print_details;
+    @Property protected boolean print_details=true;
     @Property protected boolean print_invokers;
     // ... add your own here, just don't forget to annotate them with @Property
     // =======================================================
