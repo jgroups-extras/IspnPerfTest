@@ -18,12 +18,10 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 
 
 /**
@@ -40,16 +38,16 @@ public class Test extends ReceiverAdapter {
     protected RpcDispatcher                disp;
     protected final List<Address>          members=new ArrayList<>();
     protected volatile View                view;
-    protected final AtomicInteger          num_requests=new AtomicInteger(0);
-    protected final AtomicInteger          num_reads=new AtomicInteger(0);
-    protected final AtomicInteger          num_writes=new AtomicInteger(0);
+    protected final LongAdder              num_requests=new LongAdder();
+    protected final LongAdder              num_reads=new LongAdder();
+    protected final LongAdder              num_writes=new LongAdder();
     protected volatile boolean             looping=true;
     protected Thread                       event_loop_thread;
 
 
     // ============ configurable properties ==================
     @Property protected int     num_threads=25;
-    @Property protected int     num_keys=50000, num_rpcs=100000, msg_size=1000;
+    @Property protected int     num_keys=50000, time_secs=30, msg_size=1000;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
     @Property protected boolean print_details;
     @Property protected boolean print_invokers;
@@ -71,7 +69,7 @@ public class Test extends ReceiverAdapter {
     protected static final String   tri_factory=TriCache.class.getName();
 
     protected static final String input_str="[1] Start cache test [2] View [3] Cache size" +
-      "\n[4] Threads (%d) [5] Num keys (%d) [6] Num RPCs (%d) [7] Msg size (%s)" +
+      "\n[4] Threads (%d) [5] Num keys (%d) [6] Time (secs) (%d) [7] Msg size (%s)" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b)" +
@@ -178,13 +176,13 @@ public class Test extends ReceiverAdapter {
 
 
     public Results startIspnTest() throws Throwable {
-        num_requests.set(0);
-        num_reads.set(0);
-        num_writes.set(0);
+        num_requests.reset();
+        num_reads.reset();
+        num_writes.reset();
 
         try {
             BUFFER=new byte[msg_size];
-            System.out.printf("invoking %d RPCs of %s\n", num_rpcs, Util.printBytes(BUFFER.length));
+            System.out.printf("Running test for %d seconds:\n", time_secs);
 
             // The first call needs to be synchronous with OOB !
             final CountDownLatch latch=new CountDownLatch(1);
@@ -195,11 +193,23 @@ public class Test extends ReceiverAdapter {
                 invokers[i].start();
             }
 
+            double tmp_interval=(time_secs * 1000.0) / 10.0;
+            long interval=(long)tmp_interval;
+
             long start=System.currentTimeMillis();
             latch.countDown(); // starts all sender threads
+            for(int i=1; i <= 10; i++) {
+                Util.sleep(interval);
+                if(print_details)
+                    System.out.printf("%d: %s\n", i, printAverage(start));
+                else
+                    System.out.printf(".");
+            }
 
+            Arrays.stream(invokers).forEach(CacheInvoker::cancel);
             for(CacheInvoker invoker : invokers)
                 invoker.join();
+
             long time=System.currentTimeMillis() - start;
             System.out.println("\ndone (in " + time + " ms)\n");
 
@@ -224,14 +234,12 @@ public class Test extends ReceiverAdapter {
                 System.out.printf("\nall: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n",
                                   get_avg.min()/1000.0, get_avg.average()/1000.0, get_avg.max()/1000.0,
                                   put_avg.min()/1000.0, put_avg.average()/1000.0, put_avg.max()/1000.0);
-            return new Results(num_reads.get(), num_writes.get(), time, get_avg, put_avg);
+            return new Results(num_reads.sum(), num_writes.sum(), time, get_avg, put_avg);
         }
         catch(Throwable t) {
             t.printStackTrace();
             return null;
         }
-
-
     }
 
     public void quitAll() {
@@ -274,7 +282,7 @@ public class Test extends ReceiverAdapter {
     public void eventLoop() throws Throwable {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
-                                              num_threads, num_keys, num_rpcs, Util.printBytes(msg_size),
+                                              num_threads, num_keys, time_secs, Util.printBytes(msg_size),
                                               read_percentage, print_details, print_invokers));
             switch(c) {
                 case -1:
@@ -295,7 +303,7 @@ public class Test extends ReceiverAdapter {
                     changeFieldAcrossCluster("num_keys", Util.readIntFromStdin("Number of keys: "));
                     break;
                 case '6':
-                    changeFieldAcrossCluster("num_rpcs", Util.readIntFromStdin("Number of RPCs: "));
+                    changeFieldAcrossCluster("time_secs", Util.readIntFromStdin("Time (secs): "));
                     break;
                 case '7':
                     changeFieldAcrossCluster("msg_size", Util.readIntFromStdin("Message size: "));
@@ -435,6 +443,13 @@ public class Test extends ReceiverAdapter {
           String.format("avg = %.2f us", avg.average() / 1000.0);
     }
 
+    protected String printAverage(long start_time) {
+        long time=System.currentTimeMillis() - start_time;
+        long reads=num_reads.sum(), writes=num_writes.sum();
+        double reqs_sec=num_requests.sum() / (time/1000.0);
+        return String.format("%.2f reqs/sec (%d reads %d writes)", reqs_sec, reads, writes);
+    }
+
     protected void printCacheSize() {
         int size=cache.size();
         System.out.println("-- cache has " + size + " elements");
@@ -459,7 +474,7 @@ public class Test extends ReceiverAdapter {
                         return;
                     try {
                         cache.put(k, BUFFER);
-                        num_writes.incrementAndGet();
+                        num_writes.increment();
                         if(print > 0 && k > 0 && k % print == 0)
                             System.out.print(".");
                     }
@@ -479,14 +494,16 @@ public class Test extends ReceiverAdapter {
 
     protected class CacheInvoker extends Thread {
         protected final CountDownLatch latch;
-        protected final int            print=num_rpcs / 10;
         protected final AverageMinMax  get_avg=new AverageMinMax(); // in ns
         protected final AverageMinMax  put_avg=new AverageMinMax(); // in ns
+        protected volatile boolean     running=true;
 
 
         public CacheInvoker(CountDownLatch latch) {
             this.latch=latch;
         }
+
+        public void cancel() {running=false;}
 
         public void run() {
             try {
@@ -495,12 +512,8 @@ public class Test extends ReceiverAdapter {
             catch(InterruptedException e) {
                 e.printStackTrace();
             }
-            for(;;) {
-                int i=num_requests.incrementAndGet();
-                if(i > num_rpcs) {
-                    num_requests.decrementAndGet();
-                    return;
-                }
+            while(running) {
+                num_requests.increment();
 
                 // get a random key in range [0 .. num_rpcs-1]
                 int key=(int)Util.random(num_keys) -1;
@@ -514,17 +527,15 @@ public class Test extends ReceiverAdapter {
                             cache.get(key);
                             long time=System.nanoTime() - start;
                             get_avg.add(time);
-                            num_reads.incrementAndGet();
+                            num_reads.increment();
                         }
                         else {
                             long start=System.nanoTime();
                             cache.put(key, BUFFER);
                             long time=System.nanoTime() - start;
                             put_avg.add(time);
-                            num_writes.incrementAndGet();
+                            num_writes.increment();
                         }
-                        if(print > 0 && i % print == 0)
-                            System.out.print(".");
                         break;
                     }
                     catch(Throwable t) {
@@ -542,7 +553,7 @@ public class Test extends ReceiverAdapter {
 
         public Results() {}
 
-        public Results(int num_gets, int num_puts, long time, AverageMinMax get_avg, AverageMinMax put_avg) {
+        public Results(long num_gets, long num_puts, long time, AverageMinMax get_avg, AverageMinMax put_avg) {
             this.num_gets=num_gets;
             this.num_puts=num_puts;
             this.time=time;
