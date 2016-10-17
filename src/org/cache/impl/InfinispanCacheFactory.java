@@ -8,10 +8,6 @@ import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.notifications.Listener;
 import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
 import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
-import org.infinispan.remoting.transport.Transport;
-import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.jgroups.JChannel;
-import org.jgroups.View;
 
 /**
  * @author Bela Ban
@@ -44,13 +40,6 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
 
     @ViewChanged
     public static void viewChanged(ViewChangedEvent evt) {
-        Transport transport=evt.getCacheManager().getTransport();
-        if(transport instanceof JGroupsTransport) {
-            JChannel ch=((JGroupsTransport)transport).getChannel();
-            View view=ch.getView();
-            System.out.println("** view: " + view);
-        }
-        else
-            System.out.println("** view: " + evt);
+        System.out.printf("** view: %s joined %s left\n", evt.getNewMembers(), evt.getOldMembers());
     }
 }

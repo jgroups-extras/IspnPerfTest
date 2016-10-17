@@ -22,10 +22,25 @@
          max_bundle_size="64K"
          enable_diagnostics="true"
 
+         timer_type="new3"
+         timer.min_threads="2"
+         timer.max_threads="4"
+         timer.keep_alive_time="3000"
+         timer.queue_max_size="500"
+
          thread_pool.enabled="true"
          thread_pool.min_threads="0"
-         thread_pool.max_threads="100"
-         thread_pool.keep_alive_time="30000"/>
+         thread_pool.max_threads="1000"
+         thread_pool.keep_alive_time="30000"
+         thread_pool.queue_enabled="false"
+         thread_pool.rejection_policy="discard"
+
+         oob_thread_pool.enabled="true"
+         oob_thread_pool.min_threads="0"
+         oob_thread_pool.max_threads="1000"
+         oob_thread_pool.keep_alive_time="3000"
+         oob_thread_pool.queue_enabled="false"
+         oob_thread_pool.rejection_policy="discard" />
 
     <PING />
     <MERGE3 max_interval="30000"
