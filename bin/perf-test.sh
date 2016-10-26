@@ -3,7 +3,9 @@
 
 # Author: Bela Ban
 
-PT=$PWD
+DIR=`dirname $0`
+PT="$DIR/../"
+
 CP=$PT/classes:$PT/lib/*:$PT/conf
 
 if [ -f $HOME/log4j.properties ]; then
