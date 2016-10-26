@@ -365,7 +365,7 @@ public class Test extends ReceiverAdapter {
             return;
         }
 
-        long total_reqs=0, total_time=0;
+        long total_reqs=0, total_time=0, longest_time=0;
         AverageMinMax get_avg=null, put_avg=null;
         System.out.println("\n======================= Results: ===========================");
         for(Map.Entry<Address,Rsp<Results>> entry: responses.entrySet()) {
@@ -381,6 +381,7 @@ public class Test extends ReceiverAdapter {
             if(result != null) {
                 total_reqs+=result.num_gets + result.num_puts;
                 total_time+=result.time;
+                longest_time=Math.max(longest_time, result.time);
                 if(get_avg == null)
                     get_avg=result.get_avg;
                 else
@@ -392,12 +393,13 @@ public class Test extends ReceiverAdapter {
             }
             System.out.println(mbr + ": " + result);
         }
-        double total_reqs_sec=total_reqs / ( total_time/ 1000.0);
-        double throughput=total_reqs_sec * msg_size;
+        double reqs_sec_node=total_reqs / ( total_time/ 1000.0);
+        double reqs_sec_cluster=total_reqs / (longest_time / 1000.0);
+        double throughput=reqs_sec_node * msg_size;
         System.out.println("\n");
-        System.out.println(Util.bold(String.format("Throughput: %.2f reqs/sec/node (%s/sec)\n" +
+        System.out.println(Util.bold(String.format("Throughput: %.2f reqs/sec/node (%s/sec) %.2f reqs/sec/cluster\n" +
                                                      "Roundtrip:  gets %s, puts %s\n",
-                                                   total_reqs_sec, Util.printBytes(throughput),
+                                                   reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
                                                    print(get_avg, print_details), print(put_avg, print_details))));
         System.out.println("\n\n");
     }
