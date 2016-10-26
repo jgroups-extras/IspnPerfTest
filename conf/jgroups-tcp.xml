@@ -10,7 +10,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-  <TCP bind_addr="127.0.0.1"
+  <TCP bind_addr="match-interface:eth2,127.0.0.1"
        bind_port="7800"
        recv_buf_size="20M"
        send_buf_size="5M"
@@ -18,7 +18,6 @@
        enable_diagnostics="true"
 
        thread_pool.min_threads="0"
-       thread_pool.use_fork_join_pool="false"
        thread_pool.max_threads="200"
        thread_pool.keep_alive_time="30000" />
 
