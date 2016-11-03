@@ -218,10 +218,8 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         boolean local=Objects.equals(local_addr, dest);
         if(local)
             _ack(data);
-        else {
-            Message ack_msg=createMessage(dest, data, true);
-            ch.send(ack_msg);
-        }
+        else
+            send(dest, data, true);
     }
 
     public void _get(Data data, Address sender) throws Exception {
@@ -229,8 +227,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         data.type=ACK;
         K key=(K)data.key;
         data.value=map.get(key);
-        Message get_rsp=createMessage(sender, data, true);
-        ch.send(get_rsp);
+        send(sender, data, true);
     }
 
     public void _ack(Data data) {

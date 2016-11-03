@@ -24,7 +24,7 @@ JG_FLAGS="-Djava.net.preferIPv4Stack=true"
 FLAGS="-server -Xmx2G"
 
 ## don't use G1 for now
-#FLAGS="$FLAGS -XX:+UseG1GC"
+#FLAGS="$FLAGS -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
 # JMX="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=7777 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
 JMX="-Dcom.sun.management.jmxremote"
