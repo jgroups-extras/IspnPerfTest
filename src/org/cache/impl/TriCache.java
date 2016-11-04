@@ -284,17 +284,17 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         }
     }
 
-    public static class Data implements Streamable {
+    public static class Data<K,V> implements Streamable {
         protected short   type;
         protected long    req_id; // the ID of the request: unique per node
-        protected Object  key;
-        protected Object  value;
+        protected K       key;
+        protected V       value;
         protected Address original_sender; // if type == BACKUP: the backup node needs to send an ACK to the original sender
 
         public Data() {
         }
 
-        public Data(short type, long req_id, Object key, Object value, Address original_sender) {
+        public Data(short type, long req_id, K key, V value, Address original_sender) {
             this.type=type;
             this.req_id=req_id;
             this.key=key;

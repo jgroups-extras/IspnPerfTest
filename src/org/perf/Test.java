@@ -32,41 +32,47 @@ import java.util.concurrent.atomic.LongAdder;
  */
 public class Test extends ReceiverAdapter {
     protected CacheFactory<Integer,byte[]> cache_factory;
-    protected Cache<Integer,byte[]>        cache;
-    protected JChannel                     channel;
-    protected Address                      local_addr;
-    protected RpcDispatcher                disp;
-    protected final List<Address>          members=new ArrayList<>();
-    protected volatile View                view;
-    protected final LongAdder              num_requests=new LongAdder();
-    protected final LongAdder              num_reads=new LongAdder();
-    protected final LongAdder              num_writes=new LongAdder();
-    protected volatile boolean             looping=true;
-    protected Thread                       event_loop_thread;
+    protected Cache<Integer,byte[]> cache;
+    protected JChannel channel;
+    protected Address local_addr;
+    protected RpcDispatcher disp;
+    protected final List<Address> members=new ArrayList<>();
+    protected volatile View view;
+    protected final LongAdder num_requests=new LongAdder();
+    protected final LongAdder num_reads=new LongAdder();
+    protected final LongAdder num_writes=new LongAdder();
+    protected volatile boolean looping=true;
+    protected Thread event_loop_thread;
+    protected Integer[] keys;
 
 
     // ============ configurable properties ==================
-    @Property protected int     num_threads=25;
-    @Property protected int     num_keys=100000, time_secs=30, msg_size=1000;
-    @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
-    @Property protected boolean print_details=true;
-    @Property protected boolean print_invokers;
+    @Property
+    protected int num_threads=25;
+    @Property
+    protected int num_keys=100000, time_secs=30, msg_size=1000;
+    @Property
+    protected double read_percentage=0.8; // 80% reads, 20% writes
+    @Property
+    protected boolean print_details=true;
+    @Property
+    protected boolean print_invokers;
     // ... add your own here, just don't forget to annotate them with @Property
     // =======================================================
 
     protected static final Method[] METHODS=new Method[16];
-    protected static final short    START_ISPN            =  1;
-    protected static final short    GET_CONFIG            =  4;
-    protected static final short    SET                   =  5;
-    protected static final short    QUIT_ALL              =  6;
+    protected static final short START_ISPN=1;
+    protected static final short GET_CONFIG=4;
+    protected static final short SET=5;
+    protected static final short QUIT_ALL=6;
 
-    protected byte[]                BUFFER=new byte[msg_size];
-    protected static final String   infinispan_factory=InfinispanCacheFactory.class.getName();
-    protected static final String   hazelcast_factory=HazelcastCacheFactory.class.getName();
-    protected static final String   coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
-    protected static final String   jg_factory=JGroupsCacheFactory.class.getName();
-    protected static final String   dist_factory=DistCacheFactory.class.getName();
-    protected static final String   tri_factory=TriCache.class.getName();
+    protected byte[] BUFFER=new byte[msg_size];
+    protected static final String infinispan_factory=InfinispanCacheFactory.class.getName();
+    protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
+    protected static final String coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
+    protected static final String jg_factory=JGroupsCacheFactory.class.getName();
+    protected static final String dist_factory=DistCacheFactory.class.getName();
+    protected static final String tri_factory=TriCache.class.getName();
 
     protected static final String input_str="[1] Start cache test [2] View [3] Cache size" +
       "\n[4] Threads (%d) [5] Num keys (%d) [6] Time (secs) (%d) [7] Value size (%s)" +
@@ -77,10 +83,10 @@ public class Test extends ReceiverAdapter {
 
     static {
         try {
-            METHODS[START_ISPN]   = Test.class.getMethod("startIspnTest");
-            METHODS[GET_CONFIG]   = Test.class.getMethod("getConfig");
-            METHODS[SET]          = Test.class.getMethod("set", String.class, Object.class);
-            METHODS[QUIT_ALL]     = Test.class.getMethod("quitAll");
+            METHODS[START_ISPN]=Test.class.getMethod("startIspnTest");
+            METHODS[GET_CONFIG]=Test.class.getMethod("getConfig");
+            METHODS[SET]=Test.class.getMethod("set", String.class, Object.class);
+            METHODS[QUIT_ALL]=Test.class.getMethod("quitAll");
 
             ClassConfigurator.add((short)11000, Results.class);
         }
@@ -91,48 +97,45 @@ public class Test extends ReceiverAdapter {
 
 
     public void init(String factory_name, String cfg, String jgroups_config, String cache_name) throws Exception {
+        Class<CacheFactory> clazz=Util.loadClass(factory_name, (Class)null);
+        cache_factory=clazz.newInstance();
+        cache_factory.init(cfg);
+        cache=cache_factory.create(cache_name);
+
+        channel=new JChannel(jgroups_config);
+        disp=new RpcDispatcher(channel, this).setMembershipListener(this);
+        disp.setMethodLookup(id -> METHODS[id]);
+        channel.connect("cfg");
+        local_addr=channel.getAddress();
+
         try {
-            Class<CacheFactory> clazz=Util.loadClass(factory_name, (Class)null);
-            cache_factory=clazz.newInstance();
-            cache_factory.init(cfg);
-            cache=cache_factory.create(cache_name);
-
-            channel=new JChannel(jgroups_config);
-            disp=new RpcDispatcher(channel, this).setMembershipListener(this);
-            disp.setMethodLookup(id -> METHODS[id]);
-            channel.connect("cfg");
-            local_addr=channel.getAddress();
-
-            try {
-                MBeanServer server=Util.getMBeanServer();
-                JmxConfigurator.registerChannel(channel, server, "control-channel", channel.getClusterName(), true);
-            }
-            catch(Throwable ex) {
-                System.err.println("registering the channel in JMX failed: " + ex);
-            }
-
-            if(members.size() >= 2) {
-                Address coord=members.get(0);
-                Config config=disp.callRemoteMethod(coord, new MethodCall(GET_CONFIG), new RequestOptions(ResponseMode.GET_ALL, 5000));
-                if(config != null) {
-                    applyConfig(config);
-                    System.out.println("Fetched config from " + coord + ": " + config);
-                }
-                else
-                    System.err.println("failed to fetch config from " + coord);
-            }
-
-            if(!cache.isEmpty()) {
-                int size=cache.size();
-                if(size < 10)
-                    System.out.println("cache already contains elements: " + cache.keySet());
-                else
-                    System.out.println("cache already contains " + size + " elements");
-            }
+            MBeanServer server=Util.getMBeanServer();
+            JmxConfigurator.registerChannel(channel, server, "control-channel", channel.getClusterName(), true);
         }
-        catch(Throwable t) {
-            t.printStackTrace();
+        catch(Throwable ex) {
+            System.err.println("registering the channel in JMX failed: " + ex);
         }
+
+        if(members.size() >= 2) {
+            Address coord=members.get(0);
+            Config config=disp.callRemoteMethod(coord, new MethodCall(GET_CONFIG), new RequestOptions(ResponseMode.GET_ALL, 5000));
+            if(config != null) {
+                applyConfig(config);
+                System.out.println("Fetched config from " + coord + ": " + config);
+            }
+            else
+                System.err.println("failed to fetch config from " + coord);
+        }
+
+        if(!cache.isEmpty()) {
+            int size=cache.size();
+            if(size < 10)
+                System.out.println("cache already contains elements: " + cache.keySet());
+            else
+                System.out.println("cache already contains " + size + " elements");
+        }
+        keys=createKeys(num_keys);
+        System.out.printf("created %d keys: [%d-%d]\n", keys.length, keys[0], keys[keys.length - 1]);
     }
 
     void stop() {
@@ -164,12 +167,18 @@ public class Test extends ReceiverAdapter {
         stop();
     }
 
+    protected static Integer[] createKeys(int num_keys) {
+        Integer[] retval=new Integer[num_keys];
+        for(int i=0; i < num_keys; i++)
+            retval[i]=i + 1;
+        return retval;
+    }
+
     public void viewAccepted(View new_view) {
         this.view=new_view;
         members.clear();
         members.addAll(new_view.getMembers());
     }
-
 
 
     // =================================== callbacks ======================================
@@ -216,11 +225,11 @@ public class Test extends ReceiverAdapter {
             AverageMinMax get_avg=null, put_avg=null;
             if(print_invokers)
                 System.out.printf("Round trip times (min/avg/max us):\n");
-            for(CacheInvoker inv: invokers) {
+            for(CacheInvoker inv : invokers) {
                 if(print_invokers)
                     System.out.printf("%s: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n", inv.getId(),
-                                      inv.get_avg.min()/1000.0, inv.get_avg.average()/1000.0, inv.get_avg.max()/1000.0,
-                                      inv.put_avg.min()/1000.0, inv.put_avg.average()/1000.0, inv.put_avg.max()/1000.0);
+                                      inv.get_avg.min() / 1000.0, inv.get_avg.average() / 1000.0, inv.get_avg.max() / 1000.0,
+                                      inv.put_avg.min() / 1000.0, inv.put_avg.average() / 1000.0, inv.put_avg.max() / 1000.0);
                 if(get_avg == null)
                     get_avg=inv.get_avg;
                 else
@@ -232,8 +241,8 @@ public class Test extends ReceiverAdapter {
             }
             if(print_details || print_invokers)
                 System.out.printf("\nall: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n",
-                                  get_avg.min()/1000.0, get_avg.average()/1000.0, get_avg.max()/1000.0,
-                                  put_avg.min()/1000.0, put_avg.average()/1000.0, put_avg.max()/1000.0);
+                                  get_avg.min() / 1000.0, get_avg.average() / 1000.0, get_avg.max() / 1000.0,
+                                  put_avg.min() / 1000.0, put_avg.average() / 1000.0, put_avg.max() / 1000.0);
             return new Results(num_reads.sum(), num_writes.sum(), time, get_avg, put_avg);
         }
         catch(Throwable t) {
@@ -249,19 +258,20 @@ public class Test extends ReceiverAdapter {
 
 
     public void set(String field_name, Object value) {
-        Field field=Util.getField(this.getClass(),field_name);
+        Field field=Util.getField(this.getClass(), field_name);
         if(field == null)
             System.err.println("Field " + field_name + " not found");
         else {
             Util.setField(field, this, value);
             System.out.println(field.getName() + "=" + value);
         }
+        changeKeySet();
     }
 
 
     public Config getConfig() {
         Config config=new Config();
-        for(Field field: Util.getAllDeclaredFields(Test.class)) {
+        for(Field field : Util.getAllDeclaredFields(Test.class)) {
             if(field.isAnnotationPresent(Property.class)) {
                 config.add(field.getName(), Util.getField(field, this));
             }
@@ -270,10 +280,11 @@ public class Test extends ReceiverAdapter {
     }
 
     protected void applyConfig(Config config) {
-        for(Map.Entry<String,Object> entry: config.values.entrySet()) {
+        for(Map.Entry<String,Object> entry : config.values.entrySet()) {
             Field field=Util.getField(getClass(), entry.getKey());
             Util.setField(field, this, entry.getValue());
         }
+        changeKeySet();
     }
 
     // ================================= end of callbacks =====================================
@@ -282,7 +293,7 @@ public class Test extends ReceiverAdapter {
     public void eventLoop() throws Throwable {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
-                                              num_threads, num_keys, time_secs, Util.printBytes(msg_size),
+                                              num_threads, keys != null? keys.length : 0, time_secs, Util.printBytes(msg_size),
                                               read_percentage, print_details, print_invokers));
             switch(c) {
                 case -1:
@@ -314,11 +325,11 @@ public class Test extends ReceiverAdapter {
                 case 'd':
                     changeFieldAcrossCluster("print_details", !print_details);
                     break;
-                 case 'i':
+                case 'i':
                     changeFieldAcrossCluster("print_invokers", !print_invokers);
                     break;
                 case 'r':
-                    double percentage= getReadPercentage();
+                    double percentage=getReadPercentage();
                     if(percentage >= 0)
                         changeFieldAcrossCluster("read_percentage", percentage);
                     break;
@@ -368,7 +379,7 @@ public class Test extends ReceiverAdapter {
         long total_reqs=0, total_time=0, longest_time=0;
         AverageMinMax get_avg=null, put_avg=null;
         System.out.println("\n======================= Results: ===========================");
-        for(Map.Entry<Address,Rsp<Results>> entry: responses.entrySet()) {
+        for(Map.Entry<Address,Rsp<Results>> entry : responses.entrySet()) {
             Address mbr=entry.getKey();
             Rsp<Results> rsp=entry.getValue();
             if(rsp.hasException()) {
@@ -393,7 +404,7 @@ public class Test extends ReceiverAdapter {
             }
             System.out.println(mbr + ": " + result);
         }
-        double reqs_sec_node=total_reqs / ( total_time/ 1000.0);
+        double reqs_sec_node=total_reqs / (total_time / 1000.0);
         double reqs_sec_cluster=total_reqs / (longest_time / 1000.0);
         double throughput=reqs_sec_node * msg_size;
         System.out.println("\n");
@@ -448,7 +459,7 @@ public class Test extends ReceiverAdapter {
     protected String printAverage(long start_time) {
         long time=System.currentTimeMillis() - start_time;
         long reads=num_reads.sum(), writes=num_writes.sum();
-        double reqs_sec=num_requests.sum() / (time/1000.0);
+        double reqs_sec=num_requests.sum() / (time / 1000.0);
         return String.format("%.2f reqs/sec (%d reads %d writes)", reqs_sec, reads, writes);
     }
 
@@ -460,6 +471,15 @@ public class Test extends ReceiverAdapter {
 
     protected void clearCache() {
         cache.clear();
+    }
+
+    protected void changeKeySet() {
+        if(keys == null || keys.length != num_keys) {
+            int old_key_size=keys != null? keys.length : 0;
+            keys=createKeys(num_keys);
+            System.out.printf("created %d keys: [%d-%d], old key set size: %d\n",
+                              keys.length, keys[0], keys[keys.length - 1], old_key_size);
+        }
     }
 
     // Inserts num_keys keys into the cache (in parallel)
@@ -517,8 +537,9 @@ public class Test extends ReceiverAdapter {
             while(running) {
                 num_requests.increment();
 
-                // get a random key in range [0 .. num_rpcs-1]
-                int key=(int)Util.random(num_keys) -1;
+                // get a random key in range [0 .. num_keys-1]
+                int index=(int)Util.random(num_keys) -1;
+                Integer key=keys[index];
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
                 // try the operation until it is successful
