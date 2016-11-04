@@ -4,7 +4,7 @@ import org.cache.Cache;
 import org.jgroups.*;
 import org.jgroups.util.Bits;
 import org.jgroups.util.ByteArrayDataOutputStream;
-import org.jgroups.util.Streamable;
+import org.jgroups.util.SizeStreamable;
 import org.jgroups.util.Util;
 
 import java.io.Closeable;
@@ -253,7 +253,8 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     protected static Message createMessage(Address dest, Data data, boolean oob) throws Exception {
-        ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(1200);
+        int expected_size=data.serializedSize();
+        ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(expected_size);
         data.writeTo(out);
         Message msg=new Message(dest, out.buffer(), 0, out.position());
         if(oob)
@@ -284,7 +285,20 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         }
     }
 
-    public static class Data<K,V> implements Streamable {
+    // simple method to compute sizes of keys and values. we know we use Integer as keys and byte[] as values
+    protected static int estimatedSizeOf(Object obj) {
+        if(obj == null)
+            return 1;
+        if(obj instanceof Integer)
+            return Global.INT_SIZE +1;
+        if(obj instanceof byte[])
+            return ((byte[])obj).length + 1 + Global.INT_SIZE;
+        if(obj instanceof String)
+            return ((String)obj).length() *2 +4;
+        return 255;
+    }
+
+    public static class Data<K,V> implements SizeStreamable {
         protected short   type;
         protected long    req_id; // the ID of the request: unique per node
         protected K       key;
@@ -300,6 +314,29 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
             this.key=key;
             this.value=value;
             this.original_sender=original_sender;
+        }
+
+        public int serializedSize() {
+            int retval=Global.SHORT_SIZE;
+            switch(type) {
+                case PUT:    // req_id | key | value
+                case BACKUP: // + original_sender
+                    retval+=Bits.size(req_id) + estimatedSizeOf(key) + estimatedSizeOf(value);
+                    if(type == BACKUP)
+                        retval+=Util.size(original_sender);
+                    break;
+                case GET: // req_id | key
+                    retval+=Bits.size(req_id) + estimatedSizeOf(key);
+                    break;
+                case CLEAR:
+                    break;
+                case ACK:    // req_id | value
+                    retval+=Bits.size(req_id) + estimatedSizeOf(value);
+                    break;
+                default:
+                    throw new IllegalStateException(String.format("type %d not known", type));
+            }
+            return retval+2; // to be on the safe side
         }
 
         public void writeTo(DataOutput out) throws Exception {
