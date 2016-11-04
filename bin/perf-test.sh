@@ -25,6 +25,7 @@ FLAGS="-server -Xms2G -Xmx2G"
 
 ## don't use G1 for now
 #FLAGS="$FLAGS -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+FLAGS="-XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled"
 
 # JMX="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=7777 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
 JMX="-Dcom.sun.management.jmxremote"
