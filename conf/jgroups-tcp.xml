@@ -16,7 +16,7 @@
        send_buf_size="5M"
        max_bundle_size="64K"
        enable_diagnostics="true"
-       tcp_nodelay="false"
+       tcp_nodelay="true"
 
        thread_pool.min_threads="0"
        thread_pool.max_threads="1000"
