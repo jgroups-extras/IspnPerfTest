@@ -14,7 +14,6 @@
          mcast_addr="232.5.5.5"
          mcast_port="${jgroups.udp.mcast_port:45588}"
          ip_ttl="1"
-         tos="8"
          ucast_recv_buf_size="5M"
          ucast_send_buf_size="5M"
          mcast_recv_buf_size="5M"
@@ -22,7 +21,6 @@
          max_bundle_size="64K"
          enable_diagnostics="true"
 
-         thread_pool.enabled="true"
          thread_pool.min_threads="0"
          thread_pool.max_threads="1000"
          thread_pool.keep_alive_time="30000" />
