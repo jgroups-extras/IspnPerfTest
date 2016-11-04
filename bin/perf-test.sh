@@ -21,7 +21,7 @@ if [ -f $HOME/logging.properties ]; then
 fi;
 
 JG_FLAGS="-Djava.net.preferIPv4Stack=true"
-FLAGS="-server -Xmx2G"
+FLAGS="-server -Xms2G -Xmx2G"
 
 ## don't use G1 for now
 #FLAGS="$FLAGS -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
