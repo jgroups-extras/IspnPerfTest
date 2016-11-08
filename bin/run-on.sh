@@ -17,7 +17,7 @@ show_help(){
 	echo "--upper -u 09 10 11 12 13 14 15 16"
 	echo "--cluster -c  cluster"
 	echo "--edg-perf -e edg-perf"
-	echo "--hazelcast -h hc-perf-test.sh"
+	echo "--hazelcast -hc hc-perf-test.sh"
 	echo "--coherence -o coh-perf-test.sh"
 	echo "--infinispan -i perf-test.sh"
 	echo "--tri        -t tri-perf-test.sh"
@@ -33,7 +33,7 @@ while true; do
     -l | --lower ) NODES="01 02 03 04 05 06 07 08"; shift ;;
     -e | --edg-perf ) CLUSTER="edg-perf"; shift ;;
     -c | --cluster ) CLUSTER="cluster"; shift ;;
-    -h | --hazelcast ) COMMAND="hc-perf-test.sh"; shift ;;
+    -hc | --hazelcast ) COMMAND="hc-perf-test.sh"; shift ;;
     -o | --coherence ) COMMAND="coh-perf-test.sh"; shift ;;
     -i | --infinispan ) COMMAND="perf-test.sh"; shift ;;
     -t | --tri )        COMMAND="tri-perf-test.sh"; shift ;;
