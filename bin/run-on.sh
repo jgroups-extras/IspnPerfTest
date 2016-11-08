@@ -20,6 +20,7 @@ show_help(){
 	echo "--hazelcast -h hc-perf-test.sh"
 	echo "--coherence -o coh-perf-test.sh"
 	echo "--infinispan -i perf-test.sh"
+	echo "--tri        -t tri-perf-test.sh"
 	exit 0;
 }
 
@@ -35,6 +36,7 @@ while true; do
     -h | --hazelcast ) COMMAND="hc-perf-test.sh"; shift ;;
     -o | --coherence ) COMMAND="coh-perf-test.sh"; shift ;;
     -i | --infinispan ) COMMAND="perf-test.sh"; shift ;;
+    -t | --tri )        COMMAND="tri-perf-test.sh"; shift ;;
     * ) break;;
   esac
 done
