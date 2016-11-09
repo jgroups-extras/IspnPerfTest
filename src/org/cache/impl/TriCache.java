@@ -99,10 +99,11 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
      * @return the value associated with the key, or null if key has not been set
      */
     public V get(K key) {
-        Address dest=pickMember(hash(key), 0);
-        if(dest == null)
-            throw new IllegalArgumentException("dest must not be null");
-        if(Objects.equals(dest, local_addr))
+        int hash=hash(key);
+        Address primary=pickMember(hash, 0), backup=pickMember(hash, 1);
+        if(primary == null || backup == null)
+            throw new IllegalArgumentException("primary and backup owners must not be null");
+        if(Objects.equals(primary, local_addr) || Objects.equals(backup, local_addr))
             return map.get(key);
 
         CompletableFuture<V> future=new CompletableFuture<>(); // used to block for response (or timeout)
@@ -111,7 +112,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         try {
             Data data=new Data(GET, req_id, key, null, null);
-            send(dest, data, false);
+            send(primary, data, false);
             return future.get(10000, TimeUnit.MILLISECONDS);
         }
         catch(Exception e) {
