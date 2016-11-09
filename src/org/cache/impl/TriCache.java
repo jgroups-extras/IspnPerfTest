@@ -2,10 +2,7 @@ package org.cache.impl;
 
 import org.cache.Cache;
 import org.jgroups.*;
-import org.jgroups.util.Bits;
-import org.jgroups.util.ByteArrayDataOutputStream;
-import org.jgroups.util.SizeStreamable;
-import org.jgroups.util.Util;
+import org.jgroups.util.*;
 
 import java.io.Closeable;
 import java.io.DataInput;
@@ -14,9 +11,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,7 +36,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     protected final Lock                           lock=new ReentrantLock(true);
 
     // Maps req-ids to futures on which callers block (e.g. put() or get()) until an ACK has been received
-    protected final Map<Long,CompletableFuture<V>> req_table=new ConcurrentHashMap<>();
+    protected final Map<Long,Promise<V>>           req_table=new ConcurrentHashMap<>();
     protected static final AtomicLong              REQ_IDs=new AtomicLong(1);
 
     protected static final short PUT    = 1; // async to backup node
@@ -72,7 +67,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     public V put(K key, V value) {
         int hash=hash(key);
         Address primary=pickMember(hash, 0);
-        CompletableFuture<V> future=new CompletableFuture<>(); // used to block for response (or timeout)
+        Promise<V> future=new Promise<>(); // used to block for response (or timeout)
         long req_id=REQ_IDs.getAndIncrement();
         req_table.put(req_id, future);
 
@@ -82,7 +77,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                 _put(data, local_addr);
             else
                 send(primary, data, false);
-            return future.get(10000, TimeUnit.MILLISECONDS);
+            return future.getResultWithTimeout(10000);
         }
         catch(Exception e) {
             throw new RuntimeException(e);
@@ -105,14 +100,14 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         if(Objects.equals(dest, local_addr))
             return map.get(key);
 
-        CompletableFuture<V> future=new CompletableFuture<>(); // used to block for response (or timeout)
+        Promise<V> future=new Promise<>(); // used to block for response (or timeout)
         long req_id=REQ_IDs.getAndIncrement();
         req_table.put(req_id, future);
 
         try {
             Data data=new Data(GET, req_id, key, null, null);
             send(dest, data, false);
-            return future.get(10000, TimeUnit.MILLISECONDS);
+            return future.getResultWithTimeout(10000);
         }
         catch(Exception e) {
             throw new RuntimeException(e);
@@ -231,9 +226,9 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     public void _ack(Data data) {
-        CompletableFuture<V> future=req_table.get(data.req_id);
+        Promise<V> future=req_table.get(data.req_id);
         if(future != null) {
-            future.complete((V)data.value);
+            future.setResult((V)data.value);
             req_table.remove(data.req_id); // probably not needed as the caller already does this, even on call timeout
         }
     }
