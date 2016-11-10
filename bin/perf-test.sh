@@ -49,6 +49,11 @@ JMX="-Dcom.sun.management.jmxremote"
 # Enable flight recorder with our custom profile:
 #JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:StartFlightRecording=compress=false,delay=30s,duration=300s,name=$IP_ADDR,filename=$IP_ADDR.jfr,settings=profile_2ms.jfc"
 
+## BYTEMAN: uncomment the line below if you want to get delivery times (from reception of a message to delivery to the
+## application. Run probe.sh delivery / delivery-reset to get data
+#BM="-javaagent:$PT/lib/byteman.jar=script:$PT/conf/delivery.btm"
+
+
 export proc_id=$$
 
-java $CONFIG -classpath $CP $HAZELCAST -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC org.perf.Test $*
+java $CONFIG -classpath $CP $HAZELCAST -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*

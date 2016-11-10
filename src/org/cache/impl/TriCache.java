@@ -2,10 +2,7 @@ package org.cache.impl;
 
 import org.cache.Cache;
 import org.jgroups.*;
-import org.jgroups.util.Bits;
-import org.jgroups.util.ByteArrayDataOutputStream;
-import org.jgroups.util.SizeStreamable;
-import org.jgroups.util.Util;
+import org.jgroups.util.*;
 
 import java.io.Closeable;
 import java.io.DataInput;
@@ -169,6 +166,16 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         }
         catch(Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void receive(MessageBatch batch) {
+        for(Message msg: batch) {
+            try {
+                receive(msg);
+            }
+            catch(Throwable t) {
+            }
         }
     }
 

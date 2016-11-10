@@ -1,0 +1,76 @@
+
+
+## Byteman script to measure delivery latency from reception of a message to its delivery
+## (*excluding* the delivery time spent in the application)
+
+
+HELPER org.perf.DeliveryHelper
+
+## Channel created - needed to register DeliveryHelper as ProbeHandler
+RULE ChannelCreated
+CLASS org.jgroups.JChannel
+METHOD init
+AT EXIT
+IF TRUE
+    DO channelCreated($0);
+ENDRULE
+
+
+## Message received by the transport // todo: handle looped back messages
+RULE MessageReceived
+CLASS org.jgroups.protocols.TP
+METHOD handleSingleMessage
+AFTER INVOKE org.jgroups.Message.readFrom
+IF TRUE
+    DO messageReceived($msg);
+ENDRULE
+
+
+## Message batch received
+RULE BatchReceived
+CLASS org.jgroups.protocols.TP
+METHOD handleMessageBatch
+AT INVOKE TP.removeAndDispatchNonBundledMessages
+IF TRUE
+#     DO System.out.println("batches=" + $batches);
+    DO batchesReceived($batches);
+ENDRULE
+
+
+################ InfinispanCache ################
+## Infinispan currently only implements handle(Message) and doesn't use JChannel (but MessageDispatcher)
+
+RULE IspnMessageDelivery
+CLASS org.jgroups.blocks.RequestCorrelator
+METHOD dispatch
+AT ENTRY
+IF TRUE
+    DO beforeMessageDelivery($1);
+ENDRULE
+
+
+################ TriCache ################
+## TriCache currently only implements receive(Message), once receive(MessageBatch), is implemented, the BatchDelivery
+## rule needs to be changed
+
+## Message to be delivered to application
+RULE TriMessageDelivery
+CLASS org.cache.impl.TriCache
+METHOD receive(org.jgroups.Message)
+AT ENTRY
+IF TRUE
+    DO beforeMessageDelivery($1);
+ENDRULE
+
+
+## Message batch to be delivered to application
+RULE TriBatchDelivery
+CLASS org.cache.impl.TriCache
+METHOD receive(org.jgroups.util.MessageBatch)
+AT ENTRY
+IF TRUE
+     DO beforeBatchDelivery($1);
+ENDRULE
+
+
+
