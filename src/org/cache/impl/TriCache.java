@@ -94,15 +94,15 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
 
     /**
-     * Pick the member to which key hashes and invoke a blocking _get(key) RPC
+     * Pick the primary member to which key hashes, send a GET request and wait for the get response (ACK)
      * @param key the key
      * @return the value associated with the key, or null if key has not been set
      */
     public V get(K key) {
-        Address dest=pickMember(hash(key), 0);
-        if(dest == null)
-            throw new IllegalArgumentException("dest must not be null");
-        if(Objects.equals(dest, local_addr))
+        Address primary=pickMember(hash(key), 0);
+        if(primary == null)
+            throw new IllegalArgumentException("primary must not be null");
+        if(Objects.equals(primary, local_addr))
             return map.get(key);
 
         CompletableFuture<V> future=new CompletableFuture<>(); // used to block for response (or timeout)
@@ -111,7 +111,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         try {
             Data data=new Data(GET, req_id, key, null, null);
-            send(dest, data, false);
+            send(primary, data, false);
             return future.get(10000, TimeUnit.MILLISECONDS);
         }
         catch(Exception e) {
