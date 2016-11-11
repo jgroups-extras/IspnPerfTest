@@ -18,6 +18,8 @@
         <dependency org="org.jboss.byteman"              name="byteman-bmunit"         rev="3.+"/>
         <dependency org="org.jboss.byteman"              name="byteman-install"        rev="3.+"/>
         <dependency org="org.jboss.byteman"              name="byteman-submit"         rev="3.+"/>
+        <dependency org="org.testng"                     name="testng"                 rev="6.9.+"/>
+        <dependency org="com.github.ben-manes.caffeine"  name="caffeine"               rev="2.3.5" />
         <!--<exclude org="*" ext="*" type="source"/>-->
         <exclude org="*" ext="*" type="javadoc"/>
     </dependencies>

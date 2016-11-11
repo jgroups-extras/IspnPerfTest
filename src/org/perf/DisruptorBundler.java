@@ -15,6 +15,7 @@ import org.jgroups.util.DefaultThreadFactory;
  * Note that this impl works against 3.6.x, and hasn't been tested against 4.0.
  * @author Bela Ban
  */
+@SuppressWarnings("unused")
 public class DisruptorBundler extends BaseBundler implements EventHandler<DisruptorBundler.MessageEvent> {
     protected Disruptor<MessageEvent>                     disruptor;
     protected com.lmax.disruptor.RingBuffer<MessageEvent> buf;

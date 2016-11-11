@@ -2,7 +2,11 @@ package org.perf;
 
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.cache.impl.*;
+import org.cache.impl.DistCacheFactory;
+import org.cache.impl.HazelcastCacheFactory;
+import org.cache.impl.InfinispanCacheFactory;
+import org.cache.impl.JGroupsCacheFactory;
+import org.cache.impl.tri.TriCacheFactory;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
 import org.jgroups.blocks.MethodCall;
@@ -48,11 +52,11 @@ public class Test extends ReceiverAdapter {
 
     // ============ configurable properties ==================
     @Property
-    protected int num_threads=25;
+    protected int num_threads=100;
     @Property
-    protected int num_keys=100000, time_secs=30, msg_size=1000;
+    protected int num_keys=100000, time_secs=60, msg_size=1000;
     @Property
-    protected double read_percentage=0.8; // 80% reads, 20% writes
+    protected double read_percentage=1; // 80% reads, 20% writes
     @Property
     protected boolean print_details=true;
     @Property
@@ -72,7 +76,7 @@ public class Test extends ReceiverAdapter {
     protected static final String coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String jg_factory=JGroupsCacheFactory.class.getName();
     protected static final String dist_factory=DistCacheFactory.class.getName();
-    protected static final String tri_factory=TriCache.class.getName();
+    protected static final String tri_factory=TriCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start cache test [2] View [3] Cache size" +
       "\n[4] Threads (%d) [5] Num keys (%d) [6] Time (secs) (%d) [7] Value size (%s)" +
@@ -487,7 +491,7 @@ public class Test extends ReceiverAdapter {
         final AtomicInteger key=new AtomicInteger(1);
         final int           print=num_keys / 10;
 
-        Thread[] inserters=new Thread[10];
+        Thread[] inserters=new Thread[50];
         for(int i=0; i < inserters.length; i++) {
             inserters[i]=new Thread(() -> {
                 for(;;) {
@@ -650,9 +654,9 @@ public class Test extends ReceiverAdapter {
     public static void main(String[] args) {
         String           config_file="dist-sync.xml";
         String           cache_name="perf-cache";
-        String           cache_factory_name="org.cache.impl.InfinispanCacheFactory";
+        String           cache_factory_name=InfinispanCacheFactory.class.getName();
         String           jgroups_config="control.xml";
-        boolean          run_event_loop=true;
+        boolean          run_event_loop=true, name_set=false;
 
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
@@ -661,6 +665,7 @@ public class Test extends ReceiverAdapter {
             }
             if(args[i].equals("-cache")) {
                 cache_name=args[++i];
+                name_set=true;
                 continue;
             }
             if("-factory".equals(args[i])) {
@@ -702,7 +707,7 @@ public class Test extends ReceiverAdapter {
                     cache_factory_name=tri_factory;
                     break;
             }
-            test.init(cache_factory_name, config_file, jgroups_config, cache_name);
+            test.init(cache_factory_name, config_file, jgroups_config, name_set? cache_name : null);
             if(run_event_loop)
                 test.startEventThread();
         }

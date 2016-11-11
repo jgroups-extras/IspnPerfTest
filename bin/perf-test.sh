@@ -21,14 +21,14 @@ if [ -f $HOME/logging.properties ]; then
 fi;
 
 
-FLAGS="$FLAGS -server -Xms2G -Xmx2G" ### might want to increase these values
+FLAGS="$FLAGS -server -Xms8G -Xmx8G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
 
 ## good flags: 112'000 reads/node ispn on edg-perf01-08
-FLAGS="$FLAGS -XX:TLABSize=300k -XX:-ResizeTLAB"
-FLAGS="$FLAGS -XX:+UseParallelGC -XX:GCTimeRatio=99"
-FLAGS="$FLAGS -XX:NewRatio=1"
+# FLAGS="$FLAGS -XX:TLABSize=300k -XX:-ResizeTLAB"
+# FLAGS="$FLAGS -XX:+UseParallelGC -XX:GCTimeRatio=99"
+# FLAGS="$FLAGS -XX:NewRatio=1"
 
 
 ## G1; optimized for short pauses - remove -Xmx/-Xms!
@@ -53,7 +53,9 @@ JMX="-Dcom.sun.management.jmxremote"
 ## application. Run probe.sh delivery / delivery-reset to get data
 #BM="-javaagent:$PT/lib/byteman.jar=script:$PT/conf/delivery.btm"
 
+# Uncomment to enable dtrace tracing on the hotspot provider (e.g. lock and method invocation tracing)
+#TRACE=-XX:+ExtendedDTraceProbes
 
 export proc_id=$$
 
-java $CONFIG -classpath $CP $HAZELCAST -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*
+java  $CONFIG -classpath $CP $HAZELCAST -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*

@@ -1,4 +1,4 @@
-package org.cache.impl;
+package org.cache.impl.tri;
 
 import org.cache.Cache;
 import org.cache.CacheFactory;
@@ -22,7 +22,7 @@ public class TriCacheFactory<K,V> implements CacheFactory<K,V> {
 
     public Cache<K,V> create(String cache_name) {
         try {
-            cache=new TriCache(config);
+            cache=new TriCache(config, cache_name);
             return cache;
         }
         catch(Exception e) {
