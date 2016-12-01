@@ -656,7 +656,7 @@ public class Test extends ReceiverAdapter {
         String           cache_name="perf-cache";
         String           cache_factory_name=InfinispanCacheFactory.class.getName();
         String           jgroups_config="control.xml";
-        boolean          run_event_loop=true, name_set=false;
+        boolean          run_event_loop=true;
 
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
@@ -665,7 +665,6 @@ public class Test extends ReceiverAdapter {
             }
             if(args[i].equals("-cache")) {
                 cache_name=args[++i];
-                name_set=true;
                 continue;
             }
             if("-factory".equals(args[i])) {
@@ -707,7 +706,7 @@ public class Test extends ReceiverAdapter {
                     cache_factory_name=tri_factory;
                     break;
             }
-            test.init(cache_factory_name, config_file, jgroups_config, name_set? cache_name : null);
+            test.init(cache_factory_name, config_file, jgroups_config, cache_name);
             if(run_event_loop)
                 test.startEventThread();
         }

@@ -73,8 +73,8 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
 
 
-    public TriCache(String config, String name) throws Exception {
-        ch=new JChannel(config).name(name);
+    public TriCache(String config) throws Exception {
+        ch=new JChannel(config);
         ch.setReceiver(this);
         ch.connect("tri");
         this.local_addr=ch.getAddress();

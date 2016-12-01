@@ -22,7 +22,7 @@ public class TriCacheFactory<K,V> implements CacheFactory<K,V> {
 
     public Cache<K,V> create(String cache_name) {
         try {
-            cache=new TriCache(config, cache_name);
+            cache=new TriCache(config);
             return cache;
         }
         catch(Exception e) {
