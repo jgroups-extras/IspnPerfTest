@@ -75,4 +75,67 @@ operations are batched into a DataBatch instance and sent to the same destinatio
 _application batching_, which is used by TriCache in addition to message batching (done by JGroups), to reduce the
 amount of data sent across the network and to bulk-process many operations in one go.
 
-A DataBatch always has the same destination, but can contain many different operations.
+A DataBatch always has the same destination, but may contain many different operations. When a DataBatch is received,
+it is processed as follows (TriCache.process(DataBatch)):
+
+- Iterate over the DataBatch:
+  - On a PUT: increment puts
+  - On a GET: get the value and set it _in place_, ie. at the same index of the data batch where the PUT was
+            : replace the PUT operation with BACKUP
+  - On an ACK: complete the future, so the caller is unblocked, and null the data at the fiven index
+  - On a BACKUP: update the local hashmap and send an ACK back to the original sender, plus null the element at the
+                 given index
+
+- At this point, ACKs and BACKUPs have been processed and nulled in the data batch
+- If there were any PUTs: add the data batch to the put-queue (see below)
+- If there were any GETs: send all ACKs in the batch back to the sender using the same batch (but skipping any operation
+  other then ACK).
+
+- Example: a data batch of 2 PUTs, 2 ACKs, 2 BACKUPs and 3 GETs will be processed as follows:
+
+  [0] PUT     -->     [0] BACKUP
+  [1] PUT     -->     [1] BACKUP
+  [2] ACK     -->     [2]  -
+  [3] ACK     -->     [3]  -
+  [4] BACKUP  -->     [4]  - // ACK already sent
+  [5] BACKUP  -->     [5]  - // ACK already sent
+  [6] GET     -->     [6] ACK
+  [7] GET     -->     [7] ACK
+  [8] GET     -->     [8] ACK
+
+This will be sent as 2 batches of 2 BACKUP operations and 3 ACKs.
+
+- Example 2: D receives a data batch of 4 GETs and 2 ACKs:
+
+                                -- sent as -->
+  [0] GET     -->     [0] ACK    --> [0] ACK
+  [1] GET     -->     [1] ACK    --> [1] ACK
+  [2] ACK     -->     [2]  -     --> [2] ACK
+  [3] GET     -->     [3] ACK    --> [3] ACK
+  [4] GET     -->     [4] ACK
+  [5] ACK     -->     [5]  -
+
+- The response batch only has 4 elements, but we didn't create a new batch, but simply skipped the null element in the
+  received batch when serializing the response. The receiver side then received a data batch of 4 operations.
+
+
+PUTs and ordering in put-queue
+------------------------------
+
+A PUT is applied to the local hashmap by the primary and then sent to the backup node using a BACKUP operation.
+
+This has to be done *atomically* with respect to other PUTs, e.g. if the primary received put(x,1) and put(x,2) then
+not doing this atomically could result in the following inconsistency:
+- put(x,1) is received by (primary) P and is processed in thread #4
+- put(x,2) is received by P and is processed in thread #5
+- x is set to 2 by thread #5
+- x is set to 1 by thread #4
+- Thread #4 sends a BACKUP message to (backup) B. UNICAST3 assigns seqno=20 to BACKUP(x,1)
+- Thread #5 sends a BACKUP message to B. UNICAST3 assigns seqno=21 to BACKUP(x,2)
+- Backup node B delivers BACKUP(x,1) before BACKUP(x,2), in the order of the seqnos
+==> The state is now x=2 on B and x=1 on P, which is inconsistent!
+
+Therefore PUTs are handled only by a thread pool of fixed size 1 (with a queue), instead of acquiring a lock. This
+guarantees that a PUT is only ever handled by a single thread and thus BACKUP operations are always sent in the
+same order that the local hashmap is updated.
+
