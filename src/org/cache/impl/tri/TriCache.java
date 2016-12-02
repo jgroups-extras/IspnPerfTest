@@ -242,8 +242,8 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                     m.put("tri.req-table", req_table.toString());
                     m.put("tri.avg_batch_size", avg_batch_size.toString());
                     if(stats) {
-                        m.put("tri.avg_batch_processing_time", avg_batch_processing_time.toString());
-                        m.put("tri.avg_batch_put_processing_time", avg_put_processing_time.toString());
+                        m.put("tri.avg_batch_processing_time", avg_batch_processing_time.toString() + " us");
+                        m.put("tri.avg_batch_put_processing_time", avg_put_processing_time.toString() + " us");
                     }
                     m.put("tri.num_single_msgs_received", String.valueOf(num_single_msgs_received.sum()));
                     m.put("tri.num_data_batches_received", String.valueOf(num_data_batches_received.sum()));
