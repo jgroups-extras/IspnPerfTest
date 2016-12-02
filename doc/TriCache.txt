@@ -1,0 +1,78 @@
+
+TriCache design
+===============
+
+TriCache is an experimental cache implementation which mimics the way Infinispan's Triangle approach works. Supported
+operations are mainly put() and get().
+
+Rebalancing on a view change is unsupported, as the main goal of TriCache is to compare steady-state operation
+performance against Infinispan.
+
+There's a fixed replication count of 2, and if a given key K maps to node B, then the backup owner for K will be C
+(in A,B,C,D). In this group, all keys stored by primary (e.g.) D will also be present on backup node A. Having the
+next-in-line member as backup node favors message- and data-batching (see below).
+
+PUTs
+----
+
+- An originator (say C) does a put(K,V).
+- The consistent hash of K points to A as primary and B as backup for K.
+- C now sends a PUT(K,V) to A and blocks for an ACK
+- A receives PUT, applies the change to its local store (hashmap) and sends a BACKUP message to backup node B
+- B receives BACKUP, applies the change and sends an ACK to the original sender C.
+- C receives the ACK and the PUT call returns
+- Because the path of a PUT goes from originator to primary to backup back to originator, this is called the 'Triangle'
+  approach in Infinispan
+- There are 2 optimizations when originator == primary or originator == backup
+
+GETs
+----
+- A GET for key K determines the primary and backup nodes for K, e.g. B and C. If the originator is B or C, then GET
+  returns the value from the local hashmap.
+- Else a GET request is sent to the primary and we block until an ACK has been received.
+- The primary receives the GET and sends an ACK with the result back to the originator.
+- The originator receives the ACK and unblocks the caller of GET with the return value.
+
+
+OOB messages
+------------
+
+TriCache does *not* use any OOB messages. The reason is that OOB messages are assigned a separate thread at the receiver,
+which sheperds them up the stack until they are delivered to the application. This means that if we (D) receive (at the
+same time) 10 messages from A, 5 from B and 7 from C, we may have up to 22 threads delivering these messages.
+
+Creating many threads increases costs for context switching and slows a system down.
+
+Using regular messages has the following advantages:
+
+- Only 3 threads are used in the above example to deliver the first message from A, B and C. An additional thread may be
+  created to add the other messages from A, B and C to their respective tables in UNICAST3. After adding the messages,
+  this thread is idle again. Fewer threads -> reduced context switching costs.
+
+- When a messages (e.g. from A) has been delivered, the same thread tries to remove as many messages from A's table as
+  possible. In this case, 9 messages are removed and delivered to the application *as a message batch*. Message batching
+  has additional advantages, see below.
+
+
+Message batches
+---------------
+
+Whereas delivery of a single message to the application calls receive(Message), delivering a message batch invokes
+callback receive(MessageBatch). A message batch has advantages over a single message:
+
+- Resources such as locks, threads etc are created/locked only once per batch rather than once per message
+
+- The header/payload ratio is better for batches
+
+
+
+
+Application batches
+-------------------
+
+TriCache uses Data to exchange single GET, PUT, ACK and BACKUP operations. However, whenever possible, multiple
+operations are batched into a DataBatch instance and sent to the same destination. This is what's called
+_application batching_, which is used by TriCache in addition to message batching (done by JGroups), to reduce the
+amount of data sent across the network and to bulk-process many operations in one go.
+
+A DataBatch always has the same destination, but can contain many different operations.
