@@ -139,3 +139,12 @@ Therefore PUTs are handled only by a thread pool of fixed size 1 (with a queue),
 guarantees that a PUT is only ever handled by a single thread and thus BACKUP operations are always sent in the
 same order that the local hashmap is updated.
 
+Note that BACKUPs are received by a backup node from a *single primary*, as each backup node only has one primary. These
+opertions therefore don't need to acquire a lock as the stream of messages from primary to backup is ordered already
+and delivered sequentially because these are regular JGroups messages.
+
+There are also no conflicting PUTs and BACKUPs for the same key K: either a node is a primary and therefore gets all
+PUTs for K, or the node is a backup for K and therefore never gets PUTs for K, only BACKUPs.
+
+Also note that GETs don't synchronize when getting the value for a given key from the local hashmap.
+
