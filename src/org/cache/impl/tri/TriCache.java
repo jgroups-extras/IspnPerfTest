@@ -182,6 +182,10 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         return map.keySet();
     }
 
+    public Map<K,V> getContents() {
+        return map;
+    }
+
     public void receive(Message msg) {
         ByteArrayDataInputStream in=new ByteArrayDataInputStream(msg.getRawBuffer(), msg.getOffset(), msg.getLength());
         try {
@@ -278,6 +282,8 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         data.type=BACKUP;
 
         map.put((K)data.key, (V)data.value);
+        // System.out.printf("put(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
+
         if(primary_is_backup) { // primary == backup (e.g. when cluster size is 1: ack directly
             data.type=ACK;
             handleAck(data);
@@ -301,6 +307,9 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                     // reuse data instead of creating a new instance
                     data.sender=batch.addr;
                     map.put((K)data.key, (V)data.value);
+                    // System.out.printf("put(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
+
+
                     if(primary_is_backup) { // primary == backup (e.g. when cluster size is 1: ack directly
                         data.type=ACK;
                         handleAck(data);
@@ -337,6 +346,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
      */
     protected void handleBackup(Data data) {
         map.put((K)data.key, (V)data.value);
+        // System.out.printf("backup(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
 
         data.type=ACK; // reuse data again
         data.key=null;

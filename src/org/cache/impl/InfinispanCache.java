@@ -1,7 +1,10 @@
 package org.cache.impl;
 
 import org.cache.Cache;
+import org.infinispan.context.Flag;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -37,5 +40,12 @@ public class InfinispanCache<K,V> implements Cache<K,V> {
 
     public Set<K> keySet() {
         return cache.keySet();
+    }
+
+    public Map<K,V> getContents() {
+        Map<K,V> contents=new HashMap<>();
+        for(Map.Entry<K,V> entry: cache.getAdvancedCache().withFlags(Flag.CACHE_MODE_LOCAL).entrySet())
+            contents.put(entry.getKey(), entry.getValue());
+        return contents;
     }
 }

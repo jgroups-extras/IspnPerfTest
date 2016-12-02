@@ -1,5 +1,6 @@
 package org.cache;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -45,5 +46,11 @@ public interface Cache<K,V> {
      * @return the keys of this cache instance
      */
     Set<K> keySet();
+
+    /**
+     * Returns the local contents of a cache, ie. does not make any remote calls
+     * @return A map of keys and values
+     */
+    Map<K,V> getContents();
 
 }

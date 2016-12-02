@@ -74,6 +74,9 @@
             fail-safety. 0 means no backup.
         -->
         <backup-count>1</backup-count>
+
+        <!-- Read from *any* owner -->
+        <read-backup-data>true</read-backup-data>
         <!--
             Number of async backups. 0 means no backup.
         -->

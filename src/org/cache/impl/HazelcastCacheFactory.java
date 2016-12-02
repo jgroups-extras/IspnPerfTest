@@ -30,7 +30,7 @@ public class HazelcastCacheFactory<K,V> implements CacheFactory<K,V> {
     }
 
     public Cache<K,V> create(String cache_name) {
-        return new HazelcastCache<>(hc.getMap(cache_name));
+        return new HazelcastCache<>(hc, cache_name);
     }
 
 

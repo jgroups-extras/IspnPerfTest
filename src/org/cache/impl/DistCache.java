@@ -153,6 +153,10 @@ public class DistCache<K,V> implements Cache<K,V>, Closeable {
         return map.keySet();
     }
 
+    public Map<K,V> getContents() {
+        return map;
+    }
+
     /**
      * Locks the cache, applies the change, sends a BACKUP message to the backup node asynchronously, unlocks the cache
      * and returns

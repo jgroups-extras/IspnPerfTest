@@ -3,6 +3,7 @@ package org.cache.impl.coh;
 import com.tangosol.net.NamedCache;
 import org.cache.Cache;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -38,5 +39,9 @@ public class CoherenceCache<K,V> implements Cache<K,V> {
 
     public Set<K> keySet() {
         return cache.keySet();
+    }
+
+    public Map<K,V> getContents() {
+        throw new UnsupportedOperationException();
     }
 }

@@ -59,15 +59,6 @@ To run the Coherence test, you'll need to
 * The configuration used for Coherence is `conf/coh.xml`
 
 
-JGroups ReplCache test
-----------------------
-This is a test based on JGroups' ReplCache which multicasts all changes and nodes accept or reject the changes based
-on the consistent hash of the keys. Geared towards IP multicasting and sub-optimal with TCP.
-
-To run:
-* Run `bin/jg-perf-test.sh`
-
-
 DistCache test
 --------------
 This simple JGroups based cache mimicks Infinispan's DIST mode (with a fixed replication count of 2). A PUT is sent
@@ -83,6 +74,7 @@ This cache mimicks the 'triangle approach' in Infinispan in which a PUT is sent 
 the primary then forwards it to the backup, and the backup sends an ACK with the previous value back to the
 originator. All calls are asynchronous and the caller blocks until it gets the ACK from the backup node, or the
 timeout kicks in.
+For details see ./doc/TriCache.txt.
 
 To run:
 * Run `bin/tri-perf-test.sh`
