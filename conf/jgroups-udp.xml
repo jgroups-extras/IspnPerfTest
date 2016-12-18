@@ -14,7 +14,7 @@
          mcast_addr="232.5.5.5"
          mcast_port="${jgroups.udp.mcast_port:45588}"
          ip_ttl="1"
-         ucast_recv_buf_size="20M"
+         ucast_recv_buf_size="5M"
          ucast_send_buf_size="5M"
          mcast_recv_buf_size="5M"
          mcast_send_buf_size="5M"
