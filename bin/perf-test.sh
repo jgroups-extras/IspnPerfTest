@@ -60,4 +60,4 @@ JMX="-Dcom.sun.management.jmxremote"
 
 export proc_id=$$
 
-java  $CONFIG -classpath $CP $HAZELCAST -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*
+java $TRACE $CONFIG -classpath $CP $HAZELCAST -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*
