@@ -25,7 +25,9 @@ fi;
 ### On edg-perf, this is OK (physical mem: 32G)
 FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
-JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
+
+## If uncommented and used in prod, license fees may incur
+## JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
 
 ## good flags: 112'000 reads/node ispn on edg-perf01-08
 # FLAGS="$FLAGS -XX:TLABSize=300k -XX:-ResizeTLAB"
@@ -48,8 +50,6 @@ JMX="-Dcom.sun.management.jmxremote"
 
 #DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5000"
 
-# Enable flight recorder with our custom profile:
-#JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:StartFlightRecording=compress=false,delay=30s,duration=300s,name=$IP_ADDR,filename=$IP_ADDR.jfr,settings=profile_2ms.jfc"
 
 ## BYTEMAN: uncomment the line below if you want to get delivery times (from reception of a message to delivery to the
 ## application. Run probe.sh delivery / delivery-reset to get data
