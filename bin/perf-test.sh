@@ -49,6 +49,7 @@ JMX="-Dcom.sun.management.jmxremote"
 #java -Xrunhprof:cpu=samples,monitor=y,interval=5,lineno=y,thread=y -classpath $CP $LOG $FLAGS $JMX  $*
 
 #DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5000"
+#GC_LOG="-XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$HOME/gclog.log"
 
 
 ## BYTEMAN: uncomment the line below if you want to get delivery times (from reception of a message to delivery to the
