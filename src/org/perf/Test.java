@@ -81,7 +81,7 @@ public class Test extends ReceiverAdapter {
     protected static final String tri_factory=TriCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
-      "\n[5] Keys (%d) [6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
+      "\n[5] Keys (%,d) [6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b) [l] dump local cache" +
@@ -141,7 +141,7 @@ public class Test extends ReceiverAdapter {
                 System.out.println("cache already contains " + size + " elements");
         }
         keys=createKeys(num_keys);
-        System.out.printf("created %d keys: [%d-%d]\n", keys.length, keys[0], keys[keys.length - 1]);
+        System.out.printf("created %,d keys: [%,d-%,d]\n", keys.length, keys[0], keys[keys.length - 1]);
     }
 
     void stop() {
@@ -232,7 +232,7 @@ public class Test extends ReceiverAdapter {
                 System.out.printf("Round trip times (min/avg/max us):\n");
             for(CacheInvoker inv : invokers) {
                 if(print_invokers)
-                    System.out.printf("%s: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n", inv.getId(),
+                    System.out.printf("%s: get %,.2f / %,.2f / %,.2f, put: %,.2f / %,.2f / %,.2f\n", inv.getId(),
                                       inv.get_avg.min() / 1000.0, inv.get_avg.average() / 1000.0, inv.get_avg.max() / 1000.0,
                                       inv.put_avg.min() / 1000.0, inv.put_avg.average() / 1000.0, inv.put_avg.max() / 1000.0);
                 if(get_avg == null)
@@ -245,7 +245,7 @@ public class Test extends ReceiverAdapter {
                     put_avg.merge(inv.put_avg);
             }
             if(print_details || print_invokers)
-                System.out.printf("\nall: get %.2f / %.2f / %.2f, put: %.2f / %.2f / %.2f\n",
+                System.out.printf("\nall: get %,.2f / %,.2f / %,.2f, put: %,.2f / %,.2f / %,.2f\n",
                                   get_avg.min() / 1000.0, get_avg.average() / 1000.0, get_avg.max() / 1000.0,
                                   put_avg.min() / 1000.0, put_avg.average() / 1000.0, put_avg.max() / 1000.0);
             return new Results(num_reads.sum(), num_writes.sum(), time, get_avg, put_avg);
@@ -435,7 +435,7 @@ public class Test extends ReceiverAdapter {
         double reqs_sec_cluster=total_reqs / (longest_time / 1000.0);
         double throughput=reqs_sec_node * msg_size;
         System.out.println("\n");
-        System.out.println(Util.bold(String.format("Throughput: %.2f reqs/sec/node (%s/sec) %.2f reqs/sec/cluster\n" +
+        System.out.println(Util.bold(String.format("Throughput: %,.2f reqs/sec/node (%s/sec) %,.2f reqs/sec/cluster\n" +
                                                      "Roundtrip:  gets %s, puts %s\n",
                                                    reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
                                                    print(get_avg, print_details), print(put_avg, print_details))));
@@ -478,16 +478,16 @@ public class Test extends ReceiverAdapter {
     }
 
     protected static String print(AverageMinMax avg, boolean details) {
-        return details? String.format("min/avg/max = %.2f/%.2f/%.2f us",
+        return details? String.format("min/avg/max = %,.2f/%,.2f/%,.2f us",
                                       avg.min() / 1000.0, avg.average() / 1000.0, avg.max() / 1000.0) :
-          String.format("avg = %.2f us", avg.average() / 1000.0);
+          String.format("avg = %,.2f us", avg.average() / 1000.0);
     }
 
     protected String printAverage(long start_time) {
         long time=System.currentTimeMillis() - start_time;
         long reads=num_reads.sum(), writes=num_writes.sum();
         double reqs_sec=num_requests.sum() / (time / 1000.0);
-        return String.format("%.2f reqs/sec (%d reads %d writes)", reqs_sec, reads, writes);
+        return String.format("%,.2f reqs/sec (%,d reads %,d writes)", reqs_sec, reads, writes);
     }
 
     protected void printCacheSize() {
@@ -504,7 +504,7 @@ public class Test extends ReceiverAdapter {
         if(keys == null || keys.length != num_keys) {
             int old_key_size=keys != null? keys.length : 0;
             keys=createKeys(num_keys);
-            System.out.printf("created %d keys: [%d-%d], old key set size: %d\n",
+            System.out.printf("created %,d keys: [%,d-%,d], old key set size: %,d\n",
                               keys.length, keys[0], keys[keys.length - 1], old_key_size);
         }
     }
@@ -574,7 +574,7 @@ public class Test extends ReceiverAdapter {
             int errors=0;
             total_keys+=size;
 
-            System.out.printf("-- Validating contents of %s (%d keys): ", mbr, size);
+            System.out.printf("-- Validating contents of %s (%,d keys): ", mbr, size);
             for(Map.Entry<Integer,byte[]> entry: mbr_map.entrySet()) {
                 Integer key=entry.getKey();
                 byte[] val=entry.getValue();
@@ -606,7 +606,7 @@ public class Test extends ReceiverAdapter {
             else
                 System.out.printf("OK\n");
         }
-        System.out.println(Util.bold(String.format("\nValidated %d keys total, %d errors\n\n", total_keys, tot_errors)));
+        System.out.println(Util.bold(String.format("\nValidated %,d keys total, %,d errors\n\n", total_keys, tot_errors)));
         if(tot_errors > 0) {
             for(Map.Entry<Integer,List<byte[]>> entry: error_map.entrySet()) {
                 Integer key=entry.getKey();
@@ -631,7 +631,7 @@ public class Test extends ReceiverAdapter {
         for(Map.Entry<Integer, byte[]> entry: local_cache.entrySet()) {
             System.out.printf("%d: %d\n", entry.getKey(), Bits.readLong(entry.getValue(), Global.LONG_SIZE*2));
         }
-        System.out.printf("\n%d local values found\n", local_cache.size());
+        System.out.printf("\n%,d local values found\n", local_cache.size());
     }
 
     protected class CacheInvoker extends Thread {
@@ -727,7 +727,7 @@ public class Test extends ReceiverAdapter {
         public String toString() {
             long total_reqs=num_gets + num_puts;
             double total_reqs_per_sec=total_reqs / (time / 1000.0);
-            return String.format("%.2f reqs/sec (%d GETs, %d PUTs), avg RTT (us) = %.2f get, %.2f put",
+            return String.format("%,.2f reqs/sec (%,d GETs, %,d PUTs), avg RTT (us) = %,.2f get, %,.2f put",
                                  total_reqs_per_sec, num_gets, num_puts, get_avg.average()/1000.0, put_avg.average()/1000.0);
         }
     }
