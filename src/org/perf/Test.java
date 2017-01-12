@@ -435,7 +435,7 @@ public class Test extends ReceiverAdapter {
         double reqs_sec_cluster=total_reqs / (longest_time / 1000.0);
         double throughput=reqs_sec_node * msg_size;
         System.out.println("\n");
-        System.out.println(Util.bold(String.format("Throughput: %,.2f reqs/sec/node (%s/sec) %,.2f reqs/sec/cluster\n" +
+        System.out.println(Util.bold(String.format("Throughput: %,.0f reqs/sec/node (%s/sec) %,.0f reqs/sec/cluster\n" +
                                                      "Roundtrip:  gets %s, puts %s\n",
                                                    reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
                                                    print(get_avg, print_details), print(put_avg, print_details))));
@@ -487,7 +487,7 @@ public class Test extends ReceiverAdapter {
         long time=System.currentTimeMillis() - start_time;
         long reads=num_reads.sum(), writes=num_writes.sum();
         double reqs_sec=num_requests.sum() / (time / 1000.0);
-        return String.format("%,.2f reqs/sec (%,d reads %,d writes)", reqs_sec, reads, writes);
+        return String.format("%,.0f reqs/sec (%,d reads %,d writes)", reqs_sec, reads, writes);
     }
 
     protected void printCacheSize() {
