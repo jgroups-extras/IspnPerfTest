@@ -38,7 +38,7 @@ while true; do
     -o | --coherence ) COMMAND="coh-perf-test.sh"; shift ;;
     -i | --infinispan ) COMMAND="perf-test.sh"; shift ;;
     -t | --tri )        COMMAND="tri-perf-test.sh"; shift ;;
-    -u | --uperf )      COMMAND="uperf.sh"; shift ;;
+    -p | --uperf )      COMMAND="uperf.sh"; shift ;;
     * ) break;;
   esac
 done
