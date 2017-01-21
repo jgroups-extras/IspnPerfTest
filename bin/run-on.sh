@@ -21,6 +21,7 @@ show_help(){
 	echo "--coherence -o coh-perf-test.sh"
 	echo "--infinispan -i perf-test.sh"
 	echo "--tri        -t tri-perf-test.sh"
+	echo "--uperf      -u uperf.sh"
 	exit 0;
 }
 
@@ -37,6 +38,7 @@ while true; do
     -o | --coherence ) COMMAND="coh-perf-test.sh"; shift ;;
     -i | --infinispan ) COMMAND="perf-test.sh"; shift ;;
     -t | --tri )        COMMAND="tri-perf-test.sh"; shift ;;
+    -u | --uperf )      COMMAND="uperf.sh"; shift ;;
     * ) break;;
   esac
 done
