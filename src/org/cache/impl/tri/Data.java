@@ -44,7 +44,7 @@ public class Data<K,V> implements SizeStreamable, Runnable {
             handler.accept(this);
     }
 
-    public int serializedSize() {
+    public int size() {
         int retval=Global.BYTE_SIZE;
         switch(type) {
             case PUT:    // req_id | key | value
@@ -101,20 +101,20 @@ public class Data<K,V> implements SizeStreamable, Runnable {
             case PUT:    // req_id | key | value
             case BACKUP: // + original_sender
                 req_id=Bits.readLong(in);
-                key=Util.objectFromStream(in);
-                value=Util.objectFromStream(in);
+                key=(K)Util.objectFromStream(in);
+                value=(V)Util.objectFromStream(in);
                 if(type == BACKUP)
                     sender=Util.readAddress(in);
                 break;
             case GET: // req_id | key
                 req_id=Bits.readLong(in);
-                key=Util.objectFromStream(in);
+                key=(K)Util.objectFromStream(in);
                 break;
             case CLEAR:
                 break;
             case ACK:    // req_id | [value] (if used as GET response)
                 req_id=Bits.readLong(in);
-                value=Util.objectFromStream(in);
+                value=(V)Util.objectFromStream(in);
                 break;
             default:
                 throw new IllegalStateException(String.format("type %s not known", type));

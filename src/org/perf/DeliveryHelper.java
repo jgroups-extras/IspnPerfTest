@@ -8,7 +8,6 @@ import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.util.AverageMinMax;
 import org.jgroups.util.MessageBatch;
-import org.jgroups.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -17,6 +16,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+
+import static java.lang.System.nanoTime;
 
 /**
  * @author Bela Ban
@@ -44,7 +45,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     @SuppressWarnings("MethodMayBeStatic")
     public void messageReceived(Message msg) {
         num_single_msgs_received.incrementAndGet();
-        PerfHeader hdr=new PerfHeader(Util.micros());
+        PerfHeader hdr=new PerfHeader(micros());
         msg.putHeader(PROT_ID, hdr);
     }
 
@@ -59,7 +60,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             int size=batch.size();
             num_batches_received.incrementAndGet();
             avg_batch_size_received.add(size);
-            long time=Util.micros();
+            long time=micros();
             for(Message msg: batch) {
                 if(msg != null)
                     msg.putHeader(PROT_ID, new PerfHeader(time));
@@ -70,9 +71,9 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     @SuppressWarnings("MethodMayBeStatic")
     public void beforeMessageDelivery(Message msg) {
         num_msgs_delivered.incrementAndGet();
-        PerfHeader hdr=msg.getHeader(PROT_ID);
+        PerfHeader hdr=(PerfHeader)msg.getHeader(PROT_ID);
         if(hdr != null) {
-            long time=Util.micros() - hdr.receive_time;
+            long time=micros() - hdr.receive_time;
             avg_delivery_time.add(time);
         }
     }
@@ -132,7 +133,9 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         map.put("num_batches_delivered",     num_batches_delivered.toString());
     }
 
-
+    public static long micros() {
+        return nanoTime() / 1000;
+    }
 
     protected static class PerfHeader extends Header {
         protected static final short ID=1024;
@@ -160,7 +163,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             return PerfHeader::new;
         }
 
-        public int serializedSize() {
+        public int size() {
             return Global.LONG_SIZE;
         }
 
