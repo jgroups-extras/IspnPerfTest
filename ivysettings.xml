@@ -19,7 +19,7 @@
             override="false"/>
     <property
             name="m2-pattern"
-            value="[organisation]/[module]/[revision]/[module]-[revision](-[classifier]).[ext]"
+            value="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
             override="false" />
     <property
             name="ivy-pattern"
