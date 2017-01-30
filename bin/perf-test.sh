@@ -26,6 +26,13 @@ fi;
 FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
+
+## Radargun JVM options (comment the above -Xms/-Xmx)
+#FLAGS="$FLAGS -Xms16g -Xmx16g -XX:+UseLargePages -XX:+UseG1GC -XX:MaxGCPauseMillis=300 -XX:InitiatingHeapOccupancyPercent=70"
+
+#FLAGS="$FLAGS -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Xloggc:gc-perf09.log -XX:+PrintTenuringDistribution -XX:+PrintGCApplicationStoppedTime -XX:+PrintGCCause"
+
+
 ## If uncommented and used in prod, license fees may incur
 ## JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
 
