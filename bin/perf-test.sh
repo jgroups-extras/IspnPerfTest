@@ -26,6 +26,9 @@ fi;
 FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
+## Delay asking backup for GET in Infinispan:
+FLAGS="$FLAGS -Dinfinispan.stagger.delay=5000"
+
 
 ## Radargun JVM options (comment the above -Xms/-Xmx)
 #FLAGS="$FLAGS -Xms16g -Xmx16g -XX:+UseLargePages -XX:+UseG1GC -XX:MaxGCPauseMillis=300 -XX:InitiatingHeapOccupancyPercent=70"
