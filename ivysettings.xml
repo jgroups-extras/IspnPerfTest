@@ -12,11 +12,16 @@
     <property name="coherence-repo"
               value="https://maven.oracle.com"/>
 
-
     <property
             name="m2-location"
             value="${user.home}/.m2/jboss-repository"
             override="false"/>
+
+    <property
+            name="mead-location"
+            value="${user.home}/.m2/jdg-mead-repository"
+            override="false"/>
+
     <property
             name="m2-pattern"
             value="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
@@ -35,6 +40,10 @@
             <artifact pattern="${m2-location}/${m2-pattern}"/>
         </filesystem>
 
+        <filesystem name="local-mead" m2compatible="true" >
+            <artifact pattern="${mead-location}/${m2-pattern}"/>
+        </filesystem>
+
         <filesystem name="local-ivy-publish" m2compatible="true">
             <artifact pattern="${user.home}/.ivy2/cache/${ivy-pattern}"/>
         </filesystem>
@@ -50,6 +59,7 @@
         <chain name="default">
             <resolver ref="local-ivy"/>
             <resolver ref="local-maven2"/>
+            <resolver ref="local-mead"/>
             <resolver ref="public"/>
             <resolver ref="snapshots"/>
         </chain>
