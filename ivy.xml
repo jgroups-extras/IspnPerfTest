@@ -4,9 +4,9 @@
     <info organisation="org.perf" module="ispn-perf-test" revision="1.0.0"/>
 
     <dependencies>
-        <dependency org="org.jgroups"                    name="jgroups"                rev="4.0.0-SNAPSHOT"/>
-        <dependency org="org.infinispan"                 name="infinispan-core"        rev="9.0.0-SNAPSHOT"/>
-        <dependency org="org.infinispan"                 name="infinispan-commons"     rev="9.0.0-SNAPSHOT"/>
+        <dependency org="org.jgroups"                    name="jgroups"                rev="3.6.10.Final-redhat-1"/>
+        <dependency org="org.infinispan"                 name="infinispan-core"        rev="8.3.0.Final-redhat-1"/>
+        <dependency org="org.infinispan"                 name="infinispan-commons"     rev="8.3.0.Final-redhat-1"/>
         <dependency org="org.jboss.logging"              name="jboss-logging"          rev="3.3.+"/>
         <dependency org="org.jboss.marshalling"          name="jboss-marshalling-osgi" rev="1.4.+"/>
         <dependency org="log4j"                          name="log4j"                  rev="1.2.+"/>
@@ -19,8 +19,9 @@
         <dependency org="org.jboss.byteman"              name="byteman-install"        rev="3.+"/>
         <dependency org="org.jboss.byteman"              name="byteman-submit"         rev="3.+"/>
         <dependency org="org.testng"                     name="testng"                 rev="6.9.+"/>
-        <dependency org="com.github.ben-manes.caffeine"  name="caffeine"               rev="2.3.5" />
-        <dependency org="org.jgroups.kubernetes"         name="kubernetes"             rev="0.9.2-SNAPSHOT"/>
+        <dependency org="org.slf4j"                name="slf4j-api"               rev="1.7+"/>
+        <!--<dependency org="com.github.ben-manes.caffeine"  name="caffeine"               rev="2.3.5" />
+        <dependency org="org.jgroups.kubernetes"         name="kubernetes"             rev="0.9.2-SNAPSHOT"/>-->
         <!--<exclude org="*" ext="*" type="source"/>-->
         <exclude org="*" ext="*" type="javadoc"/>
     </dependencies>

@@ -78,7 +78,7 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
         int retval=Global.INT_SIZE;
         for(int i=0; i < pos; i++) {
             if(data[i] != null)
-                retval+=data[i].serializedSize();
+                retval+=data[i].size();
         }
         return retval;
     }
@@ -88,7 +88,7 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
         int retval=Global.INT_SIZE;
         for(int i=0; i < pos; i++) {
             if(data[i] != null && data[i].type == t)
-                retval+=data[i].serializedSize();
+                retval+=data[i].size();
         }
         return retval;
     }

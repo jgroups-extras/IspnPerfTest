@@ -295,7 +295,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     /** Handles all PUTs and CLEARs. Processing is sequential, this method will never be called concurrently
      * (with itself or handlePut()). This is needed to ensure PUT handling and sending of BACKUP message atomically */
     protected void handlePutBatch(DataBatch batch) {
-        long start=stats? Util.micros() : 0;
+        long start=stats? micros() : 0;
         for(int i=0; i < batch.pos; i++) {
             Data data=batch.data[i];
             if(data == null)
@@ -336,7 +336,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
             }
         }
         if(stats)
-            avg_put_processing_time.add(Util.micros()-start);
+            avg_put_processing_time.add(micros()-start);
     }
 
 
@@ -418,7 +418,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     protected void process(DataBatch batch) {
         int puts=0, gets=0;
         num_data_batches_received.increment();
-        long start=stats? Util.micros() : 0;
+        long start=stats? micros() : 0;
 
         for(int i=0; i < batch.pos; i++) {
             Data data=batch.data[i];
@@ -466,7 +466,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
             }
         }
         if(stats)
-            avg_batch_processing_time.add(Util.micros()-start);
+            avg_batch_processing_time.add(micros()-start);
     }
 
 
@@ -487,7 +487,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     protected static Message createMessage(Address dest, Data data) throws Exception {
-        int expected_size=Global.INT_SIZE + data.serializedSize();
+        int expected_size=Global.INT_SIZE + data.size();
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(expected_size);
         Bits.writeInt(1, out);
         data.writeTo(out);
@@ -549,7 +549,9 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         return 255;
     }
 
-
+    protected static long micros() {
+        return System.nanoTime() / 1000;
+    }
 
 
 

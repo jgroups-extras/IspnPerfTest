@@ -109,7 +109,8 @@ public class Test extends ReceiverAdapter {
         cache=cache_factory.create(cache_name);
 
         control_channel=new JChannel(jgroups_config);
-        disp=new RpcDispatcher(control_channel, this).setMembershipListener(this);
+        disp=new RpcDispatcher(control_channel, this);
+        disp.setMembershipListener(this);
         disp.setMethodLookup(id -> METHODS[id]);
         control_channel.connect("cfg");
         local_addr=control_channel.getAddress();
@@ -562,7 +563,7 @@ public class Test extends ReceiverAdapter {
                 mbr_map=getContents();
             else {
                 try {
-                    mbr_map=disp.callRemoteMethod(mbr, new MethodCall(GET_CONTENTS), RequestOptions.SYNC().timeout(60000));
+                    mbr_map=disp.callRemoteMethod(mbr, new MethodCall(GET_CONTENTS), RequestOptions.SYNC().setTimeout(60000));
                 }
                 catch(Throwable t) {
                     System.err.printf("failed fetching contents from %s: %s\n", mbr, t);
@@ -720,8 +721,8 @@ public class Test extends ReceiverAdapter {
             num_gets=in.readLong();
             num_puts=in.readLong();
             time=in.readLong();
-            get_avg=Util.readStreamable(AverageMinMax.class, in);
-            put_avg=Util.readStreamable(AverageMinMax.class, in);
+            get_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
+            put_avg=(AverageMinMax)Util.readStreamable(AverageMinMax.class, in);
         }
 
         public String toString() {
