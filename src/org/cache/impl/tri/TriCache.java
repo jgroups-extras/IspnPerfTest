@@ -151,7 +151,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         try {
             Data data=new Data(GET, req_id, key, null, null);
-            send(primary, data);
+            send(primary, data, true); // OOB
             return future.get(10000, TimeUnit.MILLISECONDS);  // req_id was removed by ACK processing
         }
         catch(Exception t) {                                  // req_id is removed on exception
@@ -289,7 +289,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
             handleAck(data);
         }
         else
-            sendData(backup, data);
+            sendData(backup, data, false);
     }
 
     /** Handles all PUTs and CLEARs. Processing is sequential, this method will never be called concurrently
@@ -329,7 +329,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         if(!primary_is_backup && !batch.isEmpty()) {
             // PUT and BACKUP needs to be done on the same thread; that's why we cannot add the batch to the send queue
             try {
-                send(backup, batch, BACKUP);
+                send(backup, batch, BACKUP, false);
             }
             catch(Exception e) {
                 log.error("failed sending batch of %d BACKUPs to %s: %s", batch.size(BACKUP), backup, e);
@@ -357,7 +357,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         if(Objects.equals(local_addr, dest))
             handleAck(data);
         else
-            sendData(dest, data);
+            sendData(dest, data, false);
     }
 
 
@@ -376,9 +376,9 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
 
-    protected void sendData(Address dest, Data data) {
+    protected void sendData(Address dest, Data data, boolean oob) {
         try {
-            Message msg=createMessage(dest, data);
+            Message msg=createMessage(dest, data, oob);
             ch.send(msg);
         }
         catch(Throwable t) {
@@ -398,7 +398,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                 data.type=ACK; // reuse data
                 K key=data.key;
                 data.value=map.get(key);
-                sendData(sender, data);
+                sendData(sender, data, true);
                 break;
             case CLEAR:
                 handleClear();
@@ -459,7 +459,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         if(gets > 0) {
             try {
-                send(batch.addr, batch, ACK); // only send the ACKs (GET responses) to the sender of the batch
+                send(batch.addr, batch, ACK, true); // only send the ACKs (GET responses) to the sender of the batch
             }
             catch(Exception e) {
                 log.error("failed sending batch of %d ACKs to %s: %s", gets, batch.addr, e);
@@ -486,37 +486,50 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         return count;
     }
 
-    protected static Message createMessage(Address dest, Data data) throws Exception {
+    protected static Message createMessage(Address dest, Data data, boolean oob) throws Exception {
         int expected_size=Global.INT_SIZE + data.serializedSize();
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(expected_size);
         Bits.writeInt(1, out);
         data.writeTo(out);
-        return new Message(dest, out.buffer(), 0, out.position());
+        Message msg=new Message(dest, out.buffer(), 0, out.position());
+        if(oob)
+            msg.setFlag(Message.Flag.OOB);
+        return msg;
     }
 
 
 
-    protected static Message createMessage(Address dest, DataBatch data) throws Exception {
+    protected static Message createMessage(Address dest, DataBatch data, boolean oob) throws Exception {
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(data.serializedSize());
         data.writeTo(out);
-        return new Message(dest, out.buffer(), 0, out.position());
+        Message msg=new Message(dest, out.buffer(), 0, out.position());
+        if(oob)
+            msg.setFlag(Message.Flag.OOB);
+        return msg;
     }
 
-    protected static Message createMessage(Address dest, DataBatch data, Data.Type type) throws Exception {
+    protected static Message createMessage(Address dest, DataBatch data, Data.Type type, boolean oob) throws Exception {
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(data.serializedSize(type));
         data.writeTo(out, type);
-        return new Message(dest, out.buffer(), 0, out.position());
+        Message msg=new Message(dest, out.buffer(), 0, out.position());
+        if(oob)
+            msg.setFlag(Message.Flag.OOB);
+        return msg;
     }
 
 
 
     protected void send(Address dest, Data data) throws Exception {
-        ch.send(createMessage(dest, data));
+        ch.send(createMessage(dest, data, false));
+    }
+
+    protected void send(Address dest, Data data, boolean oob) throws Exception {
+        ch.send(createMessage(dest, data, oob));
     }
 
 
-    protected void send(Address dest, DataBatch batch, Data.Type type) throws Exception {
-        ch.send(createMessage(dest, batch, type));
+    protected void send(Address dest, DataBatch batch, Data.Type type, boolean oob) throws Exception {
+        ch.send(createMessage(dest, batch, type, oob));
     }
 
 
