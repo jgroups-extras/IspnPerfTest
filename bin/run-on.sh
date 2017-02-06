@@ -21,7 +21,7 @@ show_help(){
 	echo "--coherence -o coh-perf-test.sh"
 	echo "--infinispan -i perf-test.sh"
 	echo "--tri        -t tri-perf-test.sh"
-	echo "--uperf      -u uperf.sh"
+	echo "--uperf      -p uperf.sh"
 	exit 0;
 }
 
