@@ -7,7 +7,7 @@
 
 
     <jgroups>
-        <stack-file name="jgroupsStack" path="jgroups-aws.xml"/>
+        <stack-file name="jgroupsStack" path="jgroups-tcp.xml"/>
     </jgroups>
 
    <!-- <threads>
