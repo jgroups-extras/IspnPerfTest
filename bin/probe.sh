@@ -27,4 +27,4 @@ FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 
-java -classpath $CP $LOG org.jgroups.tests.Probe $*
+java -classpath $CP $FLAGS $LOG org.jgroups.tests.Probe $*
