@@ -27,4 +27,4 @@ FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 conf_dir=`dirname $0`/../conf
-java -classpath $CP $LOG $FLAGS org.perf.Test -cfg ${conf_dir}/dist-sync-aws.xml $*
+java -classpath $CP $LOG $FLAGS org.perf.Test -cfg ${conf_dir}/dist-sync-aws.xml -jgroups-cfg control-aws.xml $*
