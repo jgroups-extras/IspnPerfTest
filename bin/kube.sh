@@ -26,5 +26,7 @@ fi;
 FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
+#DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787"
+
 conf_dir=`dirname $0`/../conf
-java -classpath $CP $LOG $FLAGS org.perf.Test -cfg ${conf_dir}/dist-sync-kube.xml -jgroups-cfg control-kube.xml $*
+java -classpath $CP $LOG $FLAGS $DEBUG org.perf.Test -cfg ${conf_dir}/dist-sync-kube.xml -jgroups-cfg control-kube.xml $*
