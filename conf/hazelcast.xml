@@ -44,10 +44,7 @@
                 <multicast-port>54327</multicast-port>
             </multicast>
             <tcp-ip enabled="true">
-                <interface>127.0.0.1</interface>
-                <member-list>
-                    <member>127.0.0.1</member>
-                </member-list>
+                <member>127.0.0.1</member>
             </tcp-ip>
         </join>
         <interfaces enabled="true">
