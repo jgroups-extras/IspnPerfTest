@@ -20,7 +20,7 @@
          thread_naming_pattern="cl"
 
          thread_pool.min_threads="0"
-         thread_pool.max_threads="100"
+         thread_pool.max_threads="500"
          thread_pool.keep_alive_time="30000" />
 
     <!--TCPPING
