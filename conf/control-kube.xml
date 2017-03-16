@@ -17,6 +17,7 @@
          send_buf_size="200k"
          max_bundle_size="64K"
          enable_diagnostics="true"
+         diagnostics_port="7501"
          thread_naming_pattern="cl"
 
          thread_pool.min_threads="0"

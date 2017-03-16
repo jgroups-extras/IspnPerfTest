@@ -21,6 +21,7 @@
          mcast_send_buf_size="5M"
          max_bundle_size="64K"
          enable_diagnostics="true"
+         diagnostics_port="7501"
 
          thread_pool.enabled="true"
          thread_pool.min_threads="0"

@@ -17,6 +17,7 @@
          send_buf_size="200k"
          max_bundle_size="64K"
          enable_diagnostics="true"
+         diagnostics_port="7501"
          thread_naming_pattern="cl"
 
          thread_pool.min_threads="0"
@@ -57,6 +58,8 @@
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="3000"
                 view_bundling="true"/>
+    <UFC max_credits="2M"
+           min_threshold="0.4"/>
     <MFC max_credits="2M"
          min_threshold="0.4"/>
     <FRAG2 frag_size="60K"  />
