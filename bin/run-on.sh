@@ -7,7 +7,7 @@
 ######### CHANGE ##############
 
 # Replace this with own private key!!!
-#PK=$HOME/.aws/bela.pem
+#PK="-i $HOME/.aws/bela.pem"
 
 # Set if a different user is required for SSH
 USER=jgroups
@@ -22,7 +22,7 @@ COMMAND="/opt/jgroups/IspnPerfTest/bin/aws.sh"
 BG_COMMAND="nohup $COMMAND -nohup > /tmp/ispn.log < /dev/null &"
 
 
-SSH_OPTS="-i $PK -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"
+SSH_OPTS="$PK -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"
 
 show_help() {
 	echo "Runs a perf test on specified hosts"
@@ -94,6 +94,11 @@ rest=$(echo $nodes | cut -d' ' -f2-)
 for i in ${rest}; do
   echo "run on ${i}";
   ssh $SSH_OPTS -f $USER@${i} ${BG_COMMAND};
+  if [[ -z needs_sleep ]];
+     then
+        sleep 2;
+        needs_sleep=true;
+     fi
 done
 
 #run on first node (09 for upper cluster), this will be the control node
