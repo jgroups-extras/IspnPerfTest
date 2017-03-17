@@ -3,17 +3,24 @@
 ## Runs a COMMAND on multiple hosts
 ## Using -oStrictHostKeyChecking=no to prevent interactivity in ssh
 
+
+######### CHANGE ##############
+
+# Replace this with own private key!!!
+#PK=$HOME/.aws/bela.pem
+
+# Set if a different user is required for SSH
+USER=jgroups
+###############################
+
+
 # Default is edg-perf lab, lower cluster and perf-test.sh
 CLUSTER="edg-perf"
 SUFFIX="01 02 03 04 05 06 07 08"
-#COMMAND="perf-test.sh"
-COMMAND="sudo su jgroups -c '/opt/jgroups/IspnPerfTest/bin/aws.sh -nohup &> /tmp/IspnPerfTest.log' &"
+SCRIPT_DIR="`pwd`/`dirname $0`"
+COMMAND="/opt/jgroups/IspnPerfTest/bin/aws.sh"
+BG_COMMAND="nohup $COMMAND -nohup > /tmp/ispn.log < /dev/null &"
 
-#### Replace this with own private key!!!
-PK=$HOME/.aws/bela.pem
-
-#### Set if a different user is required for SSH
-USER=ec2-user
 
 SSH_OPTS="-i $PK -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"
 
@@ -32,6 +39,7 @@ show_help() {
 	echo "--infinispan -i perf-test.sh"
 	echo "--tri        -t tri-perf-test.sh"
 	echo "--uperf      -p uperf.sh"
+	echo "--execute    -x command"
 	exit 0;
 }
 
@@ -44,11 +52,16 @@ while true; do
     -l | --lower ) SUFFIX="01 02 03 04 05 06 07 08"; shift ;;
     -e | --edg-perf ) CLUSTER="edg-perf"; shift ;;
     -c | --cluster ) CLUSTER="cluster"; shift ;;
-    -hc | --hazelcast ) COMMAND="hc-perf-test.sh"; shift ;;
-    -o | --coherence )  COMMAND="coh-perf-test.sh"; shift ;;
-    -i | --infinispan ) COMMAND="perf-test.sh"; shift ;;
-    -t | --tri )        COMMAND="tri-perf-test.sh"; shift ;;
-    -p | --uperf )      COMMAND="uperf.sh"; shift ;;
+    -x | --execute )
+           COMMAND=$2;
+           shift;
+           shift;
+           ;;
+    -hc | --hazelcast ) COMMAND="$SCRIPT_DIR/hc-perf-test.sh"; shift ;;
+    -o | --coherence )  COMMAND="$SCRIPT_DIR/coh-perf-test.sh"; shift ;;
+    -i | --infinispan ) COMMAND="$SCRIPT_DIR/perf-test.sh"; shift ;;
+    -t | --tri )        COMMAND="$SCRIPT_DIR/tri-perf-test.sh"; shift ;;
+    -p | --uperf )      COMMAND="$SCRIPT_DIR/uperf.sh"; shift ;;
     -n | --nodes )
           nodes=""
           while [[ ${2:0:1} != "-" ]];
@@ -63,7 +76,6 @@ while true; do
   esac
 done
 
-SCRIPT_DIR="`pwd`/`dirname $0`"
 
 if [[ -z $nodes ]];
 then
@@ -75,15 +87,15 @@ fi
 nodes=$(echo $nodes | tr -s " " " ")
 first=$(echo $nodes | cut -d' ' -f1)
 rest=$(echo $nodes | cut -d' ' -f2-)
-echo "** nodes: $nodes, first: $first, rest: $rest"
+#echo "** nodes: $nodes, first: $first, rest: $rest"
 
 
 #run on all nodes except the first one
 for i in ${rest}; do
   echo "run on ${i}";
-  echo "SSH_OPTS: $SSH_OPTS"
-  ssh $SSH_OPTS -f $USER@${i} "nohup ${SCRIPT_DIR}/${COMMAND} -nohup > /tmp/log < /dev/null &";
+  ssh $SSH_OPTS -f $USER@${i} ${BG_COMMAND};
 done
 
 #run on first node (09 for upper cluster), this will be the control node
-ssh $SSH_OPTS $USER@${first} "${SCRIPT_DIR}/${COMMAND}";
+echo "run control node $first"
+ssh $SSH_OPTS $USER@${first} "${COMMAND}";
