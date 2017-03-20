@@ -19,7 +19,7 @@ CLUSTER="edg-perf"
 SUFFIX="01 02 03 04 05 06 07 08"
 SCRIPT_DIR="`pwd`/`dirname $0`"
 COMMAND="/opt/jgroups/IspnPerfTest/bin/aws.sh"
-BG_COMMAND="nohup $COMMAND -nohup > /tmp/ispn.log < /dev/null &"
+
 
 
 SSH_OPTS="$PK -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"
@@ -89,6 +89,7 @@ first=$(echo $nodes | cut -d' ' -f1)
 rest=$(echo $nodes | cut -d' ' -f2-)
 #echo "** nodes: $nodes, first: $first, rest: $rest"
 
+BG_COMMAND="nohup $COMMAND -nohup > /tmp/ispn.log < /dev/null &"
 
 #run on all nodes except the first one
 for i in ${rest}; do
