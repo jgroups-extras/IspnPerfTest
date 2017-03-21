@@ -14,7 +14,7 @@
          bind_port="${TCP_PORT:7800}"
 
          recv_buf_size="5M"
-         send_buf_size="800K"
+         send_buf_size="2M"
          max_bundle_size="64K"
          enable_diagnostics="true"
          thread_naming_pattern="cl"
