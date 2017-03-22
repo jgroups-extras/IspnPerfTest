@@ -68,7 +68,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void beforeMessageDelivery(Message msg) {
+    public void afterMessageDelivery(Message msg) {
         num_msgs_delivered.incrementAndGet();
         PerfHeader hdr=msg.getHeader(PROT_ID);
         if(hdr != null) {
@@ -82,15 +82,21 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         num_batches_delivered.incrementAndGet();
         int size=batch.size();
         avg_batch_size_delivered.add(size);
-        /*for(Message msg: batch) {
-            if(msg == null)
-                continue;
-            PerfHeader hdr=msg.getHeader(PROT_ID);
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void afterBatchDelivery(MessageBatch batch) {
+        int size=batch.size();
+        if(size > 0) {
+            Message first=batch.first();
+            PerfHeader hdr=first.getHeader(PROT_ID);
             if(hdr != null) {
                 long time=Util.micros() - hdr.receive_time;
+                if(size > 1)
+                    time/=time/size;
                 avg_delivery_time.add(time);
             }
-        }*/
+        }
     }
 
     public Map<String,String> handleProbe(String... keys) {

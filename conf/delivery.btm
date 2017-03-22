@@ -16,7 +16,7 @@ IF TRUE
 ENDRULE
 
 
-## Message received by the transport // todo: handle looped back messages
+## Message received by the transport; add PerfHeader with current time to the message
 RULE MessageReceived
 CLASS org.jgroups.protocols.TP
 METHOD handleSingleMessage
@@ -26,28 +26,35 @@ IF TRUE
 ENDRULE
 
 
-## Message batch received
+## Message batch received; add PerfHeader with current time to each message in the batch
 RULE BatchReceived
 CLASS org.jgroups.protocols.TP
 METHOD handleMessageBatch
-AT INVOKE TP.removeAndDispatchNonBundledMessages
+#AFTER INVOKE org.jgroups.util.Util.readMessageBatch
+AFTER WRITE $batches
 IF TRUE
-#     DO System.out.println("batches=" + $batches);
     DO batchesReceived($batches);
 ENDRULE
 
 
 ################ InfinispanCache ################
-## Infinispan currently only implements handle(Message) and doesn't use JChannel (but MessageDispatcher)
 
+## Handles single messages or messages in a batch
 RULE IspnMessageDelivery
 CLASS org.jgroups.blocks.RequestCorrelator
 METHOD dispatch
-AT ENTRY
+AT EXIT
 IF TRUE
-    DO beforeMessageDelivery($1);
+    DO afterMessageDelivery($1);
 ENDRULE
 
+RULE IspnBatchDelivery
+CLASS org.jgroups.blocks.RequestCorrelator
+METHOD receiveMessageBatch
+AT ENTRY
+IF TRUE
+    DO beforeBatchDelivery($1);
+ENDRULE
 
 ################ TriCache ################
 ## TriCache currently only implements receive(Message), once receive(MessageBatch), is implemented, the BatchDelivery
@@ -55,22 +62,30 @@ ENDRULE
 
 ## Message to be delivered to application
 RULE TriMessageDelivery
-CLASS org.cache.impl.TriCache
+CLASS org.cache.impl.tri.TriCache
 METHOD receive(org.jgroups.Message)
-AT ENTRY
+AT EXIT
 IF TRUE
-    DO beforeMessageDelivery($1);
+    DO afterMessageDelivery($1);
 ENDRULE
 
 
 ## Message batch to be delivered to application
 RULE TriBatchDelivery
-CLASS org.cache.impl.TriCache
+CLASS org.cache.impl.tri.TriCache
 METHOD receive(org.jgroups.util.MessageBatch)
 AT ENTRY
 IF TRUE
      DO beforeBatchDelivery($1);
 ENDRULE
 
+
+RULE AfterBatchDelivery
+CLASS org.cache.impl.tri.TriCache
+METHOD receive(org.jgroups.util.MessageBatch)
+AT EXIT
+IF TRUE
+     DO afterBatchDelivery($1);
+ENDRULE
 
 
