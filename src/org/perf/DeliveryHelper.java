@@ -53,16 +53,17 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         if(batches == null || batches.length == 0)
             return;
 
+        long time=Util.micros();
+        PerfHeader perf_hdr=new PerfHeader(time);
         for(MessageBatch batch: batches) {
             if(batch == null)
                 continue;
             int size=batch.size();
             num_batches_received.incrementAndGet();
             avg_batch_size_received.add(size);
-            long time=Util.micros();
             for(Message msg: batch) {
                 if(msg != null)
-                    msg.putHeader(PROT_ID, new PerfHeader(time));
+                    msg.putHeader(PROT_ID, perf_hdr);
             }
         }
     }
