@@ -13,11 +13,14 @@
 	     bind_addr="site_local,match-interface:eth0"
          bind_port="${TCP_PORT:7800}"
 
-         recv_buf_size="5M"
+         recv_buf_size="10M"
          send_buf_size="2M"
          max_bundle_size="64K"
          enable_diagnostics="true"
          thread_naming_pattern="cl"
+
+         buffered_input_stream_size="32000"
+         buffered_output_stream_size="32000"
 
          thread_pool.min_threads="0"
          thread_pool.max_threads="500"
@@ -51,15 +54,17 @@
                     use_mcast_xmit="false"
                     discard_delivered_msgs="true" />
     <UNICAST3
-              xmit_table_num_rows="100"
-              xmit_table_msgs_per_row="1000"
+              ack_threshold="1000"
+              xmit_table_num_rows="500"
+              xmit_table_msgs_per_row="10000"
+
               xmit_table_max_compaction_time="30000"/>
     <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="3000"
                 view_bundling="true"/>
-    <UFC max_credits="2M"
-           min_threshold="0.4"/>
+    <!--UFC max_credits="2M"
+           min_threshold="0.4"/-->
     <MFC max_credits="2M"
          min_threshold="0.4"/>
     <FRAG2 frag_size="60K"  />
