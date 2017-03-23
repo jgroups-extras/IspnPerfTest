@@ -15,6 +15,8 @@ import java.io.DataOutput;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -30,10 +32,25 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     protected static final AtomicInteger num_batches_received=new AtomicInteger(0);
     protected static final AtomicInteger num_batches_delivered=new AtomicInteger(0);
 
+    // sets and gets microseconds recorded by threads
+    protected static final ConcurrentMap<Thread,Long> thread_timings=new ConcurrentHashMap<>();
+
+
     protected static final short PROT_ID=1025;
 
     static {
         ClassConfigurator.addProtocol(PROT_ID, PerfHeader.class);
+    }
+
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void recordTime() {
+        thread_timings.put(Thread.currentThread(), Util.micros());
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public long getTime() {
+        return thread_timings.get(Thread.currentThread());
     }
 
 
@@ -42,9 +59,10 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void messageReceived(Message msg) {
+    public void messageDeserialized(Message msg) {
         num_single_msgs_received.incrementAndGet();
-        PerfHeader hdr=new PerfHeader(Util.micros());
+        long previously_recorded_time=getTime();
+        PerfHeader hdr=new PerfHeader(previously_recorded_time);
         msg.putHeader(PROT_ID, hdr);
     }
 
@@ -53,7 +71,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         if(batches == null || batches.length == 0)
             return;
 
-        long time=Util.micros();
+        long time=getTime(); // previously recorded in TP.receive()
         PerfHeader perf_hdr=new PerfHeader(time);
         for(MessageBatch batch: batches) {
             if(batch == null)
@@ -69,7 +87,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void afterMessageDelivery(Message msg) {
+    public void beforeMessageDelivery(Message msg) {
         num_msgs_delivered.incrementAndGet();
         PerfHeader hdr=msg.getHeader(PROT_ID);
         if(hdr != null) {
@@ -83,9 +101,19 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         num_batches_delivered.incrementAndGet();
         int size=batch.size();
         avg_batch_size_delivered.add(size);
+        if(size > 0) {
+            Message first=batch.first();
+            PerfHeader hdr=first.getHeader(PROT_ID);
+            if(hdr != null) {
+                long time=Util.micros() - hdr.receive_time;
+                if(size > 1)
+                    time=time/size;
+                avg_delivery_time.add(time);
+            }
+        }
     }
 
-    @SuppressWarnings("MethodMayBeStatic")
+    /* @SuppressWarnings("MethodMayBeStatic")
     public void afterBatchDelivery(MessageBatch batch) {
         int size=batch.size();
         if(size > 0) {
@@ -94,11 +122,11 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             if(hdr != null) {
                 long time=Util.micros() - hdr.receive_time;
                 if(size > 1)
-                    time/=time/size;
+                    time=time/size;
                 avg_delivery_time.add(time);
             }
         }
-    }
+    }*/
 
     public Map<String,String> handleProbe(String... keys) {
         Map<String,String> map=new HashMap<>();

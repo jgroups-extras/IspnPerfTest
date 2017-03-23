@@ -15,14 +15,22 @@ IF TRUE
     DO channelCreated($0);
 ENDRULE
 
-
-## Message received by the transport; add PerfHeader with current time to the message
+## Message received by the transport; associate time (in micros) with current thread
 RULE MessageReceived
+CLASS org.jgroups.protocols.TP
+METHOD receive
+AT ENTRY
+IF TRUE
+    DO recordTime();
+ENDRULE
+
+## Message deserialized; add PerfHeader with previously recorded time to the message
+RULE MessageDeserialized
 CLASS org.jgroups.protocols.TP
 METHOD handleSingleMessage
 AFTER INVOKE org.jgroups.Message.readFrom
 IF TRUE
-    DO messageReceived($msg);
+    DO messageDeserialized($msg);
 ENDRULE
 
 
@@ -30,7 +38,6 @@ ENDRULE
 RULE BatchReceived
 CLASS org.jgroups.protocols.TP
 METHOD handleMessageBatch
-#AFTER INVOKE org.jgroups.util.Util.readMessageBatch
 AFTER WRITE $batches
 IF TRUE
     DO batchesReceived($batches);
@@ -43,9 +50,9 @@ ENDRULE
 RULE IspnMessageDelivery
 CLASS org.jgroups.blocks.RequestCorrelator
 METHOD dispatch
-AT EXIT
+AT ENTRY
 IF TRUE
-    DO afterMessageDelivery($1);
+    DO beforeMessageDelivery($1);
 ENDRULE
 
 RULE IspnBatchDelivery
@@ -64,9 +71,9 @@ ENDRULE
 RULE TriMessageDelivery
 CLASS org.cache.impl.tri.TriCache
 METHOD receive(org.jgroups.Message)
-AT EXIT
+AT ENTRY
 IF TRUE
-    DO afterMessageDelivery($1);
+    DO beforeMessageDelivery($1);
 ENDRULE
 
 
@@ -80,12 +87,12 @@ IF TRUE
 ENDRULE
 
 
-RULE AfterBatchDelivery
-CLASS org.cache.impl.tri.TriCache
-METHOD receive(org.jgroups.util.MessageBatch)
-AT EXIT
-IF TRUE
-     DO afterBatchDelivery($1);
-ENDRULE
+#RULE AfterBatchDelivery
+#CLASS org.cache.impl.tri.TriCache
+#METHOD receive(org.jgroups.util.MessageBatch)
+#AT EXIT
+#IF TRUE
+#     DO afterBatchDelivery($1);
+#ENDRULE
 
 
