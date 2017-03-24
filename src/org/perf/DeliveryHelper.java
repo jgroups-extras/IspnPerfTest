@@ -12,28 +12,29 @@ import org.jgroups.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /**
  * @author Bela Ban
  */
 public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
-    protected static final AverageMinMax avg_delivery_time=new AverageMinMax();
+    // The average time (in micros) from reception of a message until just before delivery (delivery time is excluded)
+    protected static final AverageMinMax avg_receive_time=new AverageMinMax();
+
+    // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network
+    protected static final AverageMinMax avg_send_time=new AverageMinMax();
+
     protected static final AverageMinMax avg_batch_size_received=new AverageMinMax();
-    protected static final AverageMinMax avg_batch_size_delivered=new AverageMinMax();
-    protected static final AtomicInteger num_single_msgs_received=new AtomicInteger(0);
-    protected static final AtomicInteger num_msgs_delivered=new AtomicInteger(0); // single or batch
-    protected static final AtomicInteger num_batches_received=new AtomicInteger(0);
-    protected static final AtomicInteger num_batches_delivered=new AtomicInteger(0);
+
 
     // sets and gets microseconds recorded by threads
-    protected static final ConcurrentMap<Thread,Long> thread_timings=new ConcurrentHashMap<>();
+    protected static final ConcurrentMap<Thread,Long> receive_timings=new ConcurrentHashMap<>();
+
 
 
     protected static final short PROT_ID=1025;
@@ -44,13 +45,13 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void recordTime() {
-        thread_timings.put(Thread.currentThread(), Util.micros());
+    public void recordReceiveTime() {
+        receive_timings.put(Thread.currentThread(), Util.micros());
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public long getTime() {
-        return thread_timings.get(Thread.currentThread());
+    public long getReceiveTime() {
+        return receive_timings.get(Thread.currentThread());
     }
 
 
@@ -58,12 +59,31 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         ch.getProtocolStack().getTransport().registerProbeHandler(this);
     }
 
+    public void addCurrentReceiveTimeTo(Message msg) {
+        addReceiveTimeTo(msg, Util.micros());
+    }
+
+    public void addCurrentSendTimeTo(Message msg) {
+        addSendTimeTo(msg, Util.micros());
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void addReceiveTimeTo(Message msg, long time) {
+        PerfHeader hdr=new PerfHeader(time, 0);
+        msg.putHeader(PROT_ID, hdr);
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void addSendTimeTo(Message msg, long time) {
+        PerfHeader hdr=new PerfHeader(0, time);
+        msg.putHeader(PROT_ID, hdr);
+    }
+
     @SuppressWarnings("MethodMayBeStatic")
     public void messageDeserialized(Message msg) {
-        num_single_msgs_received.incrementAndGet();
-        long previously_recorded_time=getTime();
-        PerfHeader hdr=new PerfHeader(previously_recorded_time);
-        msg.putHeader(PROT_ID, hdr);
+        long previously_recorded_time=getReceiveTime();
+        if(previously_recorded_time > 0)
+            addReceiveTimeTo(msg, previously_recorded_time);
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -71,13 +91,15 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         if(batches == null || batches.length == 0)
             return;
 
-        long time=getTime(); // previously recorded in TP.receive()
-        PerfHeader perf_hdr=new PerfHeader(time);
+        long time=getReceiveTime(); // previously recorded in TP.receive()
+        if(time == 0)
+            return;
+
+        PerfHeader perf_hdr=new PerfHeader(time, 0);
         for(MessageBatch batch: batches) {
             if(batch == null)
                 continue;
             int size=batch.size();
-            num_batches_received.incrementAndGet();
             avg_batch_size_received.add(size);
             for(Message msg: batch) {
                 if(msg != null)
@@ -88,54 +110,60 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public void beforeMessageDelivery(Message msg) {
-        num_msgs_delivered.incrementAndGet();
         PerfHeader hdr=msg.getHeader(PROT_ID);
-        if(hdr != null) {
+        if(hdr != null && hdr.receive_time > 0) {
             long time=Util.micros() - hdr.receive_time;
-            avg_delivery_time.add(time);
+            avg_receive_time.add(time);
+        }
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void afterMessageSendByTransport(Message msg) {
+        PerfHeader hdr=msg.getHeader(PROT_ID);
+        if(hdr != null && hdr.send_time > 0) {
+            long time=Util.micros() - hdr.send_time;
+            avg_send_time.add(time);
+        }
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void afterMessageBatchSendByTransport(List<Message> list) {
+        if(list != null) {
+            long current_time=Util.micros();
+            for(Message msg: list) {
+                PerfHeader hdr=msg.getHeader(PROT_ID);
+                if(hdr != null && hdr.send_time > 0) {
+                    long time=current_time - hdr.send_time;
+                    avg_send_time.add(time);
+                }
+            }
         }
     }
 
     @SuppressWarnings("MethodMayBeStatic")
     public void beforeBatchDelivery(MessageBatch batch) {
-        num_batches_delivered.incrementAndGet();
         int size=batch.size();
-        avg_batch_size_delivered.add(size);
         if(size > 0) {
             Message first=batch.first();
             PerfHeader hdr=first.getHeader(PROT_ID);
-            if(hdr != null) {
+            if(hdr != null && hdr.receive_time > 0) {
                 long time=Util.micros() - hdr.receive_time;
                 if(size > 1)
                     time=time/size;
-                avg_delivery_time.add(time);
+                avg_receive_time.add(time);
             }
         }
     }
 
-    /* @SuppressWarnings("MethodMayBeStatic")
-    public void afterBatchDelivery(MessageBatch batch) {
-        int size=batch.size();
-        if(size > 0) {
-            Message first=batch.first();
-            PerfHeader hdr=first.getHeader(PROT_ID);
-            if(hdr != null) {
-                long time=Util.micros() - hdr.receive_time;
-                if(size > 1)
-                    time=time/size;
-                avg_delivery_time.add(time);
-            }
-        }
-    }*/
 
     public Map<String,String> handleProbe(String... keys) {
         Map<String,String> map=new HashMap<>();
         for(String key: keys) {
             switch(key) {
-                case "delivery":
+                case "timings":
                     addStats(map);
                     break;
-                case "delivery-reset":
+                case "timings-reset":
                     reset();
                     break;
             }
@@ -144,27 +172,20 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     public String[] supportedKeys() {
-        return new String[]{"delivery", "delivery-reset"};
+        return new String[]{"timings", "timings-reset"};
     }
 
 
     protected static void reset() {
-        avg_delivery_time.clear();
+        avg_receive_time.clear();
+        avg_send_time.clear();
         avg_batch_size_received.clear();
-        avg_batch_size_delivered.clear();
-        for(AtomicInteger ai: Arrays.asList(num_single_msgs_received, num_msgs_delivered,
-                                            num_batches_received, num_batches_delivered))
-            ai.set(0);
     }
 
     protected static void addStats(Map<String,String> map) {
-        map.put("avg_delivery_time",         avg_delivery_time.toString());
-        map.put("avg_batch_size_received",   avg_batch_size_received.toString());
-        map.put("avg_batch_size_delivered",  avg_batch_size_delivered.toString());
-        map.put("num_single_msgs_received",  num_single_msgs_received.toString());
-        map.put("num_msgs_delivered",        num_msgs_delivered.toString());
-        map.put("num_batches_received",      num_batches_received.toString());
-        map.put("num_batches_delivered",     num_batches_delivered.toString());
+        map.put("avg_receive_time",        avg_receive_time.toString());
+        map.put("avg_send_time",           avg_send_time.toString());
+        map.put("avg_batch_size_received", avg_batch_size_received.toString());
     }
 
 
@@ -175,17 +196,16 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             ClassConfigurator.add(ID, PerfHeader.class);
         }
 
-        protected long receive_time; // in micros
+        protected long receive_time, send_time; // in micros
 
         public PerfHeader() {
         }
 
-        public PerfHeader(long receive_time) {
+        public PerfHeader(long receive_time, long send_time) {
             this.receive_time=receive_time;
+            this.send_time=send_time;
         }
 
-        public long       receiveTime()       {return receive_time;}
-        public PerfHeader receiveTime(long t) {this.receive_time=t; return this;}
 
         public short getMagicId() {
             return ID;
@@ -196,15 +216,17 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         }
 
         public int serializedSize() {
-            return Global.LONG_SIZE;
+            return Global.LONG_SIZE*2;
         }
 
         public void writeTo(DataOutput out) throws Exception {
             out.writeLong(receive_time);
+            out.writeLong(send_time);
         }
 
         public void readFrom(DataInput in) throws Exception {
             receive_time=in.readLong();
+            send_time=in.readLong();
         }
     }
 }

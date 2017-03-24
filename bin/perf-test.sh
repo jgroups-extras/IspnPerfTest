@@ -62,9 +62,9 @@ JMX="-Dcom.sun.management.jmxremote"
 #GC_LOG="-XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$HOME/gclog.log"
 
 
-## BYTEMAN: uncomment the line below if you want to get delivery times (from reception of a message to delivery to the
-## application. Run probe.sh delivery / delivery-reset to get data
-#BM="-javaagent:$PT/lib/byteman.jar=script:$PT/conf/delivery.btm"
+## BYTEMAN: uncomment the line below if you want to get timings (avg-send-time, avg-receive-time, avg-delivery-time)
+## Run probe timings / timings-reset
+#BM="-javaagent:$PT/lib/byteman.jar=script:$PT/conf/delivery.btm,script:$PT/conf/send.btm"
 
 # Uncomment to enable dtrace tracing on the hotspot provider (e.g. lock and method invocation tracing)
 #TRACE=-XX:+ExtendedDTraceProbes

@@ -1,0 +1,49 @@
+
+
+## Byteman script to measure delivery latency from sending of a message until after the message has been
+## serialized and put on the network
+
+
+HELPER org.perf.DeliveryHelper
+
+## Message is sent in JChannel.down(Message): the current time is added as a header to the message
+RULE JChannelDown
+CLASS org.jgroups.JChannel
+METHOD down(org.jgroups.Message)
+AT ENTRY
+IF TRUE
+    DO addCurrentSendTimeTo($1);
+ENDRULE
+
+## Takes the time after a single message has been put on the network
+RULE AfterTransportSendMessage
+CLASS org.jgroups.protocols.BaseBundler
+METHOD sendSingleMessage
+AT EXIT
+IF TRUE
+   DO afterMessageSendByTransport($1);
+ENDRULE
+
+## Takes the time after a message batch has been put on the network
+RULE AfterTransportSendMessageBatch
+CLASS org.jgroups.protocols.BaseBundler
+METHOD sendMessageList
+AT EXIT
+IF TRUE
+   DO afterMessageBatchSendByTransport($3);
+ENDRULE
+
+
+## Takes the time after a single message has been put on the network by the NoBundler
+RULE NoBundlerTransport
+CLASS org.jgroups.protocols.NoBundler
+METHOD sendSingleMessage
+AT EXIT
+IF TRUE
+   DO afterMessageSendByTransport($1);
+ENDRULE
+
+
+
+
+

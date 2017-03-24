@@ -21,7 +21,7 @@ CLASS org.jgroups.protocols.TP
 METHOD receive
 AT ENTRY
 IF TRUE
-    DO recordTime();
+    DO recordReceiveTime();
 ENDRULE
 
 ## Message deserialized; add PerfHeader with previously recorded time to the message
