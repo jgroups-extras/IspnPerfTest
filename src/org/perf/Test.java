@@ -436,7 +436,8 @@ public class Test extends ReceiverAdapter {
         double throughput=reqs_sec_node * msg_size;
         System.out.println("\n");
         System.out.println(Util.bold(String.format("Throughput: %,.0f reqs/sec/node (%s/sec) %,.0f reqs/sec/cluster\n" +
-                                                     "Roundtrip:  gets %s, puts %s\n",
+                                                     "Roundtrip:  gets %s,\n" +
+                                                     "            puts %s\n",
                                                    reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
                                                    print(get_avg, print_details), print(put_avg, print_details))));
         System.out.println("\n\n");
@@ -478,6 +479,8 @@ public class Test extends ReceiverAdapter {
     }
 
     protected static String print(AverageMinMax avg, boolean details) {
+        if(avg == null || avg.count() == 0)
+            return "n/a";
         return details? String.format("min/avg/max = %,.2f/%,.2f/%,.2f us",
                                       avg.min() / 1000.0, avg.average() / 1000.0, avg.max() / 1000.0) :
           String.format("avg = %,.2f us", avg.average() / 1000.0);

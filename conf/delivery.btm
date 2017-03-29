@@ -18,8 +18,17 @@ ENDRULE
 ## Message received by the transport; associate time (in micros) with current thread
 RULE MessageReceived
 CLASS org.jgroups.protocols.TP
-METHOD receive
+METHOD receive(org.jgroups.Address,byte[],int,int)
 AT ENTRY
+IF TRUE
+    DO recordReceiveTime();
+ENDRULE
+
+## Message received by the transport; associate time (in micros) with current thread
+RULE MessageReceivedInputStream
+CLASS org.jgroups.protocols.TP
+METHOD receive(org.jgroups.Address,java.io.DataInput)
+AFTER WRITE $version
 IF TRUE
     DO recordReceiveTime();
 ENDRULE
