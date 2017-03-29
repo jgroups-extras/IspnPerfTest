@@ -26,6 +26,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // The average time (in micros) from reception of a message until just before delivery (delivery time is excluded)
     protected static final AverageMinMax avg_receive_time=new AverageMinMax();
 
+    protected static final AverageMinMax avg_delivery_time=new AverageMinMax();
+
     // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network
     protected static final AverageMinMax avg_send_time=new AverageMinMax();
 
@@ -35,6 +37,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // sets and gets microseconds recorded by threads
     protected static final ConcurrentMap<Thread,Long> receive_timings=new ConcurrentHashMap<>();
 
+    protected static final ConcurrentMap<Thread,Long> delivery_timings=new ConcurrentHashMap<>();
 
 
     protected static final short PROT_ID=1025;
@@ -53,6 +56,16 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     public long getReceiveTime() {
         return receive_timings.get(Thread.currentThread());
     }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void recordDeliveryTime() {
+        delivery_timings.put(Thread.currentThread(), Util.micros());
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public long getDeliveryTime() {
+           return delivery_timings.get(Thread.currentThread());
+       }
 
 
     public void channelCreated(JChannel ch) {
@@ -140,6 +153,25 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         }
     }
 
+
+    public void afterChannelUp() {
+        long previously_recorded_time=getDeliveryTime();
+        if(previously_recorded_time > 0) {
+            long time=Util.micros() - previously_recorded_time;
+            avg_delivery_time.add(time);
+        }
+    }
+
+    public void afterChannelUpBatch(int batch_size) {
+         long previously_recorded_time=getDeliveryTime();
+         if(previously_recorded_time > 0) {
+             long time=Util.micros() - previously_recorded_time;
+             if(batch_size > 1)
+                 time/=batch_size;
+             avg_delivery_time.add(time);
+         }
+     }
+
     @SuppressWarnings("MethodMayBeStatic")
     public void beforeBatchDelivery(MessageBatch batch) {
         int size=batch.size();
@@ -178,12 +210,14 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     protected static void reset() {
         avg_receive_time.clear();
+        avg_delivery_time.clear();
         avg_send_time.clear();
         avg_batch_size_received.clear();
     }
 
     protected static void addStats(Map<String,String> map) {
         map.put("avg_receive_time",        avg_receive_time.toString() + " us");
+        map.put("avg_delivery_time",       avg_delivery_time.toString() + " us");
         map.put("avg_send_time",           avg_send_time.toString() + " us");
         map.put("avg_batch_size_received", avg_batch_size_received.toString());
     }

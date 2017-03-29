@@ -3,6 +3,10 @@
 ## Byteman script to measure delivery latency from reception of a message to its delivery
 ## (*excluding* the delivery time spent in the application)
 
+## The delivery time is measured separately: this includes the message (or batch) in JChannel.up(Message) and
+## JChannel.up(MessageBatch) until the call returns. This time may include the sending of a response, e.g. if the
+## message is an RPC
+
 
 HELPER org.perf.DeliveryHelper
 
@@ -51,6 +55,49 @@ AFTER WRITE $batches
 IF TRUE
     DO batchesReceived($batches);
 ENDRULE
+
+
+################# Delivery time #################
+
+## Record the time before up(Message)
+RULE JChannelMessageBefore
+CLASS org.jgroups.JChannel
+METHOD up(org.jgroups.Message)
+AT ENTRY
+IF TRUE
+   DO recordDeliveryTime();
+ENDRULE
+
+## Record the time before up(MessageBatch)
+RULE JChannelMessageBeforeBatch
+CLASS org.jgroups.JChannel
+METHOD up(org.jgroups.util.MessageBatch)
+AT ENTRY
+IF TRUE
+   DO recordDeliveryTime();
+ENDRULE
+
+## Compute the time after up(Message) returned
+RULE JChannelMessageAfter
+CLASS org.jgroups.JChannel
+METHOD up(org.jgroups.Message)
+AT EXIT
+IF TRUE
+   DO afterChannelUp();
+ENDRULE
+
+## Compute the time after up(MessageBatch) returned
+RULE JChannelMessageAfterBatch
+CLASS org.jgroups.JChannel
+METHOD up(org.jgroups.util.MessageBatch)
+AT EXIT
+BIND batch_size=$1.size(); ## this won't work if the app removes messages from the batch!
+IF TRUE
+   DO afterChannelUpBatch(batch_size);
+ENDRULE
+
+
+#################################################
 
 
 ################ InfinispanCache ################
