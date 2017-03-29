@@ -183,8 +183,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     protected static void addStats(Map<String,String> map) {
-        map.put("avg_receive_time",        avg_receive_time.toString());
-        map.put("avg_send_time",           avg_send_time.toString());
+        map.put("avg_receive_time",        avg_receive_time.toString() + " us");
+        map.put("avg_send_time",           avg_send_time.toString() + " us");
         map.put("avg_batch_size_received", avg_batch_size_received.toString());
     }
 
