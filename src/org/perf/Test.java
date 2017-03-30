@@ -1,5 +1,6 @@
 package org.perf;
 
+import org.HdrHistogram.Histogram;
 import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.cache.impl.DistCacheFactory;
@@ -22,6 +23,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,6 +75,8 @@ public class Test extends ReceiverAdapter {
 
     // 3 longs at the start of each buffer for validation
     protected static final int      VALIDATION_SIZE=Global.LONG_SIZE *3;
+
+    protected static final double[] PERCENTILES={50, 90, 95, 99, 99.9};
 
     protected static final String infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
@@ -227,27 +231,27 @@ public class Test extends ReceiverAdapter {
             long time=System.currentTimeMillis() - start;
             System.out.println("\ndone (in " + time + " ms)\n");
 
-            AverageMinMax get_avg=null, put_avg=null;
+            Histogram get_avg=null, put_avg=null;
             if(print_invokers)
                 System.out.printf("Round trip times (min/avg/max us):\n");
             for(CacheInvoker inv : invokers) {
                 if(print_invokers)
-                    System.out.printf("%s: get %,.2f / %,.2f / %,.2f, put: %,.2f / %,.2f / %,.2f\n", inv.getId(),
-                                      inv.get_avg.min() / 1000.0, inv.get_avg.average() / 1000.0, inv.get_avg.max() / 1000.0,
-                                      inv.put_avg.min() / 1000.0, inv.put_avg.average() / 1000.0, inv.put_avg.max() / 1000.0);
+                    System.out.printf("%s: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n", inv.getId(),
+                                      inv.get_avg.getMinValue(), inv.get_avg.getMean(), inv.get_avg.getMaxValueAsDouble(),
+                                      inv.put_avg.getMinValue(), inv.put_avg.getMean(), inv.put_avg.getMaxValueAsDouble());
                 if(get_avg == null)
                     get_avg=inv.get_avg;
                 else
-                    get_avg.merge(inv.get_avg);
+                    get_avg.add(inv.get_avg);
                 if(put_avg == null)
                     put_avg=inv.put_avg;
                 else
-                    put_avg.merge(inv.put_avg);
+                    put_avg.add(inv.put_avg);
             }
             if(print_details || print_invokers)
-                System.out.printf("\nall: get %,.2f / %,.2f / %,.2f, put: %,.2f / %,.2f / %,.2f\n",
-                                  get_avg.min() / 1000.0, get_avg.average() / 1000.0, get_avg.max() / 1000.0,
-                                  put_avg.min() / 1000.0, put_avg.average() / 1000.0, put_avg.max() / 1000.0);
+                System.out.printf("\nall: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n",
+                                  get_avg.getMinValue(), get_avg.getMean(), get_avg.getMaxValueAsDouble(),
+                                  put_avg.getMinValue(), put_avg.getMean(), put_avg.getMaxValueAsDouble());
             return new Results(num_reads.sum(), num_writes.sum(), time, get_avg, put_avg);
         }
         catch(Throwable t) {
@@ -404,7 +408,7 @@ public class Test extends ReceiverAdapter {
         }
 
         long total_reqs=0, total_time=0, longest_time=0;
-        AverageMinMax get_avg=null, put_avg=null;
+        Histogram get_avg=null, put_avg=null;
         System.out.println("\n======================= Results: ===========================");
         for(Map.Entry<Address,Rsp<Results>> entry : responses.entrySet()) {
             Address mbr=entry.getKey();
@@ -423,11 +427,11 @@ public class Test extends ReceiverAdapter {
                 if(get_avg == null)
                     get_avg=result.get_avg;
                 else
-                    get_avg.merge(result.get_avg);
+                    get_avg.add(result.get_avg);
                 if(put_avg == null)
                     put_avg=result.put_avg;
                 else
-                    put_avg.merge(result.put_avg);
+                    put_avg.add(result.put_avg);
             }
             System.out.println(mbr + ": " + result);
         }
@@ -478,12 +482,22 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    protected static String print(AverageMinMax avg, boolean details) {
-        if(avg == null || avg.count() == 0)
+    protected static String print(Histogram avg, boolean details) {
+        if(avg == null || avg.getTotalCount() == 0)
             return "n/a";
-        return details? String.format("min/avg/max = %,.2f/%,.2f/%,.2f us",
-                                      avg.min() / 1000.0, avg.average() / 1000.0, avg.max() / 1000.0) :
-          String.format("avg = %,.2f us", avg.average() / 1000.0);
+        return details? String.format("min/avg/max = %d/%,.2f/%,.2f us (%s)",
+                                      avg.getMinValue(), avg.getMean(), avg.getMaxValueAsDouble(), percentiles(avg)) :
+          String.format("avg = %,.2f us", avg.getMean());
+    }
+
+    protected static String percentiles(Histogram h) {
+        StringBuilder sb=new StringBuilder();
+        for(double percentile: PERCENTILES) {
+            long val=h.getValueAtPercentile(percentile);
+            sb.append(String.format("%,.1f=%,d ", percentile, val));
+        }
+        sb.append(String.format("[percentile at mean: %,.2f]", h.getPercentileAtOrBelowValue((long)h.getMean())));
+        return sb.toString();
     }
 
     protected String printAverage(long start_time) {
@@ -639,8 +653,9 @@ public class Test extends ReceiverAdapter {
 
     protected class CacheInvoker extends Thread {
         protected final CountDownLatch latch;
-        protected final AverageMinMax  get_avg=new AverageMinMax(); // in ns
-        protected final AverageMinMax  put_avg=new AverageMinMax(); // in ns
+        // max recordable value is 80s
+        protected final Histogram      get_avg=new Histogram(1, 80_000_000, 3); // us
+        protected final Histogram      put_avg=new Histogram(1, 80_000_000, 3); // us
         protected volatile boolean     running=true;
         protected UUID                 local_uuid=(UUID)local_addr;
         protected long                 count=0;
@@ -671,19 +686,19 @@ public class Test extends ReceiverAdapter {
                 while(true) {
                     try {
                         if(is_this_a_read) {
-                            long start=System.nanoTime();
+                            long start=Util.micros();
                             cache.get(key);
-                            long time=System.nanoTime() - start;
-                            get_avg.add(time);
+                            long time=Util.micros() - start;
+                            get_avg.recordValue(time);
                             num_reads.increment();
                         }
                         else {
                             byte[] buffer=new byte[msg_size];
                             writeTo(local_uuid, count++, buffer, 0);
-                            long start=System.nanoTime();
+                            long start=Util.micros();
                             cache.put(key, buffer);
-                            long time=System.nanoTime() - start;
-                            put_avg.add(time);
+                            long time=Util.micros() - start;
+                            put_avg.recordValue(time);
                             num_writes.increment();
                         }
                         break;
@@ -698,12 +713,12 @@ public class Test extends ReceiverAdapter {
 
 
     public static class Results implements Streamable {
-        long num_gets, num_puts, time; // ms
-        AverageMinMax get_avg, put_avg;
+        protected long      num_gets, num_puts, time; // ms
+        protected Histogram get_avg, put_avg;
 
         public Results() {}
 
-        public Results(long num_gets, long num_puts, long time, AverageMinMax get_avg, AverageMinMax put_avg) {
+        public Results(long num_gets, long num_puts, long time, Histogram get_avg, Histogram put_avg) {
             this.num_gets=num_gets;
             this.num_puts=num_puts;
             this.time=time;
@@ -715,24 +730,40 @@ public class Test extends ReceiverAdapter {
             out.writeLong(num_gets);
             out.writeLong(num_puts);
             out.writeLong(time);
-            Util.writeStreamable(get_avg, out);
-            Util.writeStreamable(put_avg, out);
+            write(get_avg, out);
+            write(put_avg, out);
         }
 
         public void readFrom(DataInput in) throws Exception {
             num_gets=in.readLong();
             num_puts=in.readLong();
             time=in.readLong();
-            get_avg=Util.readStreamable(AverageMinMax.class, in);
-            put_avg=Util.readStreamable(AverageMinMax.class, in);
+            get_avg=read(in);
+            put_avg=read(in);
         }
 
         public String toString() {
             long total_reqs=num_gets + num_puts;
             double total_reqs_per_sec=total_reqs / (time / 1000.0);
             return String.format("%,.2f reqs/sec (%,d GETs, %,d PUTs), avg RTT (us) = %,.2f get, %,.2f put",
-                                 total_reqs_per_sec, num_gets, num_puts, get_avg.average()/1000.0, put_avg.average()/1000.0);
+                                 total_reqs_per_sec, num_gets, num_puts, get_avg.getMean(), put_avg.getMean());
         }
+    }
+
+    protected static void write(Histogram h, DataOutput out) throws Exception {
+        int size=h.getEstimatedFootprintInBytes();
+        ByteBuffer buf=ByteBuffer.allocate(size);
+        h.encodeIntoCompressedByteBuffer(buf, 9);
+        out.writeInt(buf.position());
+        out.write(buf.array(), 0, buf.position());
+    }
+
+    protected static Histogram read(DataInput in) throws Exception {
+        int len=in.readInt();
+        byte[] array=new byte[len];
+        in.readFully(array);
+        ByteBuffer buf=ByteBuffer.wrap(array);
+        return Histogram.decodeFromCompressedByteBuffer(buf, 0);
     }
 
 
