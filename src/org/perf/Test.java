@@ -76,7 +76,7 @@ public class Test extends ReceiverAdapter {
     // 3 longs at the start of each buffer for validation
     protected static final int      VALIDATION_SIZE=Global.LONG_SIZE *3;
 
-    protected static final double[] PERCENTILES={50, 90, 95, 99, 99.9};
+    public static final double[] PERCENTILES={50, 90, 95, 99, 99.9};
 
     protected static final String infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();

@@ -1,5 +1,7 @@
 package org.perf;
 
+import org.HdrHistogram.Histogram;
+import org.HdrHistogram.Recorder;
 import org.jgroups.Global;
 import org.jgroups.Header;
 import org.jgroups.JChannel;
@@ -12,24 +14,26 @@ import org.jgroups.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
+import static org.perf.Test.PERCENTILES;
+
 /**
  * @author Bela Ban
  */
 public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // The average time (in micros) from reception of a message until just before delivery (delivery time is excluded)
-    protected static final AverageMinMax avg_receive_time=new AverageMinMax();
+    protected static final Recorder avg_receive_time=new Recorder(1, 80_000_000, 3);
 
-    protected static final AverageMinMax avg_delivery_time=new AverageMinMax();
+    protected static final Recorder avg_delivery_time=new Recorder(1, 80_000_000, 3);
 
     // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network
-    protected static final AverageMinMax avg_send_time=new AverageMinMax();
+    protected static final Recorder avg_send_time=new Recorder(1, 80_000_000, 3);
 
     protected static final AverageMinMax avg_batch_size_received=new AverageMinMax();
 
@@ -126,7 +130,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         PerfHeader hdr=msg.getHeader(PROT_ID);
         if(hdr != null && hdr.receive_time > 0) {
             long time=Util.micros() - hdr.receive_time;
-            avg_receive_time.add(time);
+            avg_receive_time.recordValue(time);
         }
     }
 
@@ -135,7 +139,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         PerfHeader hdr=msg.getHeader(PROT_ID);
         if(hdr != null && hdr.send_time > 0) {
             long time=Util.micros() - hdr.send_time;
-            avg_send_time.add(time);
+            avg_send_time.recordValue(time);
         }
     }
 
@@ -147,7 +151,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
                 PerfHeader hdr=msg.getHeader(PROT_ID);
                 if(hdr != null && hdr.send_time > 0) {
                     long time=current_time - hdr.send_time;
-                    avg_send_time.add(time);
+                    avg_send_time.recordValue(time);
                 }
             }
         }
@@ -158,7 +162,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         long previously_recorded_time=getDeliveryTime();
         if(previously_recorded_time > 0) {
             long time=Util.micros() - previously_recorded_time;
-            avg_delivery_time.add(time);
+            avg_delivery_time.recordValue(time);
         }
     }
 
@@ -168,7 +172,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
              long time=Util.micros() - previously_recorded_time;
              if(batch_size > 1)
                  time/=batch_size;
-             avg_delivery_time.add(time);
+             avg_delivery_time.recordValue(time);
          }
      }
 
@@ -182,18 +186,21 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
                 long time=Util.micros() - hdr.receive_time;
                 if(size > 1)
                     time=time/size;
-                avg_receive_time.add(time);
+                avg_receive_time.recordValue(time);
             }
         }
     }
 
 
     public Map<String,String> handleProbe(String... keys) {
-        Map<String,String> map=new HashMap<>();
+        Map<String,String> map=new LinkedHashMap<>();
         for(String key: keys) {
             switch(key) {
                 case "timings":
-                    addStats(map);
+                    addStats(map, false);
+                    break;
+                case "timings-percentiles":
+                    addStats(map, true);
                     break;
                 case "timings-reset":
                     reset();
@@ -204,22 +211,42 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     public String[] supportedKeys() {
-        return new String[]{"timings", "timings-reset"};
+        return new String[]{"timings", "timings-percentiles", "timings-reset"};
     }
 
 
     protected static void reset() {
-        avg_receive_time.clear();
-        avg_delivery_time.clear();
-        avg_send_time.clear();
+        avg_receive_time.reset();
+        avg_delivery_time.reset();
+        avg_send_time.reset();
         avg_batch_size_received.clear();
     }
 
-    protected static void addStats(Map<String,String> map) {
-        map.put("avg_receive_time",        avg_receive_time.toString() + " us");
-        map.put("avg_delivery_time",       avg_delivery_time.toString() + " us");
-        map.put("avg_send_time",           avg_send_time.toString() + " us");
+    protected static void addStats(Map<String,String> map, boolean print_details) {
+        map.put("avg_receive_time",        print(avg_receive_time.getIntervalHistogram(), print_details));
+        map.put("avg_delivery_time",       print(avg_delivery_time.getIntervalHistogram(), print_details));
+        map.put("avg_send_time",           print(avg_send_time.getIntervalHistogram(), print_details));
         map.put("avg_batch_size_received", avg_batch_size_received.toString());
+    }
+
+    protected static String print(Histogram avg, boolean details) {
+        if(avg == null || avg.getTotalCount() == 0)
+            return "n/a";
+        return details?
+          String.format("min/avg/max = %d/%,.2f/%,.2f us (%s)",
+                        avg.getMinValue(), avg.getMean(), avg.getMaxValueAsDouble(), percentiles(avg)) :
+          String.format("min/avg/max = %d/%,.2f/%,.2f us",
+                        avg.getMinValue(), avg.getMean(), avg.getMaxValueAsDouble());
+    }
+
+    protected static String percentiles(Histogram h) {
+        StringBuilder sb=new StringBuilder();
+        for(double percentile: PERCENTILES) {
+            long val=h.getValueAtPercentile(percentile);
+            sb.append(String.format("%,.1f=%,d ", percentile, val));
+        }
+        sb.append(String.format("[percentile at mean: %,.2f]", h.getPercentileAtOrBelowValue((long)h.getMean())));
+        return sb.toString();
     }
 
 
