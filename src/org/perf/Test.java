@@ -9,10 +9,6 @@ import org.cache.impl.InfinispanCacheFactory;
 import org.cache.impl.tri.TriCacheFactory;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
-import org.jgroups.blocks.MethodCall;
-import org.jgroups.blocks.RequestOptions;
-import org.jgroups.blocks.ResponseMode;
-import org.jgroups.blocks.RpcDispatcher;
 import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.jmx.JmxConfigurator;
 import org.jgroups.util.*;
@@ -22,7 +18,6 @@ import javax.management.MBeanServer;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -37,20 +32,33 @@ import java.util.concurrent.atomic.LongAdder;
  * @author Bela Ban
  */
 public class Test extends ReceiverAdapter {
-    protected CacheFactory<Integer,byte[]> cache_factory;
-    protected Cache<Integer,byte[]>        cache;
-    protected JChannel                     control_channel;
-    protected Address                      local_addr;
-    protected RpcDispatcher                disp;
-    protected final List<Address>          members=new ArrayList<>();
-    protected volatile View                view;
-    protected final LongAdder              num_requests=new LongAdder();
-    protected final LongAdder              num_reads=new LongAdder();
-    protected final LongAdder              num_writes=new LongAdder();
-    protected volatile boolean             looping=true;
-    protected Thread                       event_loop_thread;
-    protected Integer[]                    keys;
+    protected CacheFactory<Integer,byte[]>        cache_factory;
+    protected Cache<Integer,byte[]>               cache;
+    protected JChannel                            control_channel;
+    protected Address                             local_addr;
+    protected final List<Address>                 members=new ArrayList<>();
+    protected volatile View                       view;
+    protected final LongAdder                     num_requests=new LongAdder();
+    protected final LongAdder                     num_reads=new LongAdder();
+    protected final LongAdder                     num_writes=new LongAdder();
+    protected volatile boolean                    looping=true;
+    protected Thread                              event_loop_thread;
+    protected Integer[]                           keys;
+    protected final ResponseCollector<Results>    results=new ResponseCollector<>();
+    protected final Promise<Map<Integer,byte[]>>  contents_promise=new Promise<>();
+    protected final Promise<Config>               config_promise=new Promise<>();
+    protected Thread                              test_runner;
 
+    protected enum Type {
+        START_ISPN,
+        GET_CONFIG_REQ,
+        GET_CONFIG_RSP,       // Config
+        SET,                  // field-name (String), value (Object)
+        GET_CONTENTS_REQ,
+        GET_CONTENTS_RSP,     // Map<Integer,byte[]>
+        QUIT_ALL,
+        RESULTS               // Results
+    }
 
     // ============ configurable properties ==================
     @Property
@@ -58,7 +66,7 @@ public class Test extends ReceiverAdapter {
     @Property
     protected int     num_keys=100000, time_secs=60, msg_size=1000;
     @Property
-    protected double  read_percentage=1.0; // 80% reads, 20% writes // todo: change 1.0 back to 0.8
+    protected double  read_percentage=1.0; // 80% reads, 20% writes
     @Property
     protected boolean print_details=true;
     @Property
@@ -66,17 +74,10 @@ public class Test extends ReceiverAdapter {
     // ... add your own here, just don't forget to annotate them with @Property
     // =======================================================
 
-    protected static final Method[] METHODS=new Method[16];
-    protected static final short    START_ISPN   = 1;
-    protected static final short    GET_CONFIG   = 2;
-    protected static final short    SET          = 3;
-    protected static final short    GET_CONTENTS = 4;
-    protected static final short    QUIT_ALL     = 5;
-
     // 3 longs at the start of each buffer for validation
-    protected static final int      VALIDATION_SIZE=Global.LONG_SIZE *3;
+    protected static final int    VALIDATION_SIZE=Global.LONG_SIZE *3;
 
-    public static final double[] PERCENTILES={50, 90, 95, 99, 99.9};
+    public static final double[]  PERCENTILES={50, 90, 95, 99, 99.9};
 
     protected static final String infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
@@ -92,19 +93,8 @@ public class Test extends ReceiverAdapter {
       "\n[q] Quit [X] Quit all\n";
 
     static {
-        try {
-            METHODS[START_ISPN]=Test.class.getMethod("startIspnTest");
-            METHODS[GET_CONFIG]=Test.class.getMethod("getConfig");
-            METHODS[SET]=Test.class.getMethod("set", String.class, Object.class);
-            METHODS[GET_CONTENTS]=Test.class.getMethod("getContents");
-            METHODS[QUIT_ALL]=Test.class.getMethod("quitAll");
-            ClassConfigurator.add((short)11000, Results.class);
-        }
-        catch(NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+        ClassConfigurator.add((short)11000, Results.class);
     }
-
 
     public void init(String factory_name, String cfg, String jgroups_config, String cache_name) throws Exception {
         Class<CacheFactory> clazz=Util.loadClass(factory_name, (Class)null);
@@ -113,8 +103,7 @@ public class Test extends ReceiverAdapter {
         cache=cache_factory.create(cache_name);
 
         control_channel=new JChannel(jgroups_config);
-        disp=new RpcDispatcher(control_channel, this).setMembershipListener(this);
-        disp.setMethodLookup(id -> METHODS[id]);
+        control_channel.setReceiver(this);
         control_channel.connect("cfg");
         local_addr=control_channel.getAddress();
 
@@ -128,7 +117,9 @@ public class Test extends ReceiverAdapter {
 
         if(members.size() >= 2) {
             Address coord=members.get(0);
-            Config config=disp.callRemoteMethod(coord, new MethodCall(GET_CONFIG), new RequestOptions(ResponseMode.GET_ALL, 5000));
+            config_promise.reset(true);
+            send(coord, Type.GET_CONFIG_REQ);
+            Config config=config_promise.getResult(5000);
             if(config != null) {
                 applyConfig(config);
                 System.out.println("Fetched config from " + coord + ": " + config);
@@ -177,11 +168,77 @@ public class Test extends ReceiverAdapter {
         stop();
     }
 
+    protected synchronized void startTestRunner(final Address addr) {
+        if(test_runner != null && test_runner.isAlive())
+            System.err.println("test is already running - wait until complete to start a new run");
+        else {
+            test_runner=new Thread(() -> startIspnTest(addr), "testrunner");
+            test_runner.start();
+        }
+    }
+
     protected static Integer[] createKeys(int num_keys) {
         Integer[] retval=new Integer[num_keys];
         for(int i=0; i < num_keys; i++)
             retval[i]=i + 1;
         return retval;
+    }
+
+    public void receive(Message msg) {
+        try {
+            _receive(msg);
+        }
+        catch(Throwable t) {
+            t.printStackTrace();
+        }
+    }
+
+
+    protected void _receive(Message msg) throws Throwable {
+        ByteArrayDataInputStream in;
+        Address sender=msg.src();
+        int offset=msg.getOffset(), len=msg.length();
+        byte[] buf=msg.getRawBuffer();
+        byte t=buf[offset++];
+        len--;
+        Type type=Type.values()[t];
+        switch(type) {
+            case START_ISPN:
+                startTestRunner(sender);
+                break;
+            case GET_CONFIG_REQ:
+                send(sender, Type.GET_CONFIG_RSP, getConfig());
+                break;
+            case GET_CONFIG_RSP:
+                in=new ByteArrayDataInputStream(buf, offset, len);
+                Config cfg=Util.objectFromStream(in);
+                config_promise.setResult(cfg);
+                break;
+            case SET:
+                in=new ByteArrayDataInputStream(buf, offset, len);
+                String field_name=Util.objectFromStream(in);
+                Object val=Util.objectFromStream(in);
+                set(field_name, val);
+                break;
+            case GET_CONTENTS_REQ:
+                send(sender, Type.GET_CONTENTS_RSP, getContents());
+                break;
+            case GET_CONTENTS_RSP:
+                in=new ByteArrayDataInputStream(buf, offset, len);
+                Map<Integer,byte[]> map=Util.objectFromStream(in);
+                contents_promise.setResult(map);
+                break;
+            case QUIT_ALL:
+                quitAll();
+                break;
+            case RESULTS:
+                in=new ByteArrayDataInputStream(buf, offset, len);
+                Results res=Util.objectFromStream(in);
+                results.add(sender, res);
+                break;
+            default:
+                throw new IllegalArgumentException(String.format("type %s not known", type));
+        }
     }
 
     public void viewAccepted(View new_view) {
@@ -194,7 +251,7 @@ public class Test extends ReceiverAdapter {
     // =================================== callbacks ======================================
 
 
-    public Results startIspnTest() throws Throwable {
+    protected void startIspnTest(Address sender) {
         num_requests.reset();
         num_reads.reset();
         num_writes.reset();
@@ -252,21 +309,21 @@ public class Test extends ReceiverAdapter {
                 System.out.printf("\nall: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n",
                                   get_avg.getMinValue(), get_avg.getMean(), get_avg.getMaxValueAsDouble(),
                                   put_avg.getMinValue(), put_avg.getMean(), put_avg.getMaxValueAsDouble());
-            return new Results(num_reads.sum(), num_writes.sum(), time, get_avg, put_avg);
+            Results result=new Results(num_reads.sum(), num_writes.sum(), time, get_avg, put_avg);
+            send(sender, Type.RESULTS, result);
         }
         catch(Throwable t) {
             t.printStackTrace();
-            return null;
         }
     }
 
-    public void quitAll() {
+    protected void quitAll() {
         System.out.println("-- received quitAll(): shutting down");
         stopEventThread();
     }
 
 
-    public void set(String field_name, Object value) {
+    protected void set(String field_name, Object value) {
         Field field=Util.getField(this.getClass(), field_name);
         if(field == null)
             System.err.println("Field " + field_name + " not found");
@@ -278,7 +335,7 @@ public class Test extends ReceiverAdapter {
     }
 
 
-    public Config getConfig() {
+    protected Config getConfig() {
         Config config=new Config();
         for(Field field : Util.getAllDeclaredFields(Test.class)) {
             if(field.isAnnotationPresent(Property.class)) {
@@ -296,7 +353,7 @@ public class Test extends ReceiverAdapter {
         changeKeySet();
     }
 
-    public Map<Integer,byte[]> getContents() {
+    protected Map<Integer,byte[]> getContents() {
         Map<Integer,byte[]> contents=cache.getContents();
         Map<Integer,byte[]> retval=new HashMap<>(contents.size()); // we need a copy, cannot modify the cache directly!
         for(Map.Entry<Integer,byte[]> entry: contents.entrySet()) {
@@ -320,7 +377,7 @@ public class Test extends ReceiverAdapter {
                 case -1:
                     break;
                 case '1':
-                    startBenchmark(new MethodCall(START_ISPN));
+                    startBenchmark();
                     break;
                 case '2':
                     printView();
@@ -376,9 +433,7 @@ public class Test extends ReceiverAdapter {
                     break;
                 case 'X':
                     try {
-                        RequestOptions options=new RequestOptions(ResponseMode.GET_NONE, 500)
-                          .setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
-                        disp.callRemoteMethods(null, new MethodCall(QUIT_ALL), options);
+                        control_channel.send(null, new byte[]{(byte)Type.QUIT_ALL.ordinal()});
                     }
                     catch(Throwable t) {
                         System.err.println("Calling quitAll() failed: " + t);
@@ -395,31 +450,27 @@ public class Test extends ReceiverAdapter {
 
 
     /** Kicks off the benchmark on all cluster nodes */
-    protected void startBenchmark(MethodCall call) {
-        RspList<Results> responses=null;
+    protected void startBenchmark() {
+        results.reset(members);
         try {
-            RequestOptions opts=new RequestOptions(ResponseMode.GET_ALL, 0)
-              .setFlags(Message.Flag.OOB, Message.Flag.DONT_BUNDLE, Message.Flag.NO_FC);
-            responses=disp.callRemoteMethods(null, call, opts);
+            send(null, Type.START_ISPN);
         }
         catch(Throwable t) {
-            System.err.println("starting the benchmark failed: " + t);
+            System.err.printf("starting the benchmark failed: %s\n", t);
             return;
         }
+
+        // wait for time_secs seconds pus 20%
+        boolean all_results=results.waitForAllResponses((long)(time_secs * 1000 * 1.2));
+        if(!all_results)
+            System.err.printf("did not receive all results: missing results from %s\n", results.getMissing());
 
         long total_reqs=0, total_time=0, longest_time=0;
         Histogram get_avg=null, put_avg=null;
         System.out.println("\n======================= Results: ===========================");
-        for(Map.Entry<Address,Rsp<Results>> entry : responses.entrySet()) {
+        for(Map.Entry<Address,Results>  entry: results.getResults().entrySet()) {
             Address mbr=entry.getKey();
-            Rsp<Results> rsp=entry.getValue();
-            if(rsp.hasException()) {
-                Throwable t=rsp.getException();
-                System.out.printf("%s: %s (cause=%s)\n", mbr, t, t.getCause());
-                continue;
-            }
-
-            Results result=rsp.getValue();
+            Results result=entry.getValue();
             if(result != null) {
                 total_reqs+=result.num_gets + result.num_puts;
                 total_time+=result.time;
@@ -448,7 +499,7 @@ public class Test extends ReceiverAdapter {
     }
 
 
-    static double getReadPercentage() throws Exception {
+    protected static double getReadPercentage() throws Exception {
         double tmp=Util.readDoubleFromStdin("Read percentage: ");
         if(tmp < 0 || tmp > 1.0) {
             System.err.println("read percentage must be >= 0 or <= 1.0");
@@ -457,7 +508,7 @@ public class Test extends ReceiverAdapter {
         return tmp;
     }
 
-    int getAnycastCount() throws Exception {
+    protected int getAnycastCount() throws Exception {
         int tmp=Util.readIntFromStdin("Anycast count: ");
         View tmp_view=control_channel.getView();
         if(tmp > tmp_view.size()) {
@@ -469,11 +520,24 @@ public class Test extends ReceiverAdapter {
 
 
     protected void changeFieldAcrossCluster(String field_name, Object value) throws Exception {
-        disp.callRemoteMethods(null, new MethodCall(SET, field_name, value), RequestOptions.SYNC());
+        send(null, Type.SET, field_name, value);
     }
 
 
-    void printView() {
+    protected void send(Address dest, Type type, Object ... args) throws Exception {
+        if(args == null || args.length == 0) {
+            control_channel.send(dest, new byte[]{(byte)type.ordinal()});
+            return;
+        }
+        ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(512);
+        out.write((byte)type.ordinal());
+        for(Object arg: args)
+            Util.objectToStream(arg, out);
+        control_channel.send(dest, out.buffer(), 0, out.position());
+    }
+
+
+    protected void printView() {
         System.out.printf("\n-- local: %s\n-- view: %s\n", local_addr, view);
         try {
             System.in.skip(System.in.available());
@@ -579,7 +643,9 @@ public class Test extends ReceiverAdapter {
                 mbr_map=getContents();
             else {
                 try {
-                    mbr_map=disp.callRemoteMethod(mbr, new MethodCall(GET_CONTENTS), RequestOptions.SYNC().timeout(60000));
+                    contents_promise.reset(false);
+                    send(mbr, Type.GET_CONTENTS_REQ);
+                    mbr_map=contents_promise.getResult(60000);
                 }
                 catch(Throwable t) {
                     System.err.printf("failed fetching contents from %s: %s\n", mbr, t);
