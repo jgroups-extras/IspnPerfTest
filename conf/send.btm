@@ -43,6 +43,13 @@ IF TRUE
    DO afterMessageSendByTransport($1);
 ENDRULE
 
+RULE RingBufferBundler
+CLASS org.jgroups.protocols.RingBufferBundler
+METHOD sendBundledMessages
+AFTER INVOKE org.jgroups.protocols.TP.doSend ALL
+IF $msg != null
+    DO afterMessageSendByTransport($msg);
+ENDRULE
 
 
 

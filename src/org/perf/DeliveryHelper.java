@@ -76,9 +76,6 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         ch.getProtocolStack().getTransport().registerProbeHandler(this);
     }
 
-    public void addCurrentReceiveTimeTo(Message msg) {
-        addReceiveTimeTo(msg, Util.micros());
-    }
 
     public void addCurrentSendTimeTo(Message msg) {
         addSendTimeTo(msg, Util.micros());
