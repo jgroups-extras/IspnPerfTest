@@ -97,14 +97,14 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void messageDeserialized(Message msg) {
+    public void attachRecordedTimeTo(Message msg) {
         long previously_recorded_time=getReceiveTime();
         if(previously_recorded_time > 0)
             addReceiveTimeTo(msg, previously_recorded_time);
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void batchesReceived(MessageBatch[] batches) {
+    public void attachRecordedTimeTo(MessageBatch[] batches) {
         if(batches == null || batches.length == 0)
             return;
 
@@ -126,13 +126,26 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void beforeMessageDelivery(Message msg) {
+    public void computeReceiveTime(Message msg) {
         PerfHeader hdr=msg.getHeader(PROT_ID);
         if(hdr != null && hdr.receive_time > 0) {
             long time=Util.micros() - hdr.receive_time;
             avg_receive_time.recordValue(time);
         }
     }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void computeReceiveTime(MessageBatch batch) {
+        if(!batch.isEmpty()) {
+            Message first=batch.first();
+            PerfHeader hdr=first.getHeader(PROT_ID);
+            if(hdr != null && hdr.receive_time > 0) {
+                long time=Util.micros() - hdr.receive_time;
+                avg_receive_time.recordValue(time);
+            }
+        }
+    }
+
 
     @SuppressWarnings("MethodMayBeStatic")
     public void afterMessageSendByTransport(Message msg) {
@@ -175,21 +188,6 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
              avg_delivery_time.recordValue(time);
          }
      }
-
-    @SuppressWarnings("MethodMayBeStatic")
-    public void beforeBatchDelivery(MessageBatch batch) {
-        int size=batch.size();
-        if(size > 0) {
-            Message first=batch.first();
-            PerfHeader hdr=first.getHeader(PROT_ID);
-            if(hdr != null && hdr.receive_time > 0) {
-                long time=Util.micros() - hdr.receive_time;
-                if(size > 1)
-                    time=time/size;
-                avg_receive_time.recordValue(time);
-            }
-        }
-    }
 
 
     public Map<String,String> handleProbe(String... keys) {

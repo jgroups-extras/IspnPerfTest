@@ -10,6 +10,8 @@
 
 HELPER org.perf.DeliveryHelper
 
+
+################################# Initialization #####################################
 ## Channel created - needed to register DeliveryHelper as ProbeHandler
 RULE ChannelCreated
 CLASS org.jgroups.JChannel
@@ -18,7 +20,11 @@ AT EXIT
 IF TRUE
     DO channelCreated($0);
 ENDRULE
+######################################################################################
 
+
+
+################################# receive time #######################################
 ## Message received by the transport; associate time (in micros) with current thread
 RULE MessageReceived
 CLASS org.jgroups.protocols.TP
@@ -28,37 +34,88 @@ IF TRUE
     DO recordReceiveTime();
 ENDRULE
 
+
 ## Message received by the transport; associate time (in micros) with current thread
 RULE MessageReceivedInputStream
 CLASS org.jgroups.protocols.TP
 METHOD receive(org.jgroups.Address,java.io.DataInput)
-AFTER WRITE $version
+AT ENTRY
 IF TRUE
     DO recordReceiveTime();
 ENDRULE
 
-## Message deserialized; add PerfHeader with previously recorded time to the message
-RULE MessageDeserialized
+
+## Message deserialized; add PerfHeader with previously recorded receive time to the message
+RULE AttachRecordedTimeToMessage
 CLASS org.jgroups.protocols.TP
 METHOD handleSingleMessage
 AFTER INVOKE org.jgroups.Message.readFrom
 IF TRUE
-    DO messageDeserialized($msg);
+    DO attachRecordedTimeTo($msg);
 ENDRULE
 
 
-## Message batch received; add PerfHeader with current time to each message in the batch
-RULE BatchReceived
+## Batch deserialized; add PerfHeader with previously recorded receive time to each message in the batch
+RULE AttachRecordedTimeToBatch
 CLASS org.jgroups.protocols.TP
 METHOD handleMessageBatch
 AFTER WRITE $batches
 IF TRUE
-    DO batchesReceived($batches);
+    DO attachRecordedTimeTo($batches);
 ENDRULE
 
 
-################# Delivery time #################
+##### InfinispanCache: receive time
 
+## Handles single messages or messages in a batch
+RULE IspnMessageReception
+CLASS org.jgroups.blocks.RequestCorrelator
+METHOD receiveMessage
+AT INVOKE dispatch
+IF TRUE
+    DO computeReceiveTime($1);
+ENDRULE
+
+RULE IspnBatchReception
+CLASS org.jgroups.blocks.RequestCorrelator
+METHOD receiveMessageBatch
+AT ENTRY
+IF TRUE
+    DO computeReceiveTime($1);
+ENDRULE
+
+
+##### TriCache: receive time
+## TriCache currently only implements receive(Message), once receive(MessageBatch), is implemented, the BatchDelivery
+## rule needs to be changed
+
+## Message to be delivered to application
+RULE TriMessageDelivery
+CLASS org.cache.impl.tri.TriCache
+METHOD receive(org.jgroups.Message)
+AT ENTRY
+IF TRUE
+    DO computeReceiveTime($1);
+ENDRULE
+
+
+## Message batch to be delivered to application
+RULE TriBatchDelivery
+CLASS org.cache.impl.tri.TriCache
+METHOD receive(org.jgroups.util.MessageBatch)
+AT ENTRY
+IF TRUE
+     DO computeReceiveTime($1);
+ENDRULE
+#########################################################################################
+
+
+
+
+
+
+
+##################################### delivery time #####################################
 ## Record the time before up(Message)
 RULE JChannelMessageBefore
 CLASS org.jgroups.JChannel
@@ -76,6 +133,7 @@ AT ENTRY
 IF TRUE
    DO recordDeliveryTime();
 ENDRULE
+
 
 ## Compute the time after up(Message) returned
 RULE JChannelMessageAfter
@@ -97,50 +155,15 @@ IF TRUE
 ENDRULE
 
 
-#################################################
+#########################################################################################
 
 
-################ InfinispanCache ################
-
-## Handles single messages or messages in a batch
-RULE IspnMessageDelivery
-CLASS org.jgroups.blocks.RequestCorrelator
-METHOD dispatch
-AT ENTRY
-IF TRUE
-    DO beforeMessageDelivery($1);
-ENDRULE
-
-RULE IspnBatchDelivery
-CLASS org.jgroups.blocks.RequestCorrelator
-METHOD receiveMessageBatch
-AT ENTRY
-IF TRUE
-    DO beforeBatchDelivery($1);
-ENDRULE
-
-################ TriCache ################
-## TriCache currently only implements receive(Message), once receive(MessageBatch), is implemented, the BatchDelivery
-## rule needs to be changed
-
-## Message to be delivered to application
-RULE TriMessageDelivery
-CLASS org.cache.impl.tri.TriCache
-METHOD receive(org.jgroups.Message)
-AT ENTRY
-IF TRUE
-    DO beforeMessageDelivery($1);
-ENDRULE
 
 
-## Message batch to be delivered to application
-RULE TriBatchDelivery
-CLASS org.cache.impl.tri.TriCache
-METHOD receive(org.jgroups.util.MessageBatch)
-AT ENTRY
-IF TRUE
-     DO beforeBatchDelivery($1);
-ENDRULE
+
+
+
+
 
 
 #RULE AfterBatchDelivery
