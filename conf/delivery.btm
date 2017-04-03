@@ -153,8 +153,6 @@ BIND batch_size=$1.size(); ## this won't work if the app removes messages from t
 IF TRUE
    DO afterChannelUpBatch(batch_size);
 ENDRULE
-
-
 #########################################################################################
 
 

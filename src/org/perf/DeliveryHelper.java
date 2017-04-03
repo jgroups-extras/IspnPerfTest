@@ -1,7 +1,7 @@
 package org.perf;
 
 import org.HdrHistogram.Histogram;
-import org.HdrHistogram.Recorder;
+import org.HdrHistogram.SynchronizedHistogram;
 import org.jgroups.Global;
 import org.jgroups.Header;
 import org.jgroups.JChannel;
@@ -28,12 +28,12 @@ import static org.perf.Test.PERCENTILES;
  */
 public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // The average time (in micros) from reception of a message until just before delivery (delivery time is excluded)
-    protected static final Recorder avg_receive_time=new Recorder(1, 80_000_000, 3);
+    protected static final Histogram avg_receive_time=new SynchronizedHistogram(1, 80_000_000, 3);
 
-    protected static final Recorder avg_delivery_time=new Recorder(1, 80_000_000, 3);
+    protected static final Histogram avg_delivery_time=new SynchronizedHistogram(1, 80_000_000, 3);
 
     // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network
-    protected static final Recorder avg_send_time=new Recorder(1, 80_000_000, 3);
+    protected static final Histogram avg_send_time=new SynchronizedHistogram(1, 80_000_000, 3);
 
     protected static final AverageMinMax avg_batch_size_received=new AverageMinMax();
 
@@ -198,6 +198,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
                     addStats(map, false);
                     break;
                 case "timings-percentiles":
+                case "timings-per":
                     addStats(map, true);
                     break;
                 case "timings-reset":
@@ -221,9 +222,9 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     protected static void addStats(Map<String,String> map, boolean print_details) {
-        map.put("avg_receive_time",        print(avg_receive_time.getIntervalHistogram(), print_details));
-        map.put("avg_delivery_time",       print(avg_delivery_time.getIntervalHistogram(), print_details));
-        map.put("avg_send_time",           print(avg_send_time.getIntervalHistogram(), print_details));
+        map.put("avg_receive_time",        print(avg_receive_time, print_details));
+        map.put("avg_delivery_time",       print(avg_delivery_time, print_details));
+        map.put("avg_send_time",           print(avg_send_time, print_details));
         map.put("avg_batch_size_received", avg_batch_size_received.toString());
     }
 
