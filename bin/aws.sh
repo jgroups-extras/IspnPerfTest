@@ -27,6 +27,9 @@ fi;
 FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
+## Delay asking backup for GET in Infinispan:
+FLAGS="$FLAGS -Dinfinispan.stagger.delay=5000"
+
 ## BYTEMAN: uncomment the line below if you want to get timings (avg-send-time, avg-receive-time, avg-delivery-time)
 ## Run probe timings / timings-reset
 #BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script:$CONF/send.btm,script:$CONF/requests.btm"
