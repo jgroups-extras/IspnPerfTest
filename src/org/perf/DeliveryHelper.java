@@ -96,10 +96,6 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
 
-    public void addCurrentSendTimeTo(Message msg) {
-        addSendTimeTo(msg, Util.micros());
-    }
-
     @SuppressWarnings("MethodMayBeStatic")
     public void addReceiveTimeTo(Message msg, long time) {
         PerfHeader hdr=new PerfHeader(time, 0);
@@ -107,8 +103,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void addSendTimeTo(Message msg, long time) {
-        PerfHeader hdr=new PerfHeader(0, time);
+    public void addSendTimeTo(Message msg) {
+        PerfHeader hdr=new PerfHeader(0, Util.micros());
         msg.putHeader(PROT_ID, hdr);
     }
 
@@ -178,8 +174,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void afterMessageSendByTransport(Message msg) {
-        PerfHeader hdr=msg.getHeader(PROT_ID);
+    public void computeSendTime(Message msg) {
+        PerfHeader hdr=msg != null? msg.getHeader(PROT_ID) : null;
         if(hdr != null && hdr.send_time > 0) {
             long time=Util.micros() - hdr.send_time;
             avg_send_time.recordValue(time);
@@ -187,7 +183,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
     @SuppressWarnings("MethodMayBeStatic")
-    public void afterMessageBatchSendByTransport(List<Message> list) {
+    public void computeSendTime(List<Message> list) {
         if(list != null) {
             long current_time=Util.micros();
             for(Message msg: list) {

@@ -12,7 +12,7 @@ CLASS org.jgroups.JChannel
 METHOD down(org.jgroups.Message)
 AT ENTRY
 IF TRUE
-    DO addCurrentSendTimeTo($1);
+    DO addSendTimeTo($1);
 ENDRULE
 
 ## Takes the time after a single message has been put on the network
@@ -21,7 +21,7 @@ CLASS org.jgroups.protocols.BaseBundler
 METHOD sendSingleMessage
 AT EXIT
 IF TRUE
-   DO afterMessageSendByTransport($1);
+   DO computeSendTime($1);
 ENDRULE
 
 ## Takes the time after a message batch has been put on the network
@@ -30,7 +30,7 @@ CLASS org.jgroups.protocols.BaseBundler
 METHOD sendMessageList
 AT EXIT
 IF TRUE
-   DO afterMessageBatchSendByTransport($3);
+   DO computeSendTime($3);
 ENDRULE
 
 
@@ -40,7 +40,7 @@ CLASS org.jgroups.protocols.NoBundler
 METHOD sendSingleMessage
 AT EXIT
 IF TRUE
-   DO afterMessageSendByTransport($1);
+   DO computeSendTime($1);
 ENDRULE
 
 RULE RingBufferBundler
@@ -48,7 +48,7 @@ CLASS org.jgroups.protocols.RingBufferBundler
 METHOD sendBundledMessages
 AFTER INVOKE org.jgroups.protocols.TP.doSend ALL
 IF $msg != null
-    DO afterMessageSendByTransport($msg);
+    DO computeSendTime($msg);
 ENDRULE
 
 
