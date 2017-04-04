@@ -1,0 +1,42 @@
+
+
+HELPER org.perf.DeliveryHelper
+
+#################### RequestCorrelator request and response times #######################
+## Request or reponse received
+RULE ReqRspReceived
+CLASS ^org.jgroups.blocks.RequestCorrelator
+METHOD receiveMessage
+AT ENTRY
+IF TRUE
+   DO recordRequestTime();
+ENDRULE
+
+## Requests or reponses received in a batch
+RULE ReqsRspsReceivedBatch
+CLASS ^org.jgroups.blocks.RequestCorrelator
+METHOD receiveMessageBatch
+AT ENTRY
+IF TRUE
+   DO recordRequestTime();
+ENDRULE
+
+
+## Request processed
+RULE RequestProcessed
+CLASS ^org.jgroups.blocks.RequestCorrelator
+METHOD handleRequest
+AT EXIT
+IF TRUE
+   DO computeRequestTime();
+ENDRULE
+
+## Reponse processed
+RULE ResponseProcessed
+CLASS ^org.jgroups.blocks.RequestCorrelator
+METHOD handleResponse
+AT EXIT
+IF TRUE
+   DO computeResponseTime();
+ENDRULE
+#########################################################################################
