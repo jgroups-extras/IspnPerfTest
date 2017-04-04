@@ -5,8 +5,9 @@
 
 DIR=`dirname $0`
 PT="$DIR/../"
+CONF="$PT/conf"
 
-CP=$PT/classes:$PT/lib/*:$PT/conf
+CP=$PT/classes:$PT/lib/*:$CONF
 
 if [ -f $HOME/log4j.properties ]; then
     LOG="-Dlog4j.configuration=file:$HOME/log4j.properties"
@@ -28,7 +29,6 @@ FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 ## BYTEMAN: uncomment the line below if you want to get timings (avg-send-time, avg-receive-time, avg-delivery-time)
 ## Run probe timings / timings-reset
-#BM="-javaagent:$PT/lib/byteman.jar=script:$PT/conf/delivery.btm,script=$PT/conf/send.btm"
+#BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script=$CONF/send.btm,script=$CONF/requests.btm"
 
-conf_dir=`dirname $0`/../conf
-java -classpath $CP $BM $LOG $FLAGS org.perf.Test -cfg ${conf_dir}/dist-sync-aws.xml -jgroups-cfg ${conf_dir}/control-aws.xml $*
+java -classpath $CP $BM $LOG $FLAGS org.perf.Test -cfg $CONF/dist-sync-aws.xml -jgroups-cfg $CONF/control-aws.xml $*

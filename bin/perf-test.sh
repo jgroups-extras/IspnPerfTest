@@ -5,8 +5,9 @@
 
 DIR=`dirname $0`
 PT="$DIR/../"
+CONF="$PT/conf"
 
-CP=$PT/classes:$PT/lib/*:$PT/conf
+CP=$PT/classes:$PT/lib/*:$CONF
 
 if [ -f $HOME/log4j.properties ]; then
     LOG="-Dlog4j.configuration=file:$HOME/log4j.properties"
@@ -64,7 +65,7 @@ JMX="-Dcom.sun.management.jmxremote"
 
 ## BYTEMAN: uncomment the line below if you want to get timings (avg-send-time, avg-receive-time, avg-delivery-time)
 ## Run probe timings / timings-reset
-#BM="-javaagent:$PT/lib/byteman.jar=script:$PT/conf/delivery.btm,script:$PT/conf/send.btm"
+#BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script:$CONF/send.btm,script:$CONF/requests.btm"
 
 # Uncomment to enable dtrace tracing on the hotspot provider (e.g. lock and method invocation tracing)
 #TRACE=-XX:+ExtendedDTraceProbes
