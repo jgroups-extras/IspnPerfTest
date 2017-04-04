@@ -29,6 +29,6 @@ FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 ## BYTEMAN: uncomment the line below if you want to get timings (avg-send-time, avg-receive-time, avg-delivery-time)
 ## Run probe timings / timings-reset
-#BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script=$CONF/send.btm,script=$CONF/requests.btm"
+#BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script:$CONF/send.btm,script:$CONF/requests.btm"
 
 java -classpath $CP $BM $LOG $FLAGS org.perf.Test -cfg $CONF/dist-sync-aws.xml -jgroups-cfg $CONF/control-aws.xml $*
