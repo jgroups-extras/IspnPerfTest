@@ -49,3 +49,23 @@ IF TRUE
    DO computeResponseTime();
 ENDRULE
 #########################################################################################
+
+
+
+################################ TriCache DataBatch processing time #####################
+RULE ProcessStart
+CLASS org.cache.impl.tri.TriCache
+METHOD process(org.cache.impl.tri.DataBatch)
+AT ENTRY
+IF TRUE
+   DO recordRequestBatchTime();
+ENDRULE
+
+RULE ProcessEnd
+CLASS org.cache.impl.tri.TriCache
+METHOD process(org.cache.impl.tri.DataBatch)
+AT EXIT
+IF TRUE
+   DO computeRequestBatchTime();
+ENDRULE
+#########################################################################################
