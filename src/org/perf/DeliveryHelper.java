@@ -38,6 +38,9 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network
     protected static final Histogram avg_send_time=createHistogram();
 
+    // The average time (in micros) for sending a message (excluding the time spent in the bundler)
+    protected static final Histogram avg_transport_send_time=createHistogram();
+
     // The average time (in micros) to invoke a request (in RequestCorrelator)
     protected static final Histogram avg_req_time=createHistogram();
 
@@ -58,6 +61,9 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     protected static final ConcurrentMap<Thread,Long> req_timings=new ConcurrentHashMap<>();
 
     protected static final ConcurrentMap<Thread,Long> req_batch_timings=new ConcurrentHashMap<>();
+
+    protected static final ConcurrentMap<Thread,Long> transport_send_time=new ConcurrentHashMap<>();
+
 
     protected static final short PROT_ID=1025;
 
@@ -105,6 +111,18 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     public long getRequestBatchTime() {
           return req_batch_timings.get(Thread.currentThread());
       }
+
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void recordTransportSendTime() {
+        transport_send_time.put(Thread.currentThread(), Util.micros());
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public long getTransportSendTime() {
+            return transport_send_time.get(Thread.currentThread());
+        }
+
 
 
     public void channelCreated(JChannel ch) {
@@ -233,6 +251,14 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
 
+    @SuppressWarnings("MethodMayBeStatic")
+    public void computeTransportSendTime() {
+        long previously_recorded_time=getTransportSendTime();
+        if(previously_recorded_time > 0)
+            avg_transport_send_time.recordValue(Util.micros() - previously_recorded_time);
+    }
+
+
     public void afterDelivery() {
         long previously_recorded_time=getDeliveryTime();
         if(previously_recorded_time > 0) {
@@ -275,6 +301,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         avg_delivery_time.reset();
         avg_down_time.reset();
         avg_send_time.reset();
+        avg_transport_send_time.reset();
         avg_req_time.reset();
         avg_rsp_time.reset();
         avg_batch_req_time.reset();
@@ -286,6 +313,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         map.put("avg_delivery_time",       print(avg_delivery_time, print_details));
         map.put("avg_down_time",           print(avg_down_time, print_details));
         map.put("avg_send_time",           print(avg_send_time, print_details));
+        map.put("avg_tp_send_time",        print(avg_transport_send_time, print_details));
         map.put("avg_req_time",            print(avg_req_time, print_details));
         map.put("avg_rsp_time",            print(avg_rsp_time, print_details));
         map.put("avg_batch_req_time",      print(avg_batch_req_time, print_details));
