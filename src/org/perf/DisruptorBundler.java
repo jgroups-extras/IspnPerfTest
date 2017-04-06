@@ -1,9 +1,6 @@
 package org.perf;
 
-import com.lmax.disruptor.EventFactory;
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.SleepingWaitStrategy;
-import com.lmax.disruptor.WaitStrategy;
+import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import org.jgroups.Address;
@@ -24,15 +21,15 @@ import java.util.Objects;
  */
 @SuppressWarnings("unused")
 public class DisruptorBundler extends BaseBundler implements EventHandler<DisruptorBundler.MessageEvent> {
-    protected Disruptor<MessageEvent>                     disruptor;
-    protected com.lmax.disruptor.RingBuffer<MessageEvent> buf;
+    protected Disruptor<MessageEvent>   disruptor;
+    protected RingBuffer<MessageEvent>  buf;
 
-    protected static final int                            MSG_BUF_SIZE=2048;
-    protected final Message[]                             msg_queue=new Message[MSG_BUF_SIZE];
-    protected int                                         curr;
+    protected static final int          MSG_BUF_SIZE=512;
+    protected final Message[]           msg_queue=new Message[MSG_BUF_SIZE];
+    protected int                       curr;
 
     // <-- change this to experiment with different wait strategies
-    protected final WaitStrategy strategy=new SleepingWaitStrategy(); // fastest but high CPU
+    protected WaitStrategy              strategy=new SleepingWaitStrategy(); // fastest but high CPU
     // strategy=new YieldingWaitStrategy(); // ditto
     // strategy=new BusySpinWaitStrategy();
     // protected final WaitStrategy strategy=new BlockingWaitStrategy();
@@ -52,6 +49,8 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
 
     public void init(TP transport) {
         super.init(transport);
+        strategy=createStrategy(transport.bundlerWaitStrategy());
+
         disruptor=new Disruptor<>(new MessageEventFactory(), transport.getBundlerCapacity(), new DefaultThreadFactory("disruptor", false, true),
                                   ProducerType.MULTI, strategy);
         disruptor.handleEventsWith(this);
@@ -85,6 +84,22 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
         addMessage(msg, size);
         if(endOfBatch)
             sendBundledMessages(); // else wait for the next event
+    }
+
+    protected static WaitStrategy createStrategy(String name) {
+        if(name != null) {
+            switch(name) {
+                case "SleepingWaitStrategy": case "sleep-wait":
+                    return new SleepingWaitStrategy();
+                case "YieldingWaitStrategy": case "yield":
+                    return new YieldingWaitStrategy();
+                case "BusySpinWaitStrategy": case "busy-spin":
+                    return new BusySpinWaitStrategy();
+                case "BlockingWaitStrategy": case "blocking-wait":
+                    return new BlockingWaitStrategy();
+            }
+        }
+        return new SleepingWaitStrategy();
     }
 
     protected void addMessage(Message msg, long size) {
