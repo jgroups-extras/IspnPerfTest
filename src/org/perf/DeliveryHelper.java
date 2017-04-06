@@ -44,6 +44,9 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // The average time (in micros) to handle a response (in RequestCorrelator)
     protected static final Histogram avg_rsp_time=createHistogram();
 
+    // The average time (in micros) to handle entire batches of requests or responses
+    protected static final Histogram avg_batch_req_time=createHistogram();
+
     protected static final AverageMinMax avg_batch_size_received=new AverageMinMax();
 
 
@@ -54,6 +57,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     protected static final ConcurrentMap<Thread,Long> req_timings=new ConcurrentHashMap<>();
 
+    protected static final ConcurrentMap<Thread,Long> req_batch_timings=new ConcurrentHashMap<>();
 
     protected static final short PROT_ID=1025;
 
@@ -91,6 +95,16 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     public long getRequestTime() {
         return req_timings.get(Thread.currentThread());
     }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void recordRequestBatchTime() {
+        req_batch_timings.put(Thread.currentThread(), Util.micros());
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public long getRequestBatchTime() {
+          return req_batch_timings.get(Thread.currentThread());
+      }
 
 
     public void channelCreated(JChannel ch) {
@@ -176,6 +190,13 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
                avg_req_time.recordValue(Util.micros() - previously_recorded_time);
     }
 
+    @SuppressWarnings("MethodMayBeStatic")
+       public void computeRequestBatchTime() {
+        long previously_recorded_time=getRequestBatchTime();
+        if(previously_recorded_time > 0)
+            avg_batch_req_time.recordValue(Util.micros() - previously_recorded_time);
+    }
+
 
     @SuppressWarnings("MethodMayBeStatic")
     public void computeDownTime(Message msg) {
@@ -256,6 +277,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         avg_send_time.reset();
         avg_req_time.reset();
         avg_rsp_time.reset();
+        avg_batch_req_time.reset();
         avg_batch_size_received.clear();
     }
 
@@ -266,6 +288,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         map.put("avg_send_time",           print(avg_send_time, print_details));
         map.put("avg_req_time",            print(avg_req_time, print_details));
         map.put("avg_rsp_time",            print(avg_rsp_time, print_details));
+        map.put("avg_batch_req_time",      print(avg_batch_req_time, print_details));
         map.put("avg_batch_size_received", avg_batch_size_received.toString());
     }
 

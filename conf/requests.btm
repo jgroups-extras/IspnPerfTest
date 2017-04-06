@@ -19,8 +19,17 @@ METHOD receiveMessageBatch
 AT ENTRY
 IF TRUE
    DO recordRequestTime();
+      recordRequestBatchTime();
 ENDRULE
 
+## Batch processed
+RULE BatchProcessed
+CLASS ^org.jgroups.blocks.RequestCorrelator
+METHOD receiveMessageBatch
+AT EXIT
+IF TRUE
+   DO computeRequestBatchTime();
+ENDRULE
 
 ## Request processed
 RULE RequestProcessed

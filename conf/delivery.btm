@@ -76,6 +76,7 @@ IF TRUE
     DO computeReceiveTime($1);
 ENDRULE
 
+# Cannot use dispatch AT ENTRY because dispatch() will be called multiple times and we don't want to record delivery!
 RULE IspnBatchReception
 CLASS org.jgroups.blocks.RequestCorrelator
 METHOD receiveMessageBatch
