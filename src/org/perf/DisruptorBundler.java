@@ -1,12 +1,19 @@
 package org.perf;
 
-import com.lmax.disruptor.*;
+import com.lmax.disruptor.EventFactory;
+import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.SleepingWaitStrategy;
+import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import org.jgroups.Address;
 import org.jgroups.Message;
 import org.jgroups.protocols.BaseBundler;
 import org.jgroups.protocols.TP;
 import org.jgroups.util.DefaultThreadFactory;
+import org.jgroups.util.Util;
+
+import java.util.Objects;
 
 /**
  * Implementation of a {@link org.jgroups.protocols.Bundler} with LMAX's Disruptor. To use it in JGroups, either
@@ -20,6 +27,10 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
     protected Disruptor<MessageEvent>                     disruptor;
     protected com.lmax.disruptor.RingBuffer<MessageEvent> buf;
 
+    protected static final int                            MSG_BUF_SIZE=2048;
+    protected final Message[]                             msg_queue=new Message[MSG_BUF_SIZE];
+    protected int                                         curr;
+
     // <-- change this to experiment with different wait strategies
     protected final WaitStrategy strategy=new SleepingWaitStrategy(); // fastest but high CPU
     // strategy=new YieldingWaitStrategy(); // ditto
@@ -32,9 +43,6 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
     }
 
     public DisruptorBundler(int capacity) {
-
-
-
         disruptor=new Disruptor<>(new MessageEventFactory(), capacity, new DefaultThreadFactory("disruptor", false, true),
                                   ProducerType.MULTI, strategy);
         disruptor.handleEventsWith(this);
@@ -71,17 +79,85 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
 
     public void onEvent(MessageEvent event, long sequence, boolean endOfBatch) throws Exception {
         Message msg=event.msg;
+        long size=msg.size();
+        if(count + size >= transport.getMaxBundleSize())
+            sendBundledMessages();
+        addMessage(msg, size);
+        if(endOfBatch)
+            sendBundledMessages(); // else wait for the next event
+    }
+
+    protected void addMessage(Message msg, long size) {
         try {
-            long size=msg.size();
-            if(count + size >= transport.getMaxBundleSize())
-                sendBundledMessages();
-            addMessage(msg, size);
-            if(endOfBatch)
-                sendBundledMessages(); // else wait for the next event
+            while(curr < MSG_BUF_SIZE && msg_queue[curr] != null) ++curr;
+            if(curr < MSG_BUF_SIZE) {
+                msg_queue[curr]=msg;
+                ++curr;
+            }
+            else {
+                sendBundledMessages(); // sets curr to 0
+                msg_queue[0]=msg;
+            }
         }
-        catch(Throwable t) {
+        finally {
+            count+=size;
         }
     }
+
+
+    protected void sendBundledMessages() {
+        try {
+            _sendBundledMessages();
+        }
+        finally {
+            curr=0;
+        }
+    }
+
+    protected void _sendBundledMessages() {
+        int start=0;
+        for(;;) {
+            for(; start < MSG_BUF_SIZE && msg_queue[start] == null; ++start) ;
+            if(start >= MSG_BUF_SIZE) {
+                count=0;
+                return;
+            }
+            Address dest=msg_queue[start].getDest();
+            int numMsgs=1;
+            for(int i=start + 1; i < MSG_BUF_SIZE; ++i) {
+                Message msg=msg_queue[i];
+                if(msg != null && (dest == msg.getDest() || (Objects.equals(dest, msg.getDest())))) {
+                    msg.setDest(dest); // avoid further equals() calls
+                    numMsgs++;
+                }
+            }
+            try {
+                output.position(0);
+                if(numMsgs == 1) {
+                    sendSingleMessage(msg_queue[start]);
+                    msg_queue[start]=null;
+                }
+                else {
+                    Util.writeMessageListHeader(dest, msg_queue[start].getSrc(), transport.getClusterNameAscii().chars(), numMsgs, output, dest == null);
+                    for(int i=start; i < MSG_BUF_SIZE; ++i) {
+                        Message msg=msg_queue[i];
+                        // since we assigned the matching destination we can do plain ==
+                        if(msg != null && msg.getDest() == dest) {
+                            msg.writeToNoAddrs(msg.getSrc(), output, transport.getId());
+                            msg_queue[i]=null;
+                        }
+                    }
+                    transport.doSend(output.buffer(), 0, output.position(), dest);
+                }
+                start++;
+            }
+            catch(Exception e) {
+                log.error("Failed to send message", e);
+            }
+        }
+    }
+
+
 
     protected static class MessageEvent {
         protected Message msg;
@@ -91,7 +167,6 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
     }
 
     protected static class MessageEventFactory implements EventFactory<MessageEvent> {
-
         public MessageEvent newInstance() {
             return new MessageEvent();
         }

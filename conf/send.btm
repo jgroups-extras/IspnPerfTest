@@ -15,6 +15,16 @@ IF TRUE
     DO addSendTimeTo($1);
 ENDRULE
 
+
+## Takes the time before a message is passed on to the transport
+RULE ComputeDownTime
+CLASS org.jgroups.protocols.TP
+METHOD send
+AT ENTRY
+IF TRUE
+   DO computeDownTime($1);
+ENDRULE
+
 ## Takes the time after a single message has been put on the network
 RULE AfterTransportSendMessage
 CLASS org.jgroups.protocols.BaseBundler
@@ -43,6 +53,14 @@ IF TRUE
    DO computeSendTime($1);
 ENDRULE
 
+RULE SenderSendsBundler
+CLASS org.jgroups.protocols.SenderSendsBundler
+METHOD send
+AT EXIT
+IF TRUE
+   DO computeSendTime($1);
+ENDRULE
+
 RULE RingBufferBundler
 CLASS org.jgroups.protocols.RingBufferBundler
 METHOD sendBundledMessages
@@ -51,6 +69,25 @@ IF $msg != null
     DO computeSendTime($msg);
 ENDRULE
 
+RULE RingBufferBundlerLockless
+CLASS org.jgroups.protocols.RingBufferBundlerLockless
+METHOD sendBundledMessages
+AFTER INVOKE org.jgroups.protocols.TP.doSend ALL
+IF $msg != null
+    DO computeSendTime($msg);
+ENDRULE
 
 
+RULE RingBufferBundlerLockless2
+CLASS org.jgroups.protocols.RingBufferBundlerLockless2
+METHOD sendBundledMessages
+AFTER INVOKE org.jgroups.protocols.TP.doSend ALL
+IF $msg != null
+    DO computeSendTime($msg);
+ENDRULE
 
+## Rule for disruptor's bundled send (WIP)
+#RULE DisruptorBundler
+#CLASS org.perf.DisruptorBundler
+#METHOD
+#ENDRULE

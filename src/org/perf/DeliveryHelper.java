@@ -33,6 +33,9 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // The average time (in micros) for the invocation of JChannel.up(Message) or JChannel.up(MessageBatch)
     protected static final Histogram avg_delivery_time=createHistogram();
 
+    // The average time (in micros) for sending a message down to the transport (excluding the time spent in the transport)
+    protected static final Histogram avg_down_time=createHistogram();
+
     // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network
     protected static final Histogram avg_send_time=createHistogram();
 
@@ -174,6 +177,15 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
 
     @SuppressWarnings("MethodMayBeStatic")
+    public void computeDownTime(Message msg) {
+        PerfHeader hdr=msg != null? msg.getHeader(PROT_ID) : null;
+        if(hdr != null && hdr.send_time > 0) {
+            long time=Util.micros() - hdr.send_time;
+            avg_down_time.recordValue(time);
+        }
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
     public void computeSendTime(Message msg) {
         PerfHeader hdr=msg != null? msg.getHeader(PROT_ID) : null;
         if(hdr != null && hdr.send_time > 0) {
@@ -237,6 +249,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     protected static void reset() {
         avg_receive_time.reset();
         avg_delivery_time.reset();
+        avg_down_time.reset();
         avg_send_time.reset();
         avg_req_time.reset();
         avg_rsp_time.reset();
@@ -246,6 +259,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     protected static void addStats(Map<String,String> map, boolean print_details) {
         map.put("avg_receive_time",        print(avg_receive_time, print_details));
         map.put("avg_delivery_time",       print(avg_delivery_time, print_details));
+        map.put("avg_down_time",           print(avg_down_time, print_details));
         map.put("avg_send_time",           print(avg_send_time, print_details));
         map.put("avg_req_time",            print(avg_req_time, print_details));
         map.put("avg_rsp_time",            print(avg_rsp_time, print_details));
