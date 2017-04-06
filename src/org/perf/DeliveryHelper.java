@@ -2,7 +2,6 @@ package org.perf;
 
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.SynchronizedHistogram;
-import org.jgroups.Global;
 import org.jgroups.Header;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
@@ -145,6 +144,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         PerfHeader hdr=msg.getHeader(PROT_ID);
         if(hdr != null && hdr.receive_time > 0) {
             long time=Util.micros() - hdr.receive_time;
+            hdr.receive_time=0;
             avg_receive_time.recordValue(time);
         }
     }
@@ -156,6 +156,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             PerfHeader hdr=first.getHeader(PROT_ID);
             if(hdr != null && hdr.receive_time > 0) {
                 long time=Util.micros() - hdr.receive_time;
+                hdr.receive_time=0;
                 avg_receive_time.recordValue(time);
             }
         }
@@ -190,6 +191,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
         PerfHeader hdr=msg != null? msg.getHeader(PROT_ID) : null;
         if(hdr != null && hdr.send_time > 0) {
             long time=Util.micros() - hdr.send_time;
+            hdr.send_time=0; // to prevent multiple computations caused by retransmission
             avg_send_time.recordValue(time);
         }
     }
@@ -202,6 +204,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
                 PerfHeader hdr=msg.getHeader(PROT_ID);
                 if(hdr != null && hdr.send_time > 0) {
                     long time=current_time - hdr.send_time;
+                    hdr.send_time=0; // to prevent multiple computations caused by retransmission
                     avg_send_time.recordValue(time);
                 }
             }
@@ -304,6 +307,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             this.send_time=send_time;
         }
 
+        public PerfHeader reset() {receive_time=send_time=0; return this;}
 
         public short getMagicId() {
             return ID;
@@ -313,18 +317,15 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             return PerfHeader::new;
         }
 
+        /** We don't serialize PerfHeader as it is used only locally */
         public int serializedSize() {
-            return Global.LONG_SIZE*2;
+            return 0;
         }
 
         public void writeTo(DataOutput out) throws Exception {
-            out.writeLong(receive_time);
-            out.writeLong(send_time);
         }
 
         public void readFrom(DataInput in) throws Exception {
-            receive_time=in.readLong();
-            send_time=in.readLong();
         }
     }
 }
