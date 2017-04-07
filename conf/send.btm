@@ -91,3 +91,22 @@ ENDRULE
 #CLASS org.perf.DisruptorBundler
 #METHOD
 #ENDRULE
+
+
+############################ Transport send time (excluding the bundler time) #############################
+RULE TransportSendTimeBefore
+CLASS org.jgroups.protocols.TP
+METHOD doSend
+AT ENTRY
+IF TRUE
+    DO recordTransportSendTime();
+ENDRULE
+
+RULE TransportSendTimeAfter
+CLASS org.jgroups.protocols.TP
+METHOD doSend
+AT EXIT
+IF TRUE
+    DO computeTransportSendTime();
+ENDRULE
+###########################################################################################################
