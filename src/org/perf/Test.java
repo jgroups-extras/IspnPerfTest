@@ -3,6 +3,7 @@ package org.perf;
 import org.HdrHistogram.Histogram;
 import org.cache.Cache;
 import org.cache.CacheFactory;
+import org.cache.impl.DummyCacheFactory;
 import org.cache.impl.HazelcastCacheFactory;
 import org.cache.impl.InfinispanCacheFactory;
 import org.cache.impl.tri.TriCacheFactory;
@@ -82,6 +83,7 @@ public class Test extends ReceiverAdapter {
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
     protected static final String coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String tri_factory=TriCacheFactory.class.getName();
+    protected static final String dummy_factory=DummyCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
       "\n[5] Keys (%,d) [6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
@@ -917,6 +919,9 @@ public class Test extends ReceiverAdapter {
                 case "tri":
                     cache_factory_name=tri_factory;
                     break;
+                case "dummy":
+                    cache_factory_name=dummy_factory;
+                    break;
             }
             test.init(cache_factory_name, config_file, jgroups_config, cache_name);
             if(run_event_loop)
@@ -933,8 +938,8 @@ public class Test extends ReceiverAdapter {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
                             "Valid factory names:" +
-                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n\n",
-                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory);
+                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n\n",
+                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory);
     }
 
 
