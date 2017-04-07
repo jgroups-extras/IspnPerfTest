@@ -3,7 +3,6 @@ package org.perf;
 import org.HdrHistogram.Histogram;
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.cache.impl.DistCacheFactory;
 import org.cache.impl.HazelcastCacheFactory;
 import org.cache.impl.InfinispanCacheFactory;
 import org.cache.impl.tri.TriCacheFactory;
@@ -82,7 +81,6 @@ public class Test extends ReceiverAdapter {
     protected static final String infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
     protected static final String coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
-    protected static final String dist_factory=DistCacheFactory.class.getName();
     protected static final String tri_factory=TriCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
@@ -916,9 +914,6 @@ public class Test extends ReceiverAdapter {
                 case "coh":
                     cache_factory_name=coherence_factory;
                     break;
-                case "dist":
-                    cache_factory_name=dist_factory;
-                    break;
                 case "tri":
                     cache_factory_name=tri_factory;
                     break;
@@ -938,8 +933,8 @@ public class Test extends ReceiverAdapter {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
                             "Valid factory names:" +
-                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  dist: %s\n  tri:  %s\n\n",
-                          infinispan_factory, hazelcast_factory, coherence_factory, dist_factory, tri_factory);
+                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n\n",
+                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory);
     }
 
 
