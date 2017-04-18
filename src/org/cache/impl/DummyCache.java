@@ -89,6 +89,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
 
 
     public void close() throws IOException {
+        Util.close(ch);
     }
 
     /**
