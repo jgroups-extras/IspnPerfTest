@@ -59,6 +59,7 @@ public class Data<K,V> implements SizeStreamable, Runnable {
             case CLEAR:
                 break;
             case ACK:    // req_id | value
+            case ACK_DELAYED:
                 retval+=Bits.size(req_id) + estimatedSizeOf(value);
                 break;
             default:
@@ -85,6 +86,7 @@ public class Data<K,V> implements SizeStreamable, Runnable {
             case CLEAR:
                 break;
             case ACK:    // req_id | value
+            case ACK_DELAYED:
                 Bits.writeLong(req_id, out);
                 Util.objectToStream(value, out);
                 break;
@@ -113,6 +115,7 @@ public class Data<K,V> implements SizeStreamable, Runnable {
             case CLEAR:
                 break;
             case ACK:    // req_id | [value] (if used as GET response)
+            case ACK_DELAYED:
                 req_id=Bits.readLong(in);
                 value=Util.objectFromStream(in);
                 break;
@@ -135,13 +138,15 @@ public class Data<K,V> implements SizeStreamable, Runnable {
                 return String.format("%s req-id=%d caller=%s", type, req_id, sender);
             case ACK:
                 return String.format("%s req-id=%d", type, req_id);
+            case ACK_DELAYED:
+                return String.format("%s req-id=%d", type, req_id);
             default:
                 return "n/a";
         }
     }
 
     public enum Type {
-        PUT, GET, ACK, BACKUP, CLEAR;
+        PUT, GET, ACK, ACK_DELAYED, BACKUP, CLEAR;
         protected static Type[] values=Type.values();
         public static Type get(int ordinal) {return values[ordinal];}
     }

@@ -43,6 +43,8 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
     protected int                                      put_queue_max_size=1000;
 
+    protected int                                      ack_queue_max_size=1000;
+
     // If true, a GET for key K is handled by the primary owner of K only, otherwise any owner for K can handle a GET(K)
     protected boolean                                  only_primary_handles_gets;
 
@@ -55,11 +57,16 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     // Queue to handle PUT and CLEAR messages
     protected final ProcessingQueue                    put_queue;
 
+    // Queue to handle ACKs
+    protected final ProcessingQueue                    ack_queue;
+
+
     protected final LongAdder                          num_single_msgs_received=new LongAdder();
     protected final LongAdder                          num_data_batches_received=new LongAdder();
     protected final AverageMinMax                      avg_batch_size=new AverageMinMax();
     protected final AverageMinMax                      avg_batch_processing_time=new AverageMinMax();
     protected final AverageMinMax                      avg_put_processing_time=new AverageMinMax();
+    protected final AverageMinMax                      avg_ack_processing_time=new AverageMinMax();
 
 
     protected final RejectedExecutionHandler resubmit_handler=(r,tp) -> {
@@ -84,6 +91,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         ch.getProtocolStack().getTransport().registerProbeHandler(this);
         req_table.removesTillCompaction(removes_till_compaction);
         put_queue=new ProcessingQueue(put_queue_max_size, 1, 30000, "put-queue-handler", resubmit_handler);
+        ack_queue=new ProcessingQueue(ack_queue_max_size, 10, 30000, "ack-queue-handler", resubmit_handler);
     }
 
 
@@ -92,17 +100,20 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     public void          compactRequestTable()             {req_table.compact();}
     public int           putQueueMaxSize()                 {return put_queue_max_size;}
     public TriCache<K,V> putQueueMaxSize(int s)            {put_queue_max_size=s; return this;}
+    public int           ackQueueMaxSize()                 {return ack_queue_max_size;}
+    public TriCache<K,V> ackQueueMaxSize(int s)            {this.ack_queue_max_size=s; return this;}
     public boolean       onlyPrimaryHandlesGets()          {return only_primary_handles_gets;}
     public TriCache<K,V> onlyPrimaryHandlesGets(boolean b) {this.only_primary_handles_gets=b; return this;}
 
     @ManagedAttribute(description="Number of responses currently in the put queue")
     public int           getPutQueueSize()                 {return put_queue.size();}
 
-
+    @ManagedAttribute(description="Number of responses currently in the ack queue")
+    public int           getAckQueueSize()                 {return ack_queue.size();}
 
 
     public void close() throws IOException {
-        Util.close(put_queue, ch);
+        Util.close(put_queue, ack_queue, ch);
     }
 
     /**
@@ -248,17 +259,19 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                     if(stats) {
                         m.put("tri.avg_batch_processing_time", avg_batch_processing_time.toString() + " us");
                         m.put("tri.avg_batch_put_processing_time", avg_put_processing_time.toString() + " us");
+                        m.put("tri.avg_ack_processing_time", avg_ack_processing_time.toString() + " us");
                     }
                     m.put("tri.num_single_msgs_received", String.valueOf(num_single_msgs_received.sum()));
                     m.put("tri.num_data_batches_received", String.valueOf(num_data_batches_received.sum()));
                     m.put("tri.put-queue", put_queue.toString());
+                    m.put("tri.ack-queue", ack_queue.toString());
                     break;
                 case "tri.compact":
                     boolean result=req_table.compact();
                     m.put("compact", String.valueOf(result));
                     break;
                 case "tri.reset":
-                    Stream.of(avg_batch_size, avg_batch_processing_time, avg_put_processing_time)
+                    Stream.of(avg_batch_size, avg_batch_processing_time, avg_put_processing_time, avg_ack_processing_time)
                       .forEach(AverageMinMax::clear);
                     Stream.of(num_single_msgs_received, num_data_batches_received)
                       .forEach(LongAdder::reset);
@@ -309,7 +322,6 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                     map.put((K)data.key, (V)data.value);
                     // System.out.printf("put(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
 
-
                     if(primary_is_backup) { // primary == backup (e.g. when cluster size is 1: ack directly
                         data.type=ACK;
                         handleAck(data);
@@ -337,6 +349,23 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         }
         if(stats)
             avg_put_processing_time.add(Util.micros()-start);
+    }
+
+    // processes all ACK_DELAYED types (changed from ACK before)
+    protected void handleAckBatch(DataBatch batch) {
+        long start=stats? Util.micros() : 0;
+        for(int i=0; i < batch.pos; i++) {
+            Data data=batch.data[i];
+            if(data == null)
+                continue;
+            switch(data.type) {
+                case ACK_DELAYED:
+                    handleAck(data);
+                    break;
+            }
+        }
+        if(stats)
+            avg_ack_processing_time.add(Util.micros()-start);
     }
 
 
@@ -416,7 +445,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
 
     protected void process(DataBatch batch) {
-        int puts=0, gets=0;
+        int puts=0, gets=0, acks=0;
         num_data_batches_received.increment();
         long start=stats? Util.micros() : 0;
 
@@ -446,8 +475,10 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
                 // release the blocker requester (of a PUT or GET) and null the element in the batch
                 case ACK:
-                    handleAck(data);
-                    batch.data[i]=null;
+                    acks++;
+                    data.type=ACK_DELAYED; // to prevent async GET handling from re-sending the received ACK
+                    //handleAck(data);
+                    //batch.data[i]=null;
                     break;
                 default:
                     throw new IllegalArgumentException(String.format("type %s not known", data.type));
@@ -456,6 +487,9 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         if(puts > 0)
             put_queue.add(batch.handler(this::handlePutBatch));
+
+        if(acks > 0)
+            ack_queue.add(batch.handler(this::handleAckBatch));
 
         if(gets > 0) {
             try {

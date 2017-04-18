@@ -18,7 +18,7 @@ CLASS ^org.jgroups.blocks.RequestCorrelator
 METHOD receiveMessageBatch
 AT ENTRY
 IF TRUE
-   DO recordRequestTime();
+   DO
       recordRequestBatchTime();
 ENDRULE
 
