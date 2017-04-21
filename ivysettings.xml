@@ -1,5 +1,5 @@
 <ivysettings>
-    <settings defaultResolver="default"/>
+    <settings defaultResolver="chain"/>
     <credentials  host="repository.jboss.org" realm="jboss-releases-repository" username="${username}" passwd="${password}"/>
     <properties file="conf/JGROUPS_VERSION.properties"/>
 
@@ -56,7 +56,7 @@
 
 
         <!-- Tries to find an artifact in the local maven repo first -->
-        <chain name="default">
+        <chain name="chain">
             <resolver ref="local-ivy"/>
             <resolver ref="local-maven2"/>
             <resolver ref="local-mead"/>
