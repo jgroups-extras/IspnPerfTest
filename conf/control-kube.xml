@@ -33,7 +33,7 @@
             min_interval="10000"/>
     <FD_SOCK external_addr="${JGROUPS_EXTERNAL_ADDR}"
              start_port="${FD_SOCK_PORT:9100}"/>
-    <FD_ALL timeout="10000" interval="3000"/>
+    <FD_ALL timeout="30000" interval="5000"/>
     <VERIFY_SUSPECT timeout="1500"  />
     <pbcast.NAKACK2 xmit_interval="500"
                     xmit_table_num_rows="100"
