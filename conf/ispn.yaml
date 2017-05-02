@@ -13,7 +13,7 @@ spec:
       labels:
         run: ispn-perf-test
     spec:
-      hostNetwork: true
+      hostNetwork: false
       containers:
       - args:
         - kube.sh
