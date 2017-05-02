@@ -1,0 +1,26 @@
+
+## Creates a number of pods on kubernetes running IspnPerfTest
+## Run with: kubectl create -f ispn.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ispn
+  namespace: default
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        run: ispn-perf-test
+    spec:
+      hostNetwork: true
+      containers:
+      - args:
+        - kube.sh
+        - -nohup
+        name: ispn-perf-test
+        image: belaban/ispn_perf_test
+
+
+
+
