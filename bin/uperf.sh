@@ -61,4 +61,4 @@ JMX="-Dcom.sun.management.jmxremote"
 
 conf_dir=`dirname $0`/../conf
 
-java $TRACE $CONFIG -classpath $CP $DEBUG $LOG $FLAGS $JMX $JMC org.jgroups.tests.perf.UPerf -props ${conf_dir}/jgroups-udp.xml $*
+exec java $TRACE $CONFIG -classpath $CP $DEBUG $LOG $FLAGS $JMX $JMC org.jgroups.tests.perf.UPerf -props ${conf_dir}/jgroups-udp.xml $*

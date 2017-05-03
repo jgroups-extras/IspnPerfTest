@@ -374,8 +374,6 @@ public class Test extends ReceiverAdapter {
                                               num_threads, keys != null? keys.length : 0, time_secs, Util.printBytes(msg_size),
                                               read_percentage, print_details, print_invokers));
             switch(c) {
-                case -1:
-                    break;
                 case '1':
                     startBenchmark();
                     break;
@@ -426,6 +424,8 @@ public class Test extends ReceiverAdapter {
                                       org.jgroups.Version.printDescription(), org.infinispan.Version.printVersion());
                     break;
                 case 'q':
+                case 0: // remove on upgrade to next JGroups version
+                case -1:
                     stop();
                     return;
                 case 'l':

@@ -34,4 +34,4 @@ FLAGS="$FLAGS -Dinfinispan.stagger.delay=5000"
 ## Run probe timings / timings-reset
 #BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script:$CONF/send.btm,script:$CONF/requests.btm"
 
-java -classpath $CP $BM $LOG $FLAGS org.perf.Test -cfg $CONF/dist-sync-aws.xml -jgroups-cfg $CONF/control-aws.xml $*
+exec java -classpath $CP $BM $LOG $FLAGS org.perf.Test -cfg $CONF/dist-sync-aws.xml -jgroups-cfg $CONF/control-aws.xml $*

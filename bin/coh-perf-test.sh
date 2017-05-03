@@ -11,5 +11,5 @@ export proc_id=$$
 export CONFIG="-Dtangosol.coherence.cacheconfig=$conf_dir/coh.xml -Dtangosol.coherence.localhost=127.0.0.1"
 
 
-`dirname $0`/perf-test.sh -cfg $conf_dir/coh.xml -factory coh $*
+exec `dirname $0`/perf-test.sh -cfg $conf_dir/coh.xml -factory coh $*
 
