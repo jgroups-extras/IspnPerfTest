@@ -924,6 +924,7 @@ public class Test extends ReceiverAdapter {
                     break;
             }
             test.init(cache_factory_name, config_file, jgroups_config, cache_name);
+            Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             if(run_event_loop)
                 test.startEventThread();
         }
