@@ -20,6 +20,7 @@ spec:
         - -nohup
         name: ispn-perf-test
         image: belaban/ispn_perf_test
+        imagePullPolicy: IfNotPresent
 
 
 
