@@ -36,7 +36,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     protected static final Histogram avg_down_time=createHistogram();
 
     // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network.
-    // This includes avg_down_time, message bundling and avg_transport_send_time
+    // This includes avg_down_time, message bundling and avg_transport_send_time. Note that message bundling should
+    // include the time until the bundler puts a message onto the network (rules for most bundler implementations)
     protected static final Histogram avg_send_time=createHistogram();
 
     // The average time (in micros) for sending a message (excluding the time spent in the bundler); this is
