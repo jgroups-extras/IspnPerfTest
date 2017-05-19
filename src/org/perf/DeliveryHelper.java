@@ -99,7 +99,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public long getRequestTime() {
-        return req_timings.get(Thread.currentThread());
+        Long val=req_timings.get(Thread.currentThread());
+        return val != null? val : 0;
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -204,8 +205,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     @SuppressWarnings("MethodMayBeStatic")
     public void computeRequestTime() {
         long previously_recorded_time=getRequestTime();
-           if(previously_recorded_time > 0)
-               avg_req_time.recordValue(Util.micros() - previously_recorded_time);
+        if(previously_recorded_time > 0)
+            avg_req_time.recordValue(Util.micros() - previously_recorded_time);
     }
 
     @SuppressWarnings("MethodMayBeStatic")
