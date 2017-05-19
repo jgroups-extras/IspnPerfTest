@@ -35,10 +35,12 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     // The average time (in micros) for sending a message down to the transport (excluding the time spent in the transport)
     protected static final Histogram avg_down_time=createHistogram();
 
-    // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network
+    // The average time (in micros) from JChannel.down(Message) until _after_ the message has been put on the network.
+    // This includes avg_down_time, message bundling and avg_transport_send_time
     protected static final Histogram avg_send_time=createHistogram();
 
-    // The average time (in micros) for sending a message (excluding the time spent in the bundler)
+    // The average time (in micros) for sending a message (excluding the time spent in the bundler); this is
+    // typically the time needed for DatagramSocket.send() [UDP] or SocketOutputStream.write() [TCP]
     protected static final Histogram avg_transport_send_time=createHistogram();
 
     // The average time (in micros) to invoke a request (in RequestCorrelator)
@@ -79,7 +81,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public long getReceiveTime() {
-        return receive_timings.get(Thread.currentThread());
+        Long retval=receive_timings.remove(Thread.currentThread());
+        return retval != null? retval : 0;
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -89,8 +92,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public long getDeliveryTime() {
-           return delivery_timings.get(Thread.currentThread());
-       }
+        return delivery_timings.get(Thread.currentThread());
+    }
 
     @SuppressWarnings("MethodMayBeStatic")
     public void recordRequestTime() {
@@ -121,9 +124,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public long getTransportSendTime() {
-            return transport_send_time.get(Thread.currentThread());
-        }
-
+        return transport_send_time.remove(Thread.currentThread());
+    }
 
 
     public void channelCreated(JChannel ch) {
