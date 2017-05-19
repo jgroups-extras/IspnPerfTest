@@ -99,7 +99,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public long getRequestTime() {
-        Long val=req_timings.get(Thread.currentThread());
+        Long val=req_timings.remove(Thread.currentThread());
         return val != null? val : 0;
     }
 
@@ -110,8 +110,8 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public long getRequestBatchTime() {
-          return req_batch_timings.get(Thread.currentThread());
-      }
+        return req_batch_timings.remove(Thread.currentThread());
+    }
 
 
     @SuppressWarnings("MethodMayBeStatic")
