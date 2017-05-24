@@ -23,8 +23,9 @@
         <jmx>
             <property name="enabled">true</property>
         </jmx>
-        <distributed-cache name="perf-cache" mode="SYNC" remote-timeout="60000" statistics="true" l1-lifespan="-1" owners="2" segments="512" consistent-hash-factory="org.infinispan.ch.SimpleConsistentHashFactory" key-partitioner="org.infinispan.ch.SimpleKeyPartitioner">
-        <!--distributed-cache name="perf-cache" mode="SYNC" remote-timeout="60000" statistics="true" l1-lifespan="-1" owners="2" segments="512" -->
+        <!--distributed-cache name="perf-cache" mode="SYNC" remote-timeout="60000" statistics="true" l1-lifespan="-1" owners="2" segments="512"
+                           consistent-hash-factory="org.infinispan.ch.SimpleConsistentHashFactory" key-partitioner="org.infinispan.ch.SimpleKeyPartitioner"-->
+        <distributed-cache name="perf-cache" mode="SYNC" remote-timeout="60000" statistics="true" l1-lifespan="-1" owners="2" segments="512" >
             <locking acquire-timeout="3000" concurrency-level="1000" />
             <store-as-binary keys="false" values="true"/>
             <state-transfer timeout="60000" />
