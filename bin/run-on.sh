@@ -10,7 +10,7 @@
 #PK="-i $HOME/.aws/bela.pem"
 
 # Set if a different user is required for SSH
-USER=jgroups
+USER=bela
 ###############################
 
 
