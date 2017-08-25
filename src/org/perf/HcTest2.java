@@ -9,12 +9,14 @@ import com.hazelcast.map.impl.MapService;
 import com.hazelcast.map.impl.MapServiceContext;
 import com.hazelcast.map.impl.PartitionContainer;
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
+import com.hazelcast.map.impl.record.Record;
 import com.hazelcast.map.impl.recordstore.RecordStore;
 import com.hazelcast.nio.serialization.Data;
 import com.hazelcast.spi.NodeEngine;
 import org.jgroups.util.Util;
 
 import java.io.FileNotFoundException;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -73,8 +75,10 @@ public class HcTest2 {
             int id=ps.getPartition(i).getPartitionId();
             PartitionContainer partitionContainer = ctx.getPartitionContainer(id);
             RecordStore store=partitionContainer.getRecordStore("perf");
-            Set<Data> keys=store.keySet();
-            for(Data key: keys) {
+
+            for(Iterator<Record> it=store.iterator(); it.hasNext();) {
+                Record rec=it.next();
+                Data key=rec.getKey();
                 Object value=store.get(key, false);
                 System.out.printf("key: %s, value: %s\n", toObj(key, ctx), toObj(value, ctx));
             }
