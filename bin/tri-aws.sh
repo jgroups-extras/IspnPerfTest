@@ -2,4 +2,4 @@
 
 conf_dir=`dirname $0`/../conf
 
-exec `dirname $0`/perf-test.sh -cfg $conf_dir/jgroups-aws.xml -jgroups-cfg $conf_dir/control-aws.xml -factory org.cache.impl.tri.TriCacheFactory $*
+exec `dirname $0`/perf-test.sh -cfg jgroups-aws.xml -jgroups-cfg control-aws.xml -factory org.cache.impl.tri.TriCacheFactory $*

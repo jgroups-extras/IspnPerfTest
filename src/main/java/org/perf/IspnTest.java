@@ -1,8 +1,8 @@
 package org.perf;
 
+import org.cache.impl.InfinispanCacheFactory;
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.cache.impl.InfinispanCacheFactory;
 import org.jgroups.util.Util;
 
 /**
@@ -11,8 +11,8 @@ import org.jgroups.util.Util;
  */
 public class IspnTest {
     protected CacheFactory<Integer,byte[]> cache_factory;
-    protected Cache<Integer,byte[]>        cache;
-    protected static final String          config="conf/dist-sync.xml";
+    protected Cache<Integer,byte[]> cache;
+    protected static final String          config="dist-sync.xml";
     protected static final int             NUM=1000;
 
     protected void start() throws Exception {

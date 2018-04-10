@@ -4,10 +4,7 @@
 # Author: Bela Ban
 
 DIR=`dirname $0`
-PT="$DIR/../"
-CONF="$PT/conf"
-
-CP=$PT/classes:$PT/lib/*:$CONF
+POM="$DIR/../pom.xml"
 
 if [ -f $HOME/log4j.properties ]; then
     LOG="-Dlog4j.configuration=file:$HOME/log4j.properties"
@@ -24,7 +21,7 @@ fi;
 
 ### Note: change max heap to 2G on cluster01-08 (physical mem: 4G) !
 ### On edg-perf, this is OK (physical mem: 32G)
-FLAGS="$FLAGS -server -Xms2G -Xmx2G"
+#FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 ## Delay asking backup for GET in Infinispan:
@@ -72,4 +69,6 @@ JMX="-Dcom.sun.management.jmxremote"
 
 export proc_id=$$
 
-exec java $TRACE $CONFIG -classpath $CP -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*
+#exec java $TRACE $CONFIG -classpath $CP -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*
+
+exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"

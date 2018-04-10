@@ -4,14 +4,14 @@
     <info organisation="org.perf" module="ispn-perf-test" revision="1.0.0"/>
 
     <dependencies>
-        <dependency org="org.jgroups"                    name="jgroups"                rev="4.0.11.Final"/>
+        <dependency org="org.jgroups"                    name="jgroups"                rev="4.0.12-SNAPSHOT"/>
         <dependency org="org.infinispan"                 name="infinispan-core"        rev="9.0.0.Final"/>
         <dependency org="org.infinispan"                 name="infinispan-commons"     rev="9.0.0.Final"/>
         <dependency org="org.jboss.logging"              name="jboss-logging"          rev="3.3.+"/>
         <dependency org="org.jboss.marshalling"          name="jboss-marshalling-osgi" rev="1.4.+"/>
         <dependency org="log4j"                          name="log4j"                  rev="1.2.+"/>
-        <dependency org="org.apache.logging.log4j"       name="log4j-api"              rev="2.8+"/>
-        <dependency org="org.apache.logging.log4j"       name="log4j-core"             rev="2.8+"/>
+        <!--<dependency org="org.apache.logging.log4j"       name="log4j-api"              rev="2.8+"/>
+        <dependency org="org.apache.logging.log4j"       name="log4j-core"             rev="2.8+"/>-->
         <dependency org="com.hazelcast"                  name="hazelcast"              rev="3.+"/>
         <dependency org="com.lmax"                       name="disruptor"              rev="3.+"/>
         <dependency org="org.jboss.byteman"              name="byteman"                rev="3.+"/>

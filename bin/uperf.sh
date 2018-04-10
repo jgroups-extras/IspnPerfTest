@@ -4,7 +4,7 @@
 # Author: Bela Ban
 
 DIR=`dirname $0`
-PT="$DIR/../"
+POM=$DIR/../pom.xml
 
 CP=$PT/classes:$PT/lib/*:$PT/conf
 
@@ -23,7 +23,7 @@ fi;
 
 ### Note: change max heap to 2G on cluster01-08 (physical mem: 4G) !
 ### On edg-perf, this is OK (physical mem: 32G)
-FLAGS="$FLAGS -server -Xms2G -Xmx2G"
+#FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 ## If uncommented and used in prod, license fees may incur
@@ -61,4 +61,4 @@ JMX="-Dcom.sun.management.jmxremote"
 
 conf_dir=`dirname $0`/../conf
 
-exec java $TRACE $CONFIG -classpath $CP $DEBUG $LOG $FLAGS $JMX $JMC org.jgroups.tests.perf.UPerf -props ${conf_dir}/jgroups-udp.xml $*
+exec mvn -o -f $POM exec:java $TRACE $DEBUG $LOG $FLAGS $JMX $JMC -Dexec.mainClass=org.jgroups.tests.perf.UPerf -Dexec.args="-props jgroups-udp.xml $*"

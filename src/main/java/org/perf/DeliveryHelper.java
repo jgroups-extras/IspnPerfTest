@@ -20,8 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
-import static org.perf.Test.PERCENTILES;
-
 /**
  * @author Bela Ban
  */
@@ -336,7 +334,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     protected static String percentiles(Histogram h) {
         StringBuilder sb=new StringBuilder();
-        for(double percentile: PERCENTILES) {
+        for(double percentile: org.perf.Test.PERCENTILES) {
             long val=h.getValueAtPercentile(percentile);
             sb.append(String.format("%,.1f=%,d ", percentile, val));
         }

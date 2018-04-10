@@ -1,13 +1,11 @@
-package org.perf;
+package main.test.org.perf;
 
-import org.cache.impl.tri.Data;
-import org.cache.impl.tri.DataBatch;
+import main.java.org.cache.impl.tri.Data;
+import main.java.org.cache.impl.tri.DataBatch;
 
 import java.util.stream.Stream;
 
-import static org.cache.impl.tri.Data.Type.*;
-import static org.cache.impl.tri.Data.Type.GET;
-import static org.cache.impl.tri.Data.Type.PUT;
+import static main.java.org.cache.impl.tri.Data.Type.*;
 
 /**
  * @author Bela Ban

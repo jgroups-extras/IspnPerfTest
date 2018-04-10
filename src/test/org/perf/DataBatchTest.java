@@ -1,7 +1,7 @@
-package org.perf;
+package main.test.org.perf;
 
-import org.cache.impl.tri.Data;
-import org.cache.impl.tri.DataBatch;
+import main.java.org.cache.impl.tri.Data;
+import main.java.org.cache.impl.tri.DataBatch;
 import org.jgroups.Address;
 import org.jgroups.util.Util;
 

@@ -18,7 +18,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Stream;
 
-import static org.cache.impl.tri.Data.Type.*;
 
 /**
  * Cache which simulates the way Infinispan "triangle" works, but doesn't support rehashing. Fixed replication count of 2.
@@ -128,7 +127,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         long req_id=req_table.add(future);
 
         try {
-            Data<K,V> data=new Data<>(PUT, req_id, key, value, local_addr);
+            Data<K,V> data=new Data<>(Data.Type.PUT, req_id, key, value, local_addr);
             if(Objects.equals(primary, local_addr))
                 put_queue.add(data.handler(this::handlePut));
             else
@@ -161,7 +160,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         long req_id=req_table.add(future);
 
         try {
-            Data data=new Data(GET, req_id, key, null, null);
+            Data data=new Data(Data.Type.GET, req_id, key, null, null);
             send(primary, data, false); // sent as regular message
             return future.get(10000, TimeUnit.MILLISECONDS);  // req_id was removed by ACK processing
         }
@@ -172,7 +171,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     public void clear() {
-        Data data=new Data(CLEAR, 0, null, null, null);
+        Data data=new Data(Data.Type.CLEAR, 0, null, null, null);
         try {
             send(null, data);
         }
@@ -292,13 +291,13 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
      */
     protected void handlePut(Data data) {
         // reuse data instead of creating a new instance
-        data.type=BACKUP;
+        data.type=Data.Type.BACKUP;
 
         map.put((K)data.key, (V)data.value);
         // System.out.printf("put(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
 
         if(primary_is_backup) { // primary == backup (e.g. when cluster size is 1: ack directly
-            data.type=ACK;
+            data.type=Data.Type.ACK;
             handleAck(data);
         }
         else
@@ -323,12 +322,12 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                     // System.out.printf("put(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
 
                     if(primary_is_backup) { // primary == backup (e.g. when cluster size is 1: ack directly
-                        data.type=ACK;
+                        data.type=Data.Type.ACK;
                         handleAck(data);
                         batch.data[i]=null;
                     }
                     else
-                        data.type=BACKUP;
+                        data.type=Data.Type.BACKUP;
                     break;
 
                 // handle CLEAR and null the element in the batch
@@ -341,10 +340,10 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         if(!primary_is_backup && !batch.isEmpty()) {
             // PUT and BACKUP needs to be done on the same thread; that's why we cannot add the batch to the send queue
             try {
-                send(backup, batch, BACKUP, false);
+                send(backup, batch, Data.Type.BACKUP, false);
             }
             catch(Exception e) {
-                log.error("failed sending batch of %d BACKUPs to %s: %s", batch.size(BACKUP), backup, e);
+                log.error("failed sending batch of %d BACKUPs to %s: %s", batch.size(Data.Type.BACKUP), backup, e);
             }
         }
         if(stats)
@@ -377,7 +376,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         map.put((K)data.key, (V)data.value);
         // System.out.printf("backup(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
 
-        data.type=ACK; // reuse data again
+        data.type=Data.Type.ACK; // reuse data again
         data.key=null;
         // As we're comparing against Infinispan's Cache.withFlags(Flag.IGNORE_RETURN_VALUES); and Hazelcast's set():
         data.value=null;
@@ -424,7 +423,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                 put_queue.add(data.sender(sender).handler(this::handlePut));
                 break;
             case GET:
-                data.type=ACK; // reuse data
+                data.type=Data.Type.ACK; // reuse data
                 K key=data.key;
                 data.value=map.get(key);
                 sendData(sender, data, true);
@@ -463,7 +462,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                 case GET:
                     K key=(K)data.key;
                     data.value=map.get(key);
-                    data.type=ACK; // reuse batch
+                    data.type=Data.Type.ACK; // reuse batch
                     gets++;
                     break;
 
@@ -476,7 +475,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                 // release the blocker requester (of a PUT or GET) and null the element in the batch
                 case ACK:
                     acks++;
-                    data.type=ACK_DELAYED; // to prevent async GET handling from re-sending the received ACK
+                    data.type=Data.Type.ACK_DELAYED; // to prevent async GET handling from re-sending the received ACK
                     //handleAck(data);
                     //batch.data[i]=null;
                     break;
@@ -493,7 +492,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
         if(gets > 0) {
             try {
-                send(batch.addr, batch, ACK, true); // only send the ACKs (GET responses) to the sender of the batch
+                send(batch.addr, batch, Data.Type.ACK, true); // only send the ACKs (GET responses) to the sender of the batch
             }
             catch(Exception e) {
                 log.error("failed sending batch of %d ACKs to %s: %s", gets, batch.addr, e);

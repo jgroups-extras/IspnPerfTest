@@ -32,10 +32,10 @@ import java.util.concurrent.atomic.LongAdder;
  * @author Bela Ban
  */
 public class Test extends ReceiverAdapter {
-    protected CacheFactory<Integer,byte[]>        cache_factory;
-    protected Cache<Integer,byte[]>               cache;
-    protected JChannel                            control_channel;
-    protected Address                             local_addr;
+    protected CacheFactory<Integer,byte[]> cache_factory;
+    protected Cache<Integer,byte[]> cache;
+    protected JChannel control_channel;
+    protected Address local_addr;
     protected final List<Address>                 members=new ArrayList<>();
     protected volatile View                       view;
     protected final LongAdder                     num_requests=new LongAdder();
@@ -44,8 +44,8 @@ public class Test extends ReceiverAdapter {
     protected volatile boolean                    looping=true;
     protected Thread                              event_loop_thread;
     protected Integer[]                           keys;
-    protected final ResponseCollector<Results>    results=new ResponseCollector<>();
-    protected final Promise<Map<Integer,byte[]>>  contents_promise=new Promise<>();
+    protected final ResponseCollector<Results> results=new ResponseCollector<>();
+    protected final Promise<Map<Integer,byte[]>> contents_promise=new Promise<>();
     protected final Promise<Config>               config_promise=new Promise<>();
     protected Thread                              test_runner;
 

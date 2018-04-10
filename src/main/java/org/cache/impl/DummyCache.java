@@ -18,7 +18,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
-import static org.cache.impl.tri.Data.Type.*;
 
 
 /**
@@ -61,7 +60,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
     protected final AverageMinMax                      avg_batch_processing_time=new AverageMinMax();
     protected final AverageMinMax                      avg_put_processing_time=new AverageMinMax();
 
-    protected static final byte[]                      CLEAR_PAYLOAD={(byte)CLEAR.ordinal()};
+    protected static final byte[]                      CLEAR_PAYLOAD={(byte)Data.Type.CLEAR.ordinal()};
     protected static final byte[]                      ACK_PAYLOAD=new byte[SIZE];
 
 
@@ -108,7 +107,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
                 ; // local put
             else {
                 byte[] put_payload=new byte[Global.BYTE_SIZE + Global.LONG_SIZE + SIZE];
-                put_payload[0]=(byte)PUT.ordinal();
+                put_payload[0]=(byte)Data.Type.PUT.ordinal();
                 Bits.writeLong(req_id, put_payload, 1);
                 send(primary, put_payload);
             }
@@ -141,7 +140,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
 
         try {
             byte[] get_payload=new byte[Global.BYTE_SIZE + Global.LONG_SIZE];
-            get_payload[0]=(byte)GET.ordinal();
+            get_payload[0]=(byte)Data.Type.GET.ordinal();
             Bits.writeLong(req_id, get_payload, 1);
             Message msg=new Message(primary, get_payload);
             ch.send(msg);
@@ -183,12 +182,12 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
         byte[] buf=msg.getRawBuffer();
 
         byte tmp=buf[0];
-        Data.Type type=values()[tmp];
+        Data.Type type=Data.Type.values()[tmp];
         switch(type) {
             case GET:
                 long req_id=Bits.readLong(buf, 1);
                 byte[] ack_payload=new byte[SIZE + Global.BYTE_SIZE + Global.LONG_SIZE];
-                ack_payload[0]=(byte)ACK.ordinal();
+                ack_payload[0]=(byte)Data.Type.ACK.ordinal();
                 Bits.writeLong(req_id, ack_payload, 1);
                 send(msg.src(), ack_payload);
                 break;
@@ -203,7 +202,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
                 }
                 else {
                     byte[] backup_payload=new byte[Global.BYTE_SIZE + Global.LONG_SIZE * 3 + SIZE];
-                    backup_payload[0]=(byte)BACKUP.ordinal();
+                    backup_payload[0]=(byte)Data.Type.BACKUP.ordinal();
                     Bits.writeLong(req_id, backup_payload, 1);
                     UUID sender=(UUID)msg.src(); // must be a UUID... :-)
                     Bits.writeLong(sender.getLeastSignificantBits(), backup_payload, 9);
@@ -215,7 +214,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
                 req_id=Bits.readLong(buf, 1);
                 UUID final_dest=new UUID(Bits.readLong(buf, 9), Bits.readLong(buf, 17));
                 ack_payload=new byte[Global.BYTE_SIZE +Global.LONG_SIZE + SIZE];
-                ack_payload[0]=(byte)ACK.ordinal();
+                ack_payload[0]=(byte)Data.Type.ACK.ordinal();
                 Bits.writeLong(req_id, ack_payload, 1);
                 send(msg.src(), ack_payload);
                 break;
