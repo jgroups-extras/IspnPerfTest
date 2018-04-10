@@ -5,7 +5,6 @@
 
 DIR=`dirname $0`
 PT="$DIR/../"
-CONF="$PT/conf"
 
 CP=$PT/classes:$PT/lib/*:$CONF
 
@@ -34,4 +33,4 @@ FLAGS="$FLAGS -Dinfinispan.stagger.delay=5000"
 ## Run probe timings / timings-reset
 #BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script:$CONF/send.btm,script:$CONF/requests.btm"
 
-exec java -classpath $CP $BM $LOG $FLAGS org.perf.Test -cfg $CONF/dist-sync-aws.xml -jgroups-cfg $CONF/control-aws.xml $*
+exec `dirname $0`/perf-test.sh -cfg dist-sync-aws.xml -jgroups-cfg control-aws.xml $*

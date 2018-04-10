@@ -1,6 +1,6 @@
 package org.cache.impl;
 
-import com.hazelcast.config.FileSystemXmlConfig;
+import com.hazelcast.config.ClasspathXmlConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.cache.Cache;
@@ -21,7 +21,7 @@ public class HazelcastCacheFactory<K,V> implements CacheFactory<K,V> {
     }
 
     public void init(String config) throws Exception {
-        com.hazelcast.config.Config conf=new FileSystemXmlConfig(config);
+        com.hazelcast.config.Config conf=new ClasspathXmlConfig(config);
         hc=Hazelcast.newHazelcastInstance(conf);
     }
 
