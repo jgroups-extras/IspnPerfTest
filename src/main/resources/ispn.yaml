@@ -1,27 +1,47 @@
-
-## Creates a number of pods on kubernetes running IspnPerfTest
-## Run with: kubectl create -f ispn.yaml
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
-  name: ispn
-  namespace: default
+  name: ispn-perf-test
 spec:
-  replicas: 3
-  template:
-    metadata:
-      labels:
-        run: ispn-perf-test
-    spec:
-      hostNetwork: false
-      containers:
-      - args:
-        - kube.sh
-        - -nohup
-        name: ispn-perf-test
-        image: belaban/ispn_perf_test
-        imagePullPolicy: IfNotPresent
-
-
-
+  selector:
+    name: ispn-perf-test
+  clusterIP: None
+  ports:
+  - name: foo # Actually, no port is needed.
+    port: 1234
+    targetPort: 1234
+---
+apiVersion: v1
+items:
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    annotations:
+    name: ispn-perf-test
+    namespace: default
+  spec:
+    replicas: 2
+    selector:
+    template:
+      metadata:
+        labels:
+          name: ispn-perf-test
+      spec:
+        subdomain: ispn-perf-test
+        containers:
+        - args:
+          - /opt/jgroups/IspnPerfTest/bin/kube-dns.sh
+          - -nohup
+          env:
+          - name: KUBERNETES_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          image: belaban/ispn_perf_test
+          name: ispn-perf-test
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+kind: List
+metadata: {}
 
