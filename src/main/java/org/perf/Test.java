@@ -5,6 +5,7 @@ import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.cache.impl.DummyCacheFactory;
 import org.cache.impl.HazelcastCacheFactory;
+import org.cache.impl.HotrodCacheFactory;
 import org.cache.impl.InfinispanCacheFactory;
 import org.cache.impl.tri.TriCacheFactory;
 import org.jgroups.*;
@@ -83,6 +84,7 @@ public class Test extends ReceiverAdapter {
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
     protected static final String coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String tri_factory=TriCacheFactory.class.getName();
+    protected static final String hr_factory=HotrodCacheFactory.class.getName();
     protected static final String dummy_factory=DummyCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
@@ -278,7 +280,7 @@ public class Test extends ReceiverAdapter {
                 if(print_details)
                     System.out.printf("%d: %s\n", i, printAverage(start));
                 else
-                    System.out.printf(".");
+                    System.out.print(".");
             }
 
             Arrays.stream(invokers).forEach(CacheInvoker::cancel);
@@ -290,7 +292,7 @@ public class Test extends ReceiverAdapter {
 
             Histogram get_avg=null, put_avg=null;
             if(print_invokers)
-                System.out.printf("Round trip times (min/avg/max us):\n");
+                System.out.print("Round trip times (min/avg/max us):\n");
             for(CacheInvoker inv : invokers) {
                 if(print_invokers)
                     System.out.printf("%s: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n", inv.getId(),
@@ -687,7 +689,7 @@ public class Test extends ReceiverAdapter {
             if(errors > 0)
                 System.err.printf("FAIL: %d errors\n", errors);
             else
-                System.out.printf("OK\n");
+                System.out.print("OK\n");
         }
         System.out.println(Util.bold(String.format("\nValidated %,d keys total, %,d errors\n\n", total_keys, tot_errors)));
         if(tot_errors > 0) {
@@ -918,6 +920,9 @@ public class Test extends ReceiverAdapter {
                     break;
                 case "tri":
                     cache_factory_name=tri_factory;
+                    break;
+                case "hr":
+                    cache_factory_name=hr_factory;
                     break;
                 case "dummy":
                     cache_factory_name=dummy_factory;
