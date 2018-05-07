@@ -944,8 +944,8 @@ public class Test extends ReceiverAdapter {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
                             "Valid factory names:" +
-                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n\n",
-                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory);
+                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n   hr:  %s\n dummy: %s\n\n",
+                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, hr_factory, dummy_factory);
     }
 
 
