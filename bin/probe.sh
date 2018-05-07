@@ -25,4 +25,4 @@ fi;
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 
-mvn -o -f $POM exec:java $FLAGS $LOG -Dexec.mainClass=org.jgroups.tests.Probe -Dexec.args=$*
+mvn -o -f $POM exec:java $FLAGS $LOG -Dexec.mainClass=org.jgroups.tests.Probe -Dexec.args="$*"
