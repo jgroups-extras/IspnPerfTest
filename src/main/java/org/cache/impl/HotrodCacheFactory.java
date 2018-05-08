@@ -6,6 +6,7 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -18,7 +19,7 @@ import java.util.Properties;
 // @Listener
 public class HotrodCacheFactory<K,V> implements CacheFactory<K,V> {
     protected RemoteCacheManager  remoteCacheManager;
-    protected static final String HR_PROPRS="hotrod-client.properties";
+    protected static final String HR_PROPRS="hotrod-factory.properties";
     protected static final String trustStoreFile="trustStoreFile";
     protected static final String trustStorePassword="trustStorePassword";
     protected static final String keystoreFile="keystoreFile";
@@ -30,7 +31,7 @@ public class HotrodCacheFactory<K,V> implements CacheFactory<K,V> {
 
     /**
      * Initializes the remote cache manager
-     * @param config The syntax is a semicolon-separated list of IP addresses and ports, e.g. "hostA:12345;1.2.3.4:5555"
+     * @param config The properties file for setting up the Hotrod client (default: hotrod-client.properties)
      * @throws Exception
      */
     public void init(String config) throws Exception {
@@ -39,11 +40,19 @@ public class HotrodCacheFactory<K,V> implements CacheFactory<K,V> {
         if(config == null)
             config=HR_PROPRS;
 
-        try(InputStream in=cl.getResourceAsStream(config)) {
+        InputStream in=null;
+        try {
+            in=cl.getResourceAsStream(config);
+            if(in == null)
+                throw new FileNotFoundException(config);
             props.load(in);
             org.infinispan.client.hotrod.configuration.ConfigurationBuilder cb=new ConfigurationBuilder()
               .withProperties(props);
             remoteCacheManager=new RemoteCacheManager(cb.build());
+        }
+        finally {
+            if(in != null)
+                in.close();
         }
     }
 
