@@ -6,6 +6,9 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 
+import java.io.InputStream;
+import java.util.Properties;
+
 /**
  * CacheFactory which uses a remote Infinispan server via Hotrod
  * @author Bela Ban
@@ -14,7 +17,12 @@ import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 @SuppressWarnings("unused")
 // @Listener
 public class HotrodCacheFactory<K,V> implements CacheFactory<K,V> {
-    protected RemoteCacheManager remoteCacheManager;
+    protected RemoteCacheManager  remoteCacheManager;
+    protected static final String HR_PROPRS="hotrod-client.properties";
+    protected static final String trustStoreFile="trustStoreFile";
+    protected static final String trustStorePassword="trustStorePassword";
+    protected static final String keystoreFile="keystoreFile";
+    protected static final String keystorePassword="keystorePassword";
 
     /** Empty constructor needed for an instance to be created via reflection */
     public HotrodCacheFactory() {
@@ -26,9 +34,17 @@ public class HotrodCacheFactory<K,V> implements CacheFactory<K,V> {
      * @throws Exception
      */
     public void init(String config) throws Exception {
-        org.infinispan.client.hotrod.configuration.ConfigurationBuilder cb=new ConfigurationBuilder()
-          .addServers(config);
-        remoteCacheManager=new RemoteCacheManager(cb.build());
+        Properties props=new Properties();
+        ClassLoader cl=getClass().getClassLoader();
+        if(config == null)
+            config=HR_PROPRS;
+
+        try(InputStream in=cl.getResourceAsStream(config)) {
+            props.load(in);
+            org.infinispan.client.hotrod.configuration.ConfigurationBuilder cb=new ConfigurationBuilder()
+              .withProperties(props);
+            remoteCacheManager=new RemoteCacheManager(cb.build());
+        }
     }
 
     public void destroy() {
