@@ -10,15 +10,10 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <UDP bind_addr="match-interface:eth2,match-interface:eth0,loopback"
-         mcast_addr="232.8.8.8"
-         mcast_port="${jgroups.udp.mcast_port:55588}"
-         ip_ttl="1"
-         tos="8"
-         ucast_recv_buf_size="5M"
-         ucast_send_buf_size="5M"
-         mcast_recv_buf_size="5M"
-         mcast_send_buf_size="5M"
+    <UDP bind_addr="match-interface:eth2,match-interface:eth0,match-interface:en0,site_local,loopback"
+         mcast_addr="${CONTROL_MCAST_ADDR:232.8.8.8}"
+         mcast_port="${CONTROL_MCAST_PORT:55588}"
+         ip_ttl="8"
          max_bundle_size="64K"
          enable_diagnostics="true"
          diagnostics_port="7501"
@@ -34,16 +29,8 @@
     <FD_SOCK/>
     <FD_ALL/>
     <VERIFY_SUSPECT timeout="1500"  />
-    <pbcast.NAKACK2 xmit_interval="500"
-                    xmit_table_num_rows="100"
-                    xmit_table_msgs_per_row="2000"
-                    xmit_table_max_compaction_time="30000"
-                    use_mcast_xmit="true"
-                    discard_delivered_msgs="true" />
-    <UNICAST3
-              xmit_table_num_rows="100"
-              xmit_table_msgs_per_row="1000"
-              xmit_table_max_compaction_time="30000"/>
+    <pbcast.NAKACK2 />
+    <UNICAST3 />
     <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="1000"/>

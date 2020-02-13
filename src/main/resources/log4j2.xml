@@ -11,6 +11,7 @@
             <appender-ref ref="STDOUT"/>
         </root>
         <logger name="org.jgroups" level="warn"/>
+        <logger name="org.infinispan" level="warn"/>
         <logger name="org.jgroups.protocols.UNICAST3" level="warn"/>
     </loggers>
 </configuration>

@@ -67,7 +67,7 @@ public class Test extends ReceiverAdapter {
     @Property
     protected int     num_keys=100000, time_secs=60, msg_size=1000;
     @Property
-    protected double  read_percentage=1.0; // 80% reads, 20% writes
+    protected double  read_percentage=0.8; // 80% reads, 20% writes
     @Property
     protected boolean print_details=true;
     @Property

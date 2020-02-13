@@ -15,7 +15,7 @@
     <property name="tmp.dir"          value="${root.dir}/tmp"/>
     <property name="conf.dir"         value="${root.dir}/conf"/>
     <property name="bin.dir"          value="${root.dir}/bin"/>
-    <property name="ivy.version"      value="2.4.0" />
+    <property name="ivy.version"      value="2.5.0" />
 
 
     <path id="jg.classpath">
@@ -53,7 +53,7 @@
 
 
     <target name="get-ivy" description="Fetches ivy from a maven repo" depends="check-ivy-exists" unless="ivy.exists">
-        <get src="http://repo2.maven.org/maven2/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"
+        <get src="https://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"
              dest="${lib.dir}" usetimestamp="true"/>
     </target>
 
