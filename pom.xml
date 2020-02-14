@@ -45,7 +45,6 @@
     </scm>
 
     <properties>
-        <version.jgroups>4.0.20.Final</version.jgroups>
         <version.infinispan>9.4.18.Final</version.infinispan>
         <version.hazelcast>3.9.3</version.hazelcast>
         <version.hdrhistogram>2.1.10</version.hdrhistogram>
@@ -143,19 +142,12 @@
 
 
     <dependencies>
-        <dependency>
-            <groupId>org.jgroups</groupId>
-            <artifactId>jgroups</artifactId>
-            <version>${version.jgroups}</version>
-        </dependency>
-
 
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-core</artifactId>
             <version>${version.infinispan}</version>
         </dependency>
-
 
         <dependency>
             <groupId>org.infinispan</groupId>

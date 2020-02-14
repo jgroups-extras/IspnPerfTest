@@ -3,18 +3,20 @@
 Configuration for a site-local cluster
 -->
 
-<config  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <TCP bind_port="7601"
-         log_discard_msgs="false"
-         bundler_type="transfer-queue"
-         message_processing_policy="submit"
-         thread_pool.max_threads="200"
+    <TCP
+            bind_addr="match-interface:eth2,match-interface:eth0,match-interface:en0,site_local,loopback"
+            bind_port="7601"
+            log_discard_msgs="false"
+            bundler_type="transfer-queue"
+            message_processing_policy="submit"
+            thread_pool.max_threads="200"
     />
     <TCPPING
-           initial_hosts="${LOCALJDGHOSTS:127.0.0.1[7601]}"
-           port_range="0"/>
+            initial_hosts="${LOCALJDGHOSTS:127.0.0.1[7601]}"
+            port_range="0"/>
     <MPING mcast_addr="${LOCAL_MCAST_ADDR:232.5.5.5}" mcast_port="${LOCAL_MCAST_PORT:7675}"/>
     <MULTI_PING async_discovery="true"/>
 
@@ -24,14 +26,14 @@ Configuration for a site-local cluster
     <FD_ALL/>
     <VERIFY_SUSPECT/>
     <pbcast.NAKACK2
-         use_mcast_xmit="false"/>
+            use_mcast_xmit="false"/>
     <UNICAST3/>
     <pbcast.STABLE/>
     <pbcast.GMS/>
     <UFC_NB/>
     <MFC_NB/>
     <FRAG3/>
-   <relay.RELAY2
+    <relay.RELAY2
             site="${SITE:nyc}"
             max_site_masters="1"
             can_become_site_master="true"
