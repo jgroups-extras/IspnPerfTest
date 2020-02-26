@@ -15,6 +15,7 @@
        max_bundle_size="64K"
        enable_diagnostics="true"
 
+       use_fibers="${use_fibers:false}"
        thread_pool.enabled="true"
        thread_pool.min_threads="0"
        thread_pool.max_threads="1000"

@@ -7,6 +7,7 @@ import org.jgroups.util.SizeStreamable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -93,7 +94,7 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
         return retval;
     }
 
-    public void writeTo(DataOutput out) throws Exception {
+    public void writeTo(DataOutput out) throws IOException {
         Bits.writeInt(size(), out);
         for(int i=0; i < pos; i++) {
             if(data[i] != null)
@@ -109,7 +110,7 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
         }
     }
 
-    public void readFrom(DataInput in) throws Exception {
+    public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
         data=new Data[Bits.readInt(in)];
         for(int i=0; i < data.length; i++) {
             data[i]=new Data().read(in);

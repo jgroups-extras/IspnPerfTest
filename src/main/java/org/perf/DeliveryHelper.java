@@ -375,10 +375,10 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             return 0;
         }
 
-        public void writeTo(DataOutput out) throws Exception {
+        public void writeTo(DataOutput out) {
         }
 
-        public void readFrom(DataInput in) throws Exception {
+        public void readFrom(DataInput in) {
         }
     }
 }

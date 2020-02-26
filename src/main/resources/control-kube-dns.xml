@@ -20,6 +20,7 @@
          diagnostics_port="7501"
          thread_naming_pattern="cl"
 
+         use_fibers="${use_fibers:false}"
          thread_pool.min_threads="0"
          thread_pool.max_threads="100"
          thread_pool.keep_alive_time="30000" />

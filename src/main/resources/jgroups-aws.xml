@@ -22,6 +22,7 @@
          buffered_input_stream_size="32000"
          buffered_output_stream_size="32000"
 
+         use_fibers="${use_fibers:false}"
          thread_pool.min_threads="0"
          thread_pool.max_threads="500"
          thread_pool.keep_alive_time="30000" />

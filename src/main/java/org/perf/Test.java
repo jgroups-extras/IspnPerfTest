@@ -18,12 +18,14 @@ import org.jgroups.util.UUID;
 import javax.management.MBeanServer;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.zip.DataFormatException;
 
 
 /**
@@ -339,11 +341,8 @@ public class Test extends ReceiverAdapter {
 
     protected Config getConfig() {
         Config config=new Config();
-        for(Field field : Util.getAllDeclaredFields(Test.class)) {
-            if(field.isAnnotationPresent(Property.class)) {
-                config.add(field.getName(), Util.getField(field, this));
-            }
-        }
+        for(Field field: Util.getAllDeclaredFieldsWithAnnotations(Test.class, Property.class))
+            config.add(field.getName(), Util.getField(field, this));
         return config;
     }
 
@@ -423,7 +422,8 @@ public class Test extends ReceiverAdapter {
                     break;
                 case 'v':
                     System.out.printf("JGroups: %s, Infinispan: %s\n",
-                                      org.jgroups.Version.printDescription(), org.infinispan.Version.printVersion());
+                                      org.jgroups.Version.printDescription(),
+                                      org.infinispan.commons.util.Version.printVersion());
                     break;
                 case 'q':
                 case 0: // remove on upgrade to next JGroups version
@@ -794,7 +794,7 @@ public class Test extends ReceiverAdapter {
             this.put_avg=put_avg;
         }
 
-        public void writeTo(DataOutput out) throws Exception {
+        public void writeTo(DataOutput out) throws IOException {
             out.writeLong(num_gets);
             out.writeLong(num_puts);
             out.writeLong(time);
@@ -802,12 +802,17 @@ public class Test extends ReceiverAdapter {
             write(put_avg, out);
         }
 
-        public void readFrom(DataInput in) throws Exception {
+        public void readFrom(DataInput in) throws IOException {
             num_gets=in.readLong();
             num_puts=in.readLong();
             time=in.readLong();
-            get_avg=read(in);
-            put_avg=read(in);
+            try {
+                get_avg=read(in);
+                put_avg=read(in);
+            }
+            catch(DataFormatException dfex) {
+                throw new IOException(dfex);
+            }
         }
 
         public String toString() {
@@ -818,7 +823,7 @@ public class Test extends ReceiverAdapter {
         }
     }
 
-    protected static void write(Histogram h, DataOutput out) throws Exception {
+    protected static void write(Histogram h, DataOutput out) throws IOException {
         int size=h.getEstimatedFootprintInBytes();
         ByteBuffer buf=ByteBuffer.allocate(size);
         h.encodeIntoCompressedByteBuffer(buf, 9);
@@ -826,7 +831,7 @@ public class Test extends ReceiverAdapter {
         out.write(buf.array(), 0, buf.position());
     }
 
-    protected static Histogram read(DataInput in) throws Exception {
+    protected static Histogram read(DataInput in) throws IOException, DataFormatException {
         int len=in.readInt();
         byte[] array=new byte[len];
         in.readFully(array);
@@ -845,7 +850,7 @@ public class Test extends ReceiverAdapter {
             return this;
         }
 
-        public void writeTo(DataOutput out) throws Exception {
+        public void writeTo(DataOutput out) throws IOException {
             out.writeInt(values.size());
             for(Map.Entry<String,Object> entry: values.entrySet()) {
                 Bits.writeString(entry.getKey(), out);
@@ -853,7 +858,7 @@ public class Test extends ReceiverAdapter {
             }
         }
 
-        public void readFrom(DataInput in) throws Exception {
+        public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
             int size=in.readInt();
             for(int i=0; i < size; i++) {
                 String key=Bits.readString(in);
