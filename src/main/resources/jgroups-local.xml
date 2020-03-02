@@ -11,7 +11,6 @@ Configuration for a site-local cluster
             bind_port="7601"
             log_discard_msgs="false"
             bundler_type="transfer-queue"
-            message_processing_policy="submit"
             use_fibers="${use_fibers:false}"
             thread_pool.max_threads="200"
     />
