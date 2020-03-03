@@ -30,8 +30,8 @@ Configuration for a site-local cluster
     <UNICAST3/>
     <pbcast.STABLE/>
     <pbcast.GMS/>
-    <UFC_NB/>
-    <MFC_NB/>
+    <UFC/>
+    <MFC/>
     <FRAG3/>
     <relay.RELAY2
             site="${SITE:nyc}"
