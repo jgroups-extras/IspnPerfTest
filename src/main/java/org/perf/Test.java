@@ -850,7 +850,7 @@ public class Test extends ReceiverAdapter {
             return this;
         }
 
-        public void writeTo(DataOutput out) throws Exception {
+        public void writeTo(DataOutput out) throws IOException {
             out.writeInt(values.size());
             for(Map.Entry<String,Object> entry: values.entrySet()) {
                 Bits.writeString(entry.getKey(), out);
@@ -858,7 +858,7 @@ public class Test extends ReceiverAdapter {
             }
         }
 
-        public void readFrom(DataInput in) throws Exception {
+        public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
             int size=in.readInt();
             for(int i=0; i < size; i++) {
                 String key=Bits.readString(in);
