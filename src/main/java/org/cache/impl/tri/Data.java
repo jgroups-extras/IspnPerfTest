@@ -8,7 +8,6 @@ import org.jgroups.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.IOException;
 import java.util.function.Consumer;
 
 import static org.cache.impl.tri.Data.Type.BACKUP;
@@ -70,7 +69,7 @@ public class Data<K,V> implements SizeStreamable, Runnable {
         return retval+2; // to be on the safe side
     }
 
-    public void writeTo(DataOutput out) throws IOException {
+    public void writeTo(DataOutput out) throws Exception {
         out.writeByte(type.ordinal());
         switch(type) {
             case PUT:    // req_id | key | value
@@ -97,12 +96,12 @@ public class Data<K,V> implements SizeStreamable, Runnable {
         }
     }
 
-    public Data read(DataInput in) throws IOException, ClassNotFoundException {
+    public Data read(DataInput in) throws Exception {
         readFrom(in);
         return this;
     }
 
-    public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
+    public void readFrom(DataInput in) throws Exception {
         type=Data.Type.get(in.readByte());
         switch(type) {
             case PUT:    // req_id | key | value

@@ -15,10 +15,9 @@
        max_bundle_size="64K"
        enable_diagnostics="true"
 
-       use_fibers="${use_fibers:false}"
        thread_pool.enabled="true"
        thread_pool.min_threads="0"
-       thread_pool.max_threads="1000"
+       thread_pool.max_threads="200"
        thread_pool.keep_alive_time="30000" />
 
   <TCPPING
@@ -29,14 +28,14 @@
   <MERGE3 max_interval="30000"
           min_interval="10000"/>
   <FD_SOCK/>
-  <FD_ALL/>
+  <FD_ALL2 msg_counts_as_heartbeat="true"/>
   <VERIFY_SUSPECT timeout="1500"  />
   <pbcast.NAKACK2 xmit_interval="500"/>
   <UNICAST3 />
   <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
                  max_bytes="8m"/>
   <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
-  <UFC max_credits="2M"
+  <UFC max_credits="20M"
        min_threshold="0.4"/>
   <MFC max_credits="2M"
        min_threshold="0.4"/>

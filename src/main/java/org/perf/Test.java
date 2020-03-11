@@ -423,7 +423,7 @@ public class Test extends ReceiverAdapter {
                 case 'v':
                     System.out.printf("JGroups: %s, Infinispan: %s\n",
                                       org.jgroups.Version.printDescription(),
-                                      org.infinispan.commons.util.Version.printVersion());
+                                      org.infinispan.Version.printVersion());
                     break;
                 case 'q':
                 case 0: // remove on upgrade to next JGroups version
@@ -850,7 +850,7 @@ public class Test extends ReceiverAdapter {
             return this;
         }
 
-        public void writeTo(DataOutput out) throws IOException {
+        public void writeTo(DataOutput out) throws Exception {
             out.writeInt(values.size());
             for(Map.Entry<String,Object> entry: values.entrySet()) {
                 Bits.writeString(entry.getKey(), out);
@@ -858,7 +858,7 @@ public class Test extends ReceiverAdapter {
             }
         }
 
-        public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
+        public void readFrom(DataInput in) throws Exception {
             int size=in.readInt();
             for(int i=0; i < size; i++) {
                 String key=Bits.readString(in);

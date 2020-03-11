@@ -18,7 +18,6 @@
          enable_diagnostics="true"
          diagnostics_port="7501"
 
-         use_fibers="${use_fibers:false}"
          thread_pool.enabled="true"
          thread_pool.min_threads="0"
          thread_pool.max_threads="100"

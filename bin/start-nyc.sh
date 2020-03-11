@@ -19,7 +19,8 @@ GLOBALJDGHOSTS="127.0.0.1[7800]"
 # Tell Infinispan to back up to site sfc
 BACKUP=sfc
 
-java -DSITE=${SITE} \
+java -Xmx2G -Xms500m -Djgroups.use.jdk_logger=true \
+     -DSITE=${SITE} \
      -DCONTROL_MCAST_PORT=${CONTROL_MCAST_PORT} \
      -DLOCAL_MCAST_PORT=${LOCAL_MCAST_PORT} \
      -DLOCALJDGHOSTS=${LOCALJDGHOSTS} \
