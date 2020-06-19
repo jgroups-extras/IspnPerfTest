@@ -2,8 +2,8 @@
 
 <infinispan
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="urn:infinispan:config:9.4 http://www.infinispan.org/schemas/infinispan-config-9.4.xsd"
-        xmlns="urn:infinispan:config:9.4">
+        xsi:schemaLocation="urn:infinispan:config:11.0  http://www.infinispan.org/schemas/infinispan-config-11.0.xsd"
+        xmlns="urn:infinispan:config:11.0">
 
 
     <jgroups>
@@ -23,8 +23,6 @@
         <jmx>
             <property name="enabled">true</property>
         </jmx>
-        <!--distributed-cache name="perf-cache" mode="SYNC" remote-timeout="60000" statistics="true" l1-lifespan="-1" owners="2" segments="512"
-                           consistent-hash-factory="org.infinispan.ch.SimpleConsistentHashFactory" key-partitioner="org.infinispan.ch.SimpleKeyPartitioner"-->
         <distributed-cache name="perf-cache" mode="SYNC" remote-timeout="60000" statistics="true" l1-lifespan="-1" owners="2" segments="512" >
             <locking acquire-timeout="3000" concurrency-level="1000" />
             <store-as-binary keys="false" values="true"/>
