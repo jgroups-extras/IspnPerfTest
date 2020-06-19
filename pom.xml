@@ -45,13 +45,13 @@
     </scm>
 
     <properties>
-        <version.jgroups>4.2.0.Final</version.jgroups>
-        <version.infinispan>11.0.0.Alpha1</version.infinispan>
+        <!--version.jgroups>4.2.0.Final</version.jgroups-->
+        <version.infinispan>11.0.0.Final</version.infinispan>
         <version.hazelcast>3.9.3</version.hazelcast>
         <version.hdrhistogram>2.1.10</version.hdrhistogram>
 
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- nexus-staging-maven-plugin -->
@@ -143,12 +143,6 @@
 
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.jgroups</groupId>
-            <artifactId>jgroups</artifactId>
-            <version>${version.jgroups}</version>
-        </dependency>
 
         <dependency>
             <groupId>org.infinispan</groupId>

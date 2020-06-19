@@ -28,10 +28,10 @@
   <MERGE3 max_interval="30000"
           min_interval="10000"/>
   <FD_SOCK/>
-  <FD_ALL2 msg_counts_as_heartbeat="true"/>
+  <FD_ALL3 />
   <VERIFY_SUSPECT timeout="1500"  />
   <pbcast.NAKACK2 xmit_interval="500"/>
-  <UNICAST3 />
+  <UNICAST3 ack_threshold="100"/>
   <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
                  max_bytes="8m"/>
   <pbcast.GMS print_local_addr="true" join_timeout="1000"/>

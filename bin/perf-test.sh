@@ -4,7 +4,18 @@
 # Author: Bela Ban
 
 DIR=`dirname $0`
-POM="$DIR/../pom.xml"
+TARGET_DIR=$DIR/../target
+DEP=$TARGET_DIR/dependency
+
+if [ ! -d $TARGET_DIR ]; then
+   echo "$TARGET_DIR not found; run build.sh first!"
+   exit 1
+fi
+
+if [ ! -d $DEP ]; then
+  echo "$DEP not found; run build.sh first!"
+  exit 1
+fi
 
 if [ -f $HOME/log4j.properties ]; then
     LOG="-Dlog4j.configuration=file:$HOME/log4j.properties"
@@ -17,6 +28,8 @@ fi;
 if [ -f $HOME/logging.properties ]; then
     LOG="$LOG -Djava.util.logging.config.file=$HOME/logging.properties"
 fi;
+
+CP="$TARGET_DIR/classes:$DEP/*"
 
 
 ### Note: change max heap to 2G on cluster01-08 (physical mem: 4G) !
@@ -33,9 +46,6 @@ FLAGS="$FLAGS -Dinfinispan.stagger.delay=5000"
 
 #FLAGS="$FLAGS -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Xloggc:gc-perf09.log -XX:+PrintTenuringDistribution -XX:+PrintGCApplicationStoppedTime -XX:+PrintGCCause"
 
-
-## If uncommented and used in prod, license fees may incur
-## JMC="-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
 
 ## good flags: 112'000 reads/node ispn on edg-perf01-08
 # FLAGS="$FLAGS -XX:TLABSize=300k -XX:-ResizeTLAB"
@@ -71,4 +81,7 @@ export proc_id=$$
 
 #exec java $TRACE $CONFIG -classpath $CP -Dproc_id=${proc_id} $DEBUG $LOG $FLAGS $JMX $JMC $BM org.perf.Test $*
 
-exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
+# exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
+
+java -cp $CP $FLAGS $DEBUG org.perf.Test $*
+
