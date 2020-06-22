@@ -1,77 +1,106 @@
 package org.cache.impl;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.configuration.Configuration;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
-
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.util.Properties;
+import org.infinispan.commons.configuration.BasicConfiguration;
+import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
+import org.infinispan.configuration.parsing.ParserRegistry;
 
 /**
- * CacheFactory which uses a remote Infinispan server via Hotrod
+ * CacheFactory which uses a remote Infinispan server via Hot Rod client.
+ * <p>
+ * Available java properties:
+ * <p>
+ * hotrod.properties.file => path to Hot Rod client configuration
+ *
  * @author Bela Ban
  * @since x.y
  */
-@SuppressWarnings("unused")
-// @Listener
-public class HotrodCacheFactory<K,V> implements CacheFactory<K,V> {
-    protected RemoteCacheManager  remoteCacheManager;
-    protected static final String HR_PROPRS="hotrod-factory.properties";
-    protected static final String trustStoreFile="trustStoreFile";
-    protected static final String trustStorePassword="trustStorePassword";
-    protected static final String keystoreFile="keystoreFile";
-    protected static final String keystorePassword="keystorePassword";
+public class HotrodCacheFactory<K, V> implements CacheFactory<K, V> {
 
-    /** Empty constructor needed for an instance to be created via reflection */
+    private static final String HR_PROPERTIES = "hotrod.properties.file";
+    private static final String DEFAULT_HR_PROPERTIES = "hotrod-factory.properties";
+    private RemoteCacheManager remoteCacheManager;
+    private ConfigurationBuilderHolder configurationBuilderHolder;
+
+    /**
+     * Empty constructor needed for an instance to be created via reflection
+     */
     public HotrodCacheFactory() {
+    }
+
+    private static ConfigurationBuilderHolder parseConfiguration(String cacheConfig) throws IOException {
+        System.out.println("[Hot Rod] using cache configuration: " + cacheConfig);
+        ParserRegistry parserRegistry = new ParserRegistry();
+        return openInputStream(cacheConfig, is -> parserRegistry.parse(is, null));
+    }
+
+    private static Configuration parseProperties() throws IOException {
+        String hotRodProperties = System.getProperty(HR_PROPERTIES, DEFAULT_HR_PROPERTIES);
+        System.out.println("[Hot Rod] using properties: " + hotRodProperties);
+        Properties props = new Properties();
+
+        openInputStream(hotRodProperties, is -> {
+            props.load(is);
+            return null;
+        });
+
+        return new ConfigurationBuilder().withProperties(props).build();
+    }
+
+    private static <T> T openInputStream(String filenameOrPath, InputStreamFunction<T> f) throws IOException {
+        File file = new File(filenameOrPath);
+        if (file.exists()) {
+            try (FileInputStream is = new FileInputStream(file)) {
+                return f.apply(is);
+            }
+        } else {
+            try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(filenameOrPath)) {
+                if (is == null) {
+                    throw new FileNotFoundException(filenameOrPath);
+                }
+                return f.apply(is);
+            }
+        }
     }
 
     /**
      * Initializes the remote cache manager
-     * @param config The properties file for setting up the Hotrod client (default: hotrod-client.properties)
-     * @throws Exception
+     *
+     * @param cacheConfig The cache configuration.
+     * @throws Exception If unable to initialize the Hot Rod cache manager.
      */
-    public void init(String config) throws Exception {
-        Properties props=new Properties();
-        ClassLoader cl=getClass().getClassLoader();
-        if(config == null)
-            config=HR_PROPRS;
-
-        InputStream in=null;
-        try {
-            in=cl.getResourceAsStream(config);
-            if(in == null)
-                throw new FileNotFoundException(config);
-            props.load(in);
-            org.infinispan.client.hotrod.configuration.ConfigurationBuilder cb=new ConfigurationBuilder()
-              .withProperties(props);
-            remoteCacheManager=new RemoteCacheManager(cb.build());
-        }
-        finally {
-            if(in != null)
-                in.close();
-        }
+    public void init(String cacheConfig) throws Exception {
+        Configuration config = parseProperties();
+        this.remoteCacheManager = new RemoteCacheManager(config);
+        this.configurationBuilderHolder = parseConfiguration(cacheConfig);
     }
 
     public void destroy() {
-    }
-
-    public Cache<K,V> create(String cache_name) {
-        RemoteCache<K,V> cache=remoteCacheManager.getCache(cache_name);
-        return new HotrodCache(cache);
-    }
-
-    /*@ViewChanged
-    public static void viewChanged(ViewChangedEvent evt) {
-        Transport transport=evt.getCacheManager().getTransport();
-        if(transport instanceof JGroupsTransport) {
-            View view=((JGroupsTransport)transport).getChannel().getView();
-            System.out.println("** view: " + view);
+        RemoteCacheManager cacheManager = this.remoteCacheManager;
+        if (cacheManager != null) {
+            cacheManager.stop();
         }
-        else
-            System.out.println("** view: " + evt);
-    }*/
+    }
+
+    public Cache<K, V> create(String cache_name) {
+        BasicConfiguration config = configurationBuilderHolder.getNamedConfigurationBuilders().get(cache_name).build();
+        RemoteCache<K, V> cache = remoteCacheManager.administration().getOrCreateCache(cache_name, config);
+        return new HotrodCache<>(cache);
+    }
+
+    interface InputStreamFunction<T> {
+        T apply(InputStream is) throws IOException;
+    }
 }
