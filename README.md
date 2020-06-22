@@ -43,6 +43,43 @@ Infinispan test
 * conf/dist-synx.xml refers to jgroups_tcp.xml (also in conf) which configures the JGroups subsystem to run over TCP.
   If UDP should be picked, change this to point to jgroups-udp.xml instead.
   
+Hot Rod test
+------------
+
+* Requirements
+
+Start the Infinispan server.
+The easiest way would be to use docker:
+
+`docker run -p 11222:11222 -e USER=my_user -e PASS=my_pass infinispan/server`
+
+Note: adjust the ports as needed.
+
+* Configure the Hot Rod client
+
+Configure the client via `-Dhotrod.properties.file=/path/to/hotrod.properties`.
+
+The minimal configuration includes the server list and the username/password.
+
+```bash
+infinispan.client.hotrod.server_list = 127.0.0.1:11222
+infinispan.client.hotrod.auth_username = my_user
+infinispan.client.hotrod.auth_password = my_pass
+```
+
+* Configure the cache
+
+The same configuration file can be used as in `Infinispan test` (by default, `dist-sync.xml`).
+
+You can override the configuration using `-cfg path/to/ispn.xml`. 
+
+* Running the test
+
+Putting everything together:
+
+`FLAGS="-Dhotrod.properties.file=/path/to/hotrod.properties" ./bin/perf-test.sh -factory hr -cfg /path/to/ispn.xml`
+
+  
 Hazelcast test
 --------------
 * Run bin/hc-perf-test.sh to test Hazelcast
