@@ -8,7 +8,7 @@ RUN git clone https://github.com/belaban/IspnPerfTest.git
 RUN cd IspnPerfTest ; mvn -DskipTests=true package dependency:copy-dependencies
 
 # For the runtime, we only need a JRE (smaller footprint)
-FROM adoptopenjdk/openjdk11:jre
+FROM adoptopenjdk/openjdk11:jre as setup-stage
 LABEL maintainer="Bela Ban (belaban@mailbox.org)"
 RUN useradd --uid 1000 --home /opt/ispn --create-home --shell /bin/bash ispn
 RUN echo root:root | chpasswd ; echo ispn:ispn | chpasswd

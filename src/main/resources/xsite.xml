@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<infinispan
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:infinispan:config:11.0  http://www.infinispan.org/schemas/infinispan-config-11.0.xsd"
+        xmlns="urn:infinispan:config:11.0">
+
+
+    <jgroups>
+
+        <!-- Bridge cluster for traffic between sites (joined by site masters only) -->
+        <stack name="global" extends="tcp">
+            <TCP enable_diagnostics="true" bind_port="${global.bind_port:7900}"/>
+            <TCPPING xmlns="urn:org:jgroups" port_range="0" initial_hosts="${tcpping.initial_hosts:localhost[7900]}"
+                     return_entire_cache="true" stack.combine="REPLACE" stack.position="MPING"/>
+        </stack>
+
+        <!-- Local cluster for intra-site traffic; with a RELAY2  to connect to other sites via the bridge cluster (see above) -->
+        <stack name="local" extends="kubernetes">
+            <TCP enable_diagnostics="true" bind_port="${local.bind_port:7800}" port_range="1"/>
+
+            <relay.RELAY2 site="${site:LON}" xmlns="urn:org:jgroups" max_site_masters="1" stack.combine="INSERT_AFTER" stack.position="FRAG3"/>
+            <remote-sites default-stack="global">
+                <remote-site name="LON"/>
+                <remote-site name="NYC"/>
+            </remote-sites>
+
+        </stack>
+
+
+
+
+    </jgroups>
+
+    <cache-container name="default" default-cache="perf-cache">
+        <transport stack="local" lock-timeout="600000" cluster="local" />
+        <jmx enabled="true"/>
+        <distributed-cache name="perf-cache" remote-timeout="60000" statistics="true" l1-lifespan="-1" segments="512" >
+            <locking acquire-timeout="3000" concurrency-level="1000" />
+            <state-transfer timeout="60000" />
+        </distributed-cache>
+    </cache-container>
+
+</infinispan>
