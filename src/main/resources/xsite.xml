@@ -18,8 +18,10 @@
         <!-- Local cluster for intra-site traffic; with a RELAY2  to connect to other sites via the bridge cluster (see above) -->
         <stack name="local" extends="kubernetes">
             <TCP enable_diagnostics="true" bind_port="${local.bind_port:7800}" port_range="1"/>
-            <dns.DNS_PING return_entire_cache="true" dns_query="${jgroups.dns.query:xsite}"/>
-            <relay.RELAY2 site="${site:LON}" xmlns="urn:org:jgroups" max_site_masters="1" stack.combine="INSERT_AFTER" stack.position="FRAG3"/>
+            <!--dns.DNS_PING return_entire_cache="true" dns_query="${jgroups.dns.query:xsite}"/-->
+            <relay.RELAY2 site="${site:LON}" xmlns="urn:org:jgroups"
+                          max_site_masters="1" relay_multicasts="${env.relay_multicasts:false}"
+                          stack.combine="INSERT_AFTER" stack.position="FRAG3"/>
             <remote-sites default-stack="global">
                 <remote-site name="LON"/>
                 <remote-site name="NYC"/>
