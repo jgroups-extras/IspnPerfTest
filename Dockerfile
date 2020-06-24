@@ -22,6 +22,8 @@ COPY --from=build-stage /IspnPerfTest /opt/ispn/IspnPerfTest
 COPY --from=build-stage /bin/ping /bin/netstat /bin/nc /bin/
 COPY --from=build-stage /sbin/ifconfig /sbin/
 COPY --from=build-stage /usr/bin/dig /usr/bin/nslookup /usr/bin/
+COPY --from=build-stage /lib/libpcap* /lib/
+COPY --from=build-stage /usr/lib/x86_64-linux-gnu/libdns.* /usr/lib/x86_64-linux-gnu/
 
 RUN chown -R ispn.ispn $HOME/*
 
