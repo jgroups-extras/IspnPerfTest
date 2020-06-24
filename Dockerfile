@@ -1,7 +1,7 @@
 
 ## The first stage is used to git-clone and build JGroups; this requires a JDK/javac/git/ant
 FROM adoptopenjdk/openjdk11 as build-stage
-RUN apt-get update ; apt-get install -y git maven net-tools netcat iputils-ping
+RUN apt-get update ; apt-get install -y git maven net-tools netcat iputils-ping dnsutils
 
 ## Download and build JGroups src code
 RUN git clone https://github.com/belaban/IspnPerfTest.git
@@ -21,6 +21,7 @@ WORKDIR /opt/ispn
 COPY --from=build-stage /IspnPerfTest /opt/ispn/IspnPerfTest
 COPY --from=build-stage /bin/ping /bin/netstat /bin/nc /bin/
 COPY --from=build-stage /sbin/ifconfig /sbin/
+COPY --from=build-stage /usr/bin/dig /usr/bin/nslookup /usr/bin/
 
 RUN chown -R ispn.ispn $HOME/*
 
