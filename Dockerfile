@@ -1,8 +1,9 @@
 
 ## The first stage is used to git-clone and build JGroups; this requires a JDK/javac/git/ant
-FROM adoptopenjdk/openjdk11 as build-stage
+FROM adoptopenjdk/openjdk11 as build1
 RUN apt-get update ; apt-get install -y git maven net-tools netcat iputils-ping dnsutils
 
+FROM build1 as build2
 ## Download and build JGroups src code
 RUN git clone https://github.com/belaban/IspnPerfTest.git
 RUN cd IspnPerfTest ; mvn -DskipTests=true package dependency:copy-dependencies
@@ -18,12 +19,12 @@ ENV HOME /opt/ispn
 ENV PATH $PATH:$HOME/IspnPerfTest/bin
 WORKDIR /opt/ispn
 
-COPY --from=build-stage /IspnPerfTest /opt/ispn/IspnPerfTest
-COPY --from=build-stage /bin/ping /bin/netstat /bin/nc /bin/
-COPY --from=build-stage /sbin/ifconfig /sbin/
-COPY --from=build-stage /usr/bin/dig /usr/bin/nslookup /usr/bin/
-COPY --from=build-stage /lib/libpcap* /lib/
-COPY --from=build-stage /usr/lib/x86_64-linux-gnu/libdns.* /usr/lib/x86_64-linux-gnu/
+COPY --from=build2 /IspnPerfTest /opt/ispn/IspnPerfTest
+COPY --from=build2 /bin/ping /bin/netstat /bin/nc /bin/
+COPY --from=build2 /sbin/ifconfig /sbin/
+COPY --from=build2 /usr/bin/dig /usr/bin/nslookup /usr/bin/
+COPY --from=build2 /lib/libpcap* /lib/
+COPY --from=build2 /usr/lib/x86_64-linux-gnu/libdns.* /usr/lib/x86_64-linux-gnu/
 
 RUN chown -R ispn.ispn $HOME/*
 
