@@ -23,8 +23,8 @@ COPY --from=build2 /IspnPerfTest /opt/ispn/IspnPerfTest
 COPY --from=build2 /bin/ping /bin/netstat /bin/nc /bin/
 COPY --from=build2 /sbin/ifconfig /sbin/
 COPY --from=build2 /usr/bin/dig /usr/bin/nslookup /usr/bin/
-COPY --from=build2 /lib/libpcap* /lib/
-COPY --from=build2 /usr/lib/x86_64-linux-gnu/libdns.* /usr/lib/x86_64-linux-gnu/
+COPY --from=build2 /lib/x86_64-linux-gnu/lib* /lib/x86_64-linux-gnu/
+COPY --from=build2 /usr/lib/x86_64-linux-gnu/lib* /usr/lib/x86_64-linux-gnu/
 
 RUN chown -R ispn.ispn $HOME/*
 
