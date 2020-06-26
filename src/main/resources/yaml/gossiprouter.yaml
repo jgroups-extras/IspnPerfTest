@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gossiprouter
+  labels:
+    run: gossiprouter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: gossiprouter
+  template:
+    metadata:
+      labels:
+        run: gossiprouter
+    spec:
+      containers:
+      - image: belaban/gossiprouter
+        name: gossiprouter
+## Uncomment below to customize the startup of GossipRouter
+#        command: ["java",
+#                  "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=localhost:8787",
+#                  "-cp", "/app/resources:/app/classes:/app/libs/*",
+#                  "org.jgroups.stack.GossipRouter",
+#                  "-bind_addr", "0.0.0.0"]
+        ports:
+          - containerPort: 8787
+          - containerPort: 9000
+          - containerPort: 12001
+        env:
+          - name: LogLevel
+            value: "TRACE"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gossiprouter
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+#    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  ports:
+    - port: 8787
+      targetPort: 8787
+      name: debug
+      protocol: TCP
+    - port: 9000
+      targetPort: 9000
+      name: netcat
+      protocol: TCP
+    - port: 12001
+      targetPort: 12001
+      name: gossiprouter
+      protocol: TCP
+  selector:
+    run: gossiprouter

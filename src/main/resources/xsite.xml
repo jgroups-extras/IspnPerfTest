@@ -41,6 +41,9 @@
         <distributed-cache name="perf-cache" remote-timeout="60000" statistics="true" l1-lifespan="-1" segments="512" >
             <locking acquire-timeout="3000" concurrency-level="1000" />
             <state-transfer timeout="60000" />
+            <backups>
+                <backup site="${env.backup.site:NYC}"/>
+            </backups>
         </distributed-cache>
     </cache-container>
 

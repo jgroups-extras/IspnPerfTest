@@ -1,0 +1,66 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+    labels:
+      run: lon
+    name: lon
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        run: lon
+    template:
+      metadata:
+        labels:
+          run: lon
+          deploymentConfig: lon
+      spec:
+        containers:
+        - image: belaban/ispn_perf_test
+          imagePullPolicy: Always
+          name: lon
+          command: ["perf-test.sh"]
+          args: ["-cfg xsite.xml -nohup"]
+          env:
+            - name: site
+              value: "LON"
+            - name: backup.site
+              value: "NYC"
+            - name: local.bind_port
+              value: "7800"
+            - name: global.bind_port
+              value: "7900"
+            - name: jgroups.dns_query
+              value: "LON"
+            - name: jgroups.tunnel.port_range
+              value: "0"
+            - name: jgroups.tunnel.gossip_router_hosts
+              value: "35.228.95.210[12001],35.232.85.117[12001]"
+kind: List
+metadata: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: lon
+  labels:
+    run: lon
+spec:
+  publishNotReadyAddresses: true
+  clusterIP: None
+  ports:
+    - name: lon
+      port: 7800
+      protocol: TCP
+      targetPort: 7800
+  selector:
+    run: lon
+
+
+
+
