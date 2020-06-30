@@ -84,7 +84,7 @@ public class Test extends ReceiverAdapter {
 
     protected static final String infinispan_factory=InfinispanCacheFactory.class.getName();
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
-    protected static final String coherence_factory="org.cache.impl.coh.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
+    protected static final String coherence_factory="org.cache.impl.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String tri_factory=TriCacheFactory.class.getName();
     protected static final String hr_factory=HotrodCacheFactory.class.getName();
     protected static final String dummy_factory=DummyCacheFactory.class.getName();

@@ -218,6 +218,12 @@
             <version>12.1.2</version>
         </dependency>-->
 
+        <dependency>
+            <groupId>com.oracle.coherence.ce</groupId>
+            <artifactId>coherence</artifactId>
+            <version>20.06</version>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -1,9 +1,7 @@
-package org.cache.impl.coh;
+package org.cache.impl;
 
-import com.tangosol.net.NamedCache;
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.cache.impl.coh.CoherenceCache;
 import org.infinispan.notifications.Listener;
 
 /**
@@ -28,7 +26,7 @@ public class CoherenceCacheFactory<K,V> implements CacheFactory<K,V> {
     }
 
     public Cache<K,V> create(String cache_name) {
-        return new CoherenceCache<>((NamedCache<K,V>)com.tangosol.net.CacheFactory.getCache(cache_name));
+        return new CoherenceCache<>(com.tangosol.net.CacheFactory.getCache(cache_name));
     }
 
 
