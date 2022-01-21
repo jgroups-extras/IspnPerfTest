@@ -47,7 +47,7 @@
     <properties>
         <!--version.jgroups>4.2.0.Final</version.jgroups-->
         <version.infinispan>11.0.0.Final</version.infinispan>
-        <version.hazelcast>3.9.3</version.hazelcast>
+        <version.hazelcast>4.0.5</version.hazelcast>
         <version.hdrhistogram>2.1.10</version.hdrhistogram>
 
         <maven.compiler.source>11</maven.compiler.source>
