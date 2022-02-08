@@ -1,24 +1,23 @@
 package org.perf;
 
+import java.io.FileNotFoundException;
+import java.util.Set;
+import java.util.stream.IntStream;
+
+import org.jgroups.util.Util;
+
 import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
-import com.hazelcast.core.PartitionService;
+import com.hazelcast.map.IMap;
 import com.hazelcast.map.impl.MapService;
 import com.hazelcast.map.impl.MapServiceContext;
 import com.hazelcast.map.impl.PartitionContainer;
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import com.hazelcast.map.impl.record.Record;
 import com.hazelcast.map.impl.recordstore.RecordStore;
-import com.hazelcast.nio.serialization.Data;
-import com.hazelcast.spi.NodeEngine;
-import org.jgroups.util.Util;
-
-import java.io.FileNotFoundException;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.stream.IntStream;
+import com.hazelcast.partition.PartitionService;
+import com.hazelcast.spi.impl.NodeEngine;
 
 /**
  * @author Bela Ban
@@ -26,7 +25,7 @@ import java.util.stream.IntStream;
  */
 public class HcTest2 {
     protected HazelcastInstance     hc;
-    protected PartitionService      ps;
+    protected PartitionService ps;
     protected IMap<Integer,Integer> map;
 
     protected void start(String config) throws FileNotFoundException {
@@ -74,14 +73,9 @@ public class HcTest2 {
         for(int i: key_set) {
             int id=ps.getPartition(i).getPartitionId();
             PartitionContainer partitionContainer = ctx.getPartitionContainer(id);
-            RecordStore store=partitionContainer.getRecordStore("perf");
+            RecordStore<Record<byte[]>> store=partitionContainer.getRecordStore("perf");
 
-            for(Iterator<Record> it=store.iterator(); it.hasNext();) {
-                Record rec=it.next();
-                Data key=rec.getKey();
-                Object value=store.get(key, false);
-                System.out.printf("key: %s, value: %s\n", toObj(key, ctx), toObj(value, ctx));
-            }
+            store.forEach((data, record) -> System.out.printf("key: %s, value: %s\n", toObj(data, ctx), toObj(record.getValue(), ctx)), false);
         }
     }
 

@@ -43,7 +43,7 @@ public class HotrodCacheFactory<K, V> implements CacheFactory<K, V> {
     private static ConfigurationBuilderHolder parseConfiguration(String cacheConfig) throws IOException {
         System.out.println("[Hot Rod] using cache configuration: " + cacheConfig);
         ParserRegistry parserRegistry = new ParserRegistry();
-        return openInputStream(cacheConfig, is -> parserRegistry.parse(is, null));
+        return openInputStream(cacheConfig, is -> parserRegistry.parse(is, null, null));
     }
 
     private static Configuration parseProperties() throws IOException {
