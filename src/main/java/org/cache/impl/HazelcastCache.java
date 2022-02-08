@@ -1,14 +1,15 @@
 package org.cache.impl;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
-import com.hazelcast.core.PartitionService;
+import com.hazelcast.map.IMap;
 import com.hazelcast.map.impl.MapService;
 import com.hazelcast.map.impl.MapServiceContext;
 import com.hazelcast.map.impl.PartitionContainer;
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import com.hazelcast.map.impl.recordstore.RecordStore;
-import com.hazelcast.spi.NodeEngine;
+import com.hazelcast.partition.PartitionService;
+import com.hazelcast.spi.impl.NodeEngine;
+
 import org.cache.Cache;
 
 import java.util.HashMap;
@@ -21,7 +22,7 @@ import java.util.Set;
  */
 public class HazelcastCache<K,V> implements Cache<K,V> {
     protected final HazelcastInstance hc;
-    protected final IMap<K,V>         cache;
+    protected final IMap<K,V> cache;
     protected final String            cache_name;
 
 
@@ -74,7 +75,7 @@ public class HazelcastCache<K,V> implements Cache<K,V> {
             int id=ps.getPartition(k).getPartitionId();
             PartitionContainer partitionContainer = ctx.getPartitionContainer(id);
             RecordStore store=partitionContainer.getRecordStore(this.cache_name);
-            Object val=store.get(ctx.toData(k), false);
+            Object val=store.get(ctx.toData(k), false, hc.getCluster().getLocalMember().getAddress());
             if(val != null)
                 map.put(k, (V)toObj(val, ctx));
         }
