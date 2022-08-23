@@ -75,21 +75,21 @@ public class Data<K,V> implements SizeStreamable, Runnable {
         switch(type) {
             case PUT:    // req_id | key | value
             case BACKUP: // + original_sender
-                Bits.writeLong(req_id, out);
+                Bits.writeLongCompressed(req_id, out);
                 Util.objectToStream(key, out);
                 Util.objectToStream(value, out);
                 if(type == BACKUP)
                     Util.writeAddress(sender, out);
                 break;
             case GET: // req_id | key
-                Bits.writeLong(req_id, out);
+                Bits.writeLongCompressed(req_id, out);
                 Util.objectToStream(key, out);
                 break;
             case CLEAR:
                 break;
             case ACK:    // req_id | value
             case ACK_DELAYED:
-                Bits.writeLong(req_id, out);
+                Bits.writeLongCompressed(req_id, out);
                 Util.objectToStream(value, out);
                 break;
             default:
@@ -97,7 +97,7 @@ public class Data<K,V> implements SizeStreamable, Runnable {
         }
     }
 
-    public Data read(DataInput in) throws IOException, ClassNotFoundException {
+    public Data<K,V> read(DataInput in) throws IOException, ClassNotFoundException {
         readFrom(in);
         return this;
     }
@@ -107,21 +107,21 @@ public class Data<K,V> implements SizeStreamable, Runnable {
         switch(type) {
             case PUT:    // req_id | key | value
             case BACKUP: // + original_sender
-                req_id=Bits.readLong(in);
+                req_id=Bits.readLongCompressed(in);
                 key=Util.objectFromStream(in);
                 value=Util.objectFromStream(in);
                 if(type == BACKUP)
                     sender=Util.readAddress(in);
                 break;
             case GET: // req_id | key
-                req_id=Bits.readLong(in);
+                req_id=Bits.readLongCompressed(in);
                 key=Util.objectFromStream(in);
                 break;
             case CLEAR:
                 break;
             case ACK:    // req_id | [value] (if used as GET response)
             case ACK_DELAYED:
-                req_id=Bits.readLong(in);
+                req_id=Bits.readLongCompressed(in);
                 value=Util.objectFromStream(in);
                 break;
             default:
@@ -134,6 +134,8 @@ public class Data<K,V> implements SizeStreamable, Runnable {
     public String toString() {
         switch(type) {
             case PUT:
+            case ACK:
+            case ACK_DELAYED:
                 return String.format("%s req-id=%d", type, req_id);
             case GET:
                 return String.format("%s key=%s req-id=%d", type, key, req_id);
@@ -141,10 +143,6 @@ public class Data<K,V> implements SizeStreamable, Runnable {
                 return type.toString();
             case BACKUP:
                 return String.format("%s req-id=%d caller=%s", type, req_id, sender);
-            case ACK:
-                return String.format("%s req-id=%d", type, req_id);
-            case ACK_DELAYED:
-                return String.format("%s req-id=%d", type, req_id);
             default:
                 return "n/a";
         }
@@ -152,7 +150,7 @@ public class Data<K,V> implements SizeStreamable, Runnable {
 
     public enum Type {
         PUT, GET, ACK, ACK_DELAYED, BACKUP, CLEAR;
-        protected static Type[] values=Type.values();
+        private static final Type[] values=Type.values();
         public static Type get(int ordinal) {return values[ordinal];}
     }
 }

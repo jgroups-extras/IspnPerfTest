@@ -1,7 +1,16 @@
 package org.perf;
 
-import static org.jgroups.util.Util.printTime;
-import static org.perf.PerfUtil.Config;
+import org.jgroups.*;
+import org.jgroups.annotations.Property;
+import org.jgroups.blocks.MethodCall;
+import org.jgroups.blocks.RequestOptions;
+import org.jgroups.blocks.ResponseMode;
+import org.jgroups.blocks.RpcDispatcher;
+import org.jgroups.blocks.atomic.SyncCounter;
+import org.jgroups.conf.ClassConfigurator;
+import org.jgroups.protocols.TP;
+import org.jgroups.raft.blocks.CounterService;
+import org.jgroups.util.*;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -9,35 +18,12 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.jgroups.Address;
-import org.jgroups.JChannel;
-import org.jgroups.Message;
-import org.jgroups.ReceiverAdapter;
-import org.jgroups.Version;
-import org.jgroups.View;
-import org.jgroups.annotations.Property;
-import org.jgroups.blocks.MethodCall;
-import org.jgroups.blocks.RequestOptions;
-import org.jgroups.blocks.ResponseMode;
-import org.jgroups.blocks.RpcDispatcher;
-import org.jgroups.blocks.atomic.Counter;
-import org.jgroups.conf.ClassConfigurator;
-import org.jgroups.protocols.TP;
-import org.jgroups.raft.blocks.CounterService;
-import org.jgroups.raft.util.Bits2;
-import org.jgroups.util.Average;
-import org.jgroups.util.DefaultThreadFactory;
-import org.jgroups.util.Rsp;
-import org.jgroups.util.RspList;
-import org.jgroups.util.Streamable;
-import org.jgroups.util.ThreadFactory;
-import org.jgroups.util.Util;
+import static org.perf.PerfUtil.Config;
 
 
 /**
@@ -45,7 +31,7 @@ import org.jgroups.util.Util;
  *
  * @author Bela Ban
  */
-public class CounterPerf extends ReceiverAdapter {
+public class CounterPerf implements Receiver {
    private JChannel channel;
    private Address local_addr;
    private RpcDispatcher disp;
@@ -56,7 +42,7 @@ public class CounterPerf extends ReceiverAdapter {
    protected ThreadFactory thread_factory;
 
    protected CounterService counter_service;
-   protected Counter counter;
+   protected SyncCounter    counter;
 
    // ============ configurable properties ==================
    @Property
@@ -120,7 +106,7 @@ public class CounterPerf extends ReceiverAdapter {
          transport.setBindPort(bind_port);
       }
       
-      disp = new RpcDispatcher(channel, this).setMethodLookup(id -> METHODS[id]).setMembershipListener(this);
+      disp = new RpcDispatcher(channel, this).setMethodLookup(id -> METHODS[id]).setReceiver(this);
       counter_service = new CounterService(channel).raftId(name).replTimeout(this.timeout);
       channel.connect(groupname);
       local_addr = channel.getAddress();
@@ -434,15 +420,15 @@ public class CounterPerf extends ReceiverAdapter {
 
       @Override
       public void writeTo(DataOutput out) throws IOException {
-         Bits2.writeLongCompressed(num_increments, out);
-         Bits2.writeLongCompressed(total_time, out);
+         Bits.writeLongCompressed(num_increments, out);
+         Bits.writeLongCompressed(total_time, out);
          Util.writeStreamable(avg_increments, out);
       }
 
       @Override
       public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
-         num_increments = Bits2.readLongCompressed(in);
-         total_time = Bits2.readLongCompressed(in);
+         num_increments = Bits.readLongCompressed(in);
+         total_time = Bits.readLongCompressed(in);
          avg_increments = Util.readStreamable(AverageMinMax::new, in);
       }
 
@@ -454,7 +440,7 @@ public class CounterPerf extends ReceiverAdapter {
       }
    }
 
-   // todo: copied from JGroups; remove when 5.2.1.Final is used
+/*   // todo: copied from JGroups; remove when 5.2.1.Final is used
    public static class AverageMinMax extends Average {
       protected long min = Long.MAX_VALUE, max = 0;
       protected List<Long> values;
@@ -527,14 +513,14 @@ public class CounterPerf extends ReceiverAdapter {
 
       public void writeTo(DataOutput out) throws IOException {
          super.writeTo(out);
-         Bits2.writeLongCompressed(min, out);
-         Bits2.writeLongCompressed(max, out);
+         Bits.writeLongCompressed(min, out);
+         Bits.writeLongCompressed(max, out);
       }
 
       public void readFrom(DataInput in) throws IOException {
          super.readFrom(in);
-         min = Bits2.readLongCompressed(in);
-         max = Bits2.readLongCompressed(in);
+         min = Bits.readLongCompressed(in);
+         max = Bits.readLongCompressed(in);
       }
 
 
@@ -555,7 +541,7 @@ public class CounterPerf extends ReceiverAdapter {
       }
 
 
-   }
+   }*/
 
 
    public static void main(String[] args) throws IOException, ClassNotFoundException {

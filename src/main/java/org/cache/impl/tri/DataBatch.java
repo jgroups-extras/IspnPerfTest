@@ -14,11 +14,11 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /** Class which wraps Data[] arrays */
-public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
-    protected Address             addr;    // destination or sender of the data batch, may be null (e.g. on BACKUPs
-    protected Data[]              data;    // the actual data
-    protected int                 pos;     // the index to write the next Data element into the array
-    protected Consumer<DataBatch> handler; // the code that gets executed in run() (if set)
+public class DataBatch<K,V> implements SizeStreamable, Runnable, Iterable<Data<K,V>> {
+    protected Address                  addr;    // destination or sender of the data batch, may be null (e.g. on BACKUPs
+    protected Data<K,V>[]              data;    // the actual data
+    protected int                      pos;     // the index to write the next Data element into the array
+    protected Consumer<DataBatch<K,V>> handler; // the code that gets executed in run() (if set)
 
     public DataBatch(Address addr) {
         this.addr=addr;
@@ -29,13 +29,13 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
         this.data=new Data[capacity];
     }
 
-    public Data[]    data()                         {return data;}
-    public int       capacity()                     {return data.length;}
-    public int       position()                     {return pos;}
-    public DataBatch handler(Consumer<DataBatch> h) {this.handler=h; return this;}
+    public Data<K,V>[]    data()                              {return data;}
+    public int            capacity()                          {return data.length;}
+    public int            position()                          {return pos;}
+    public DataBatch<K,V> handler(Consumer<DataBatch<K,V>> h) {this.handler=h; return this;}
 
 
-    public DataBatch add(Data d) {
+    public DataBatch<K,V> add(Data<K,V> d) {
         if(data == null)
             return this;
         if(pos >= data.length)
@@ -95,7 +95,7 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
     }
 
     public void writeTo(DataOutput out) throws IOException {
-        Bits.writeInt(size(), out);
+        Bits.writeIntCompressed(size(), out);
         for(int i=0; i < pos; i++) {
             if(data[i] != null)
                 data[i].writeTo(out);
@@ -103,7 +103,7 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
     }
 
     public void writeTo(DataOutput out, Data.Type t) throws Exception {
-        Bits.writeInt(size(t), out);
+        Bits.writeIntCompressed(size(t), out);
         for(int i=0; i < pos; i++) {
             if(data[i] != null && data[i].type == t)
                 data[i].writeTo(out);
@@ -111,9 +111,9 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
     }
 
     public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
-        data=new Data[Bits.readInt(in)];
+        data=new Data[Bits.readIntCompressed(in)];
         for(int i=0; i < data.length; i++) {
-            data[i]=new Data().read(in);
+            data[i]=new Data<K,V>().read(in);
             pos++;
         }
     }
@@ -158,26 +158,26 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
         return sb.toString();
     }
 
-    public Iterator<Data> iterator() {
+    public Iterator<Data<K,V>> iterator() {
         return new DataIterator(null);
     }
 
-    public Iterator<Data> iterator(Data.Type type) {
+    public Iterator<Data<K,V>> iterator(Data.Type type) {
         return new DataIterator(type);
     }
 
 
-    public Stream<Data> stream() {
-        Spliterator<Data> sp=Spliterators.spliterator(iterator(), size(), 0);
+    public Stream<Data<K,V>> stream() {
+        Spliterator<Data<K,V>> sp=Spliterators.spliterator(iterator(), size(), 0);
         return StreamSupport.stream(sp, false);
     }
 
-    public Stream<Data> streamOf(Data.Type type) {
-        Spliterator<Data> sp=Spliterators.spliterator(iterator(type), size(type), 0);
+    public Stream<Data<K,V>> streamOf(Data.Type type) {
+        Spliterator<Data<K,V>> sp=Spliterators.spliterator(iterator(type), size(type), 0);
         return StreamSupport.stream(sp, false);
     }
 
-    protected class DataIterator implements Iterator<Data> {
+    protected class DataIterator implements Iterator<Data<K,V>> {
         protected int             index;
         protected final Data.Type type;
 
@@ -194,7 +194,7 @@ public class DataBatch implements SizeStreamable, Runnable, Iterable<Data> {
             return false;
         }
 
-        public Data next() {
+        public Data<K,V> next() {
             if(index >= pos)
                 throw new NoSuchElementException(String.format("index %d >= pos %d", index, pos));
             return data[index++];

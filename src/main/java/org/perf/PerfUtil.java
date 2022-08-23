@@ -3,7 +3,6 @@ package org.perf;
 import org.jgroups.Global;
 import org.jgroups.blocks.MethodCall;
 import org.jgroups.conf.ClassConfigurator;
-import org.jgroups.raft.util.Bits2;
 import org.jgroups.util.*;
 
 import java.io.DataInput;
@@ -155,18 +154,18 @@ public class PerfUtil {
 
         @Override
         public void writeTo(DataOutput out) throws IOException {
-            Bits2.writeLongCompressed(num_gets, out);
-            Bits2.writeLongCompressed(num_puts, out);
-            Bits2.writeLongCompressed(total_time, out);
+            Bits.writeLongCompressed(num_gets, out);
+            Bits.writeLongCompressed(num_puts, out);
+            Bits.writeLongCompressed(total_time, out);
             Util.writeStreamable(avg_gets, out);
             Util.writeStreamable(avg_puts, out);
         }
 
         @Override
         public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
-            num_gets=Bits2.readLongCompressed(in);
-            num_puts=Bits2.readLongCompressed(in);
-            total_time=Bits2.readLongCompressed(in);
+            num_gets=Bits.readLongCompressed(in);
+            num_puts=Bits.readLongCompressed(in);
+            total_time=Bits.readLongCompressed(in);
             avg_gets=Util.readStreamable(AverageMinMax::new, in);
             avg_puts=Util.readStreamable(AverageMinMax::new, in);
         }

@@ -5,7 +5,6 @@ import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.cache.impl.DummyCacheFactory;
 import org.cache.impl.HazelcastCacheFactory;
-import org.cache.impl.HotrodCacheFactory;
 import org.cache.impl.InfinispanCacheFactory;
 import org.cache.impl.tri.TriCacheFactory;
 import org.jgroups.*;
@@ -34,11 +33,11 @@ import java.util.zip.DataFormatException;
  * (sent to it by every member) and prints stats (throughput).
  * @author Bela Ban
  */
-public class Test extends ReceiverAdapter {
-    protected CacheFactory<Integer,byte[]> cache_factory;
-    protected Cache<Integer,byte[]> cache;
-    protected JChannel control_channel;
-    protected Address local_addr;
+public class Test implements Receiver {
+    protected CacheFactory<Integer,byte[]>        cache_factory;
+    protected Cache<Integer,byte[]>               cache;
+    protected JChannel                            control_channel;
+    protected Address                             local_addr;
     protected final List<Address>                 members=new ArrayList<>();
     protected volatile View                       view;
     protected final LongAdder                     num_requests=new LongAdder();
@@ -47,8 +46,8 @@ public class Test extends ReceiverAdapter {
     protected volatile boolean                    looping=true;
     protected Thread                              event_loop_thread;
     protected Integer[]                           keys;
-    protected final ResponseCollector<Results> results=new ResponseCollector<>();
-    protected final Promise<Map<Integer,byte[]>> contents_promise=new Promise<>();
+    protected final ResponseCollector<Results>    results=new ResponseCollector<>();
+    protected final Promise<Map<Integer,byte[]>>  contents_promise=new Promise<>();
     protected final Promise<Config>               config_promise=new Promise<>();
     protected Thread                              test_runner;
 
@@ -86,7 +85,6 @@ public class Test extends ReceiverAdapter {
     protected static final String hazelcast_factory=HazelcastCacheFactory.class.getName();
     protected static final String coherence_factory="org.cache.impl.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String tri_factory=TriCacheFactory.class.getName();
-    protected static final String hr_factory=HotrodCacheFactory.class.getName();
     protected static final String dummy_factory=DummyCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
@@ -101,8 +99,8 @@ public class Test extends ReceiverAdapter {
     }
 
     public void init(String factory_name, String cfg, String jgroups_config, String cache_name) throws Exception {
-        Class<CacheFactory> clazz=Util.loadClass(factory_name, (Class)null);
-        cache_factory=clazz.newInstance();
+        Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory_name, (Class<?>)null);
+        cache_factory=clazz.getDeclaredConstructor().newInstance();
         cache_factory.init(cfg);
         cache=cache_factory.create(cache_name);
 
@@ -201,8 +199,8 @@ public class Test extends ReceiverAdapter {
     protected void _receive(Message msg) throws Throwable {
         ByteArrayDataInputStream in;
         Address sender=msg.src();
-        int offset=msg.getOffset(), len=msg.length();
-        byte[] buf=msg.getRawBuffer();
+        int offset=msg.getOffset(), len=msg.getLength();
+        byte[] buf=msg.getArray();
         byte t=buf[offset++];
         len--;
         Type type=Type.values()[t];
@@ -926,9 +924,6 @@ public class Test extends ReceiverAdapter {
                 case "tri":
                     cache_factory_name=tri_factory;
                     break;
-                case "hr":
-                    cache_factory_name=hr_factory;
-                    break;
                 case "dummy":
                     cache_factory_name=dummy_factory;
                     break;
@@ -949,8 +944,8 @@ public class Test extends ReceiverAdapter {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
                             "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
                             "Valid factory names:" +
-                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n   hr:  %s\n dummy: %s\n\n",
-                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, hr_factory, dummy_factory);
+                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n\n",
+                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory);
     }
 
 

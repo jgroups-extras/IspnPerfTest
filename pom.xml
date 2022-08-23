@@ -46,7 +46,7 @@
 
     <properties>
         <!--version.jgroups>4.2.0.Final</version.jgroups-->
-        <version.infinispan>13.0.6.Final</version.infinispan>
+        <version.infinispan>14.0.0.Dev04</version.infinispan>
         <version.hazelcast>5.1</version.hazelcast>
         <version.hdrhistogram>2.1.10</version.hdrhistogram>
 
@@ -162,14 +162,16 @@
             <artifactId>infinispan-core</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.infinispan</groupId>
-            <artifactId>infinispan-client-hotrod</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-clustered-counter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jgroups</groupId>
+            <artifactId>jgroups</artifactId>
+            <version>5.2.6.Final</version>
         </dependency>
 
         <dependency>
@@ -212,7 +214,7 @@
         <dependency>
             <groupId>org.jgroups</groupId>
             <artifactId>jgroups-raft</artifactId>
-            <version>0.5.4.Final-SNAPSHOT</version>
+            <version>1.0.10.Final</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jgroups</groupId>

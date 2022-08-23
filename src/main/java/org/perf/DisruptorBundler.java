@@ -6,6 +6,8 @@ import com.lmax.disruptor.dsl.ProducerType;
 import org.jgroups.Address;
 import org.jgroups.Message;
 import org.jgroups.protocols.BaseBundler;
+import org.jgroups.protocols.Bundler;
+import org.jgroups.protocols.RingBufferBundler;
 import org.jgroups.protocols.TP;
 import org.jgroups.util.DefaultThreadFactory;
 import org.jgroups.util.Util;
@@ -49,9 +51,12 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
 
     public void init(TP transport) {
         super.init(transport);
-        strategy=createStrategy(transport.bundlerWaitStrategy());
 
-        disruptor=new Disruptor<>(new MessageEventFactory(), transport.getBundlerCapacity(), new DefaultThreadFactory("disruptor", false, true),
+        Bundler bundler=transport.getBundler();
+        String tmp=bundler instanceof RingBufferBundler? ((RingBufferBundler)bundler).waitStrategy() : "park";
+        strategy=createStrategy(tmp);
+
+        disruptor=new Disruptor<>(new MessageEventFactory(), bundler.getCapacity(), new DefaultThreadFactory("disruptor", false, true),
                                   ProducerType.MULTI, strategy);
         disruptor.handleEventsWith(this);
     }
@@ -79,7 +84,7 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
     public void onEvent(MessageEvent event, long sequence, boolean endOfBatch) throws Exception {
         Message msg=event.msg;
         long size=msg.size();
-        if(count + size >= transport.getMaxBundleSize())
+        if(count + size >= transport.getBundler().getMaxSize())
             sendBundledMessages();
         addMessage(msg, size);
         if(endOfBatch)

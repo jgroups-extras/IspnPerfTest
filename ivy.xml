@@ -4,19 +4,22 @@
     <info organisation="org.perf" module="ispn-perf-test" revision="1.0.0"/>
 
     <dependencies>
-        <dependency org="org.infinispan"                 name="infinispan-core"        rev="11.0.0.Final"/>
-        <dependency org="org.infinispan"                 name="infinispan-commons"     rev="11.0.0.Final"/>
-        <dependency org="org.jboss.logging"              name="jboss-logging"          rev="3.3.+"/>
-        <dependency org="org.jboss.marshalling"          name="jboss-marshalling-osgi" rev="1.4.+"/>
-        <dependency org="log4j"                          name="log4j"                  rev="1.2.+"/>
-        <dependency org="org.apache.logging.log4j"       name="log4j-api"              rev="2.13.0"/>
-        <dependency org="org.apache.logging.log4j"       name="log4j-core"             rev="2.13.0"/>
-        <dependency org="com.hazelcast"                  name="hazelcast"              rev="3.+"/>
+        <dependency org="org.infinispan"                 name="infinispan-core"        rev="14.0.0.Dev04"/>
+        <dependency org="org.infinispan"                 name="infinispan-commons"     rev="14.0.0.Dev04"/>
+        <dependency org="org.jgroups"                    name="jgroups"                rev="5.2.6.Final"/>
+        <!--dependency org="org.jboss.logging"              name="jboss-logging"          rev="3.3.+"/-->
+        <!--dependency org="org.jboss.marshalling"          name="jboss-marshalling-osgi" rev="1.4.+"/-->
+        <!--dependency org="log4j"                          name="log4j"                  rev="1.2.+"/-->
+        <!--dependency org="org.apache.logging.log4j"       name="log4j-api"              rev="2.+"/-->
+        <!--dependency org="org.apache.logging.log4j"       name="log4j-core"             rev="2.+"/-->
+        <dependency org="com.hazelcast"                  name="hazelcast"              rev="5.+"/>
+        <!--dependency org="com.oracle.coherence.ce"        name="coherence"              rev="22.06"/-->
+
         <dependency org="com.lmax"                       name="disruptor"              rev="3.+"/>
-        <dependency org="org.jboss.byteman"              name="byteman"                rev="3.+"/>
-        <dependency org="org.jboss.byteman"              name="byteman-bmunit"         rev="3.+"/>
-        <dependency org="org.jboss.byteman"              name="byteman-install"        rev="3.+"/>
-        <dependency org="org.jboss.byteman"              name="byteman-submit"         rev="3.+"/>
+        <!--dependency org="org.jboss.byteman"              name="byteman"                rev="4.+"/>
+        <dependency org="org.jboss.byteman"              name="byteman-bmunit"         rev="4.+"/>
+        <dependency org="org.jboss.byteman"              name="byteman-install"        rev="4.+"/>
+        <dependency org="org.jboss.byteman"              name="byteman-submit"         rev="4.+"/-->
         <dependency org="org.testng"                     name="testng"                 rev="6.9.+"/>
         <dependency org="com.amazonaws"                  name="aws-java-sdk-s3"        rev="1.11.+"/>
         <dependency org="org.jgroups.aws.s3"             name="native-s3-ping"         rev="0.9.3.Final"/>

@@ -22,7 +22,7 @@ import java.util.Set;
  */
 public class HazelcastCache<K,V> implements Cache<K,V> {
     protected final HazelcastInstance hc;
-    protected final IMap<K,V> cache;
+    protected final IMap<K,V>         cache;
     protected final String            cache_name;
 
 

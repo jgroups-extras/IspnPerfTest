@@ -14,9 +14,9 @@
          mcast_addr="${CONTROL_MCAST_ADDR:232.8.8.8}"
          mcast_port="${CONTROL_MCAST_PORT:55588}"
          ip_ttl="8"
-         max_bundle_size="64K"
-         enable_diagnostics="true"
-         diagnostics_port="7501"
+         bundler.max_size="64K"
+         diag.enabled="true"
+         diag.port="7501"
 
          thread_pool.enabled="true"
          thread_pool.min_threads="0"
@@ -31,7 +31,7 @@
     <VERIFY_SUSPECT timeout="1500"  />
     <pbcast.NAKACK2 />
     <UNICAST3 />
-    <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
+    <pbcast.STABLE desired_avg_gossip="50000"
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
     <UFC max_credits="2M"

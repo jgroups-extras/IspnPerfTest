@@ -27,7 +27,7 @@ import java.util.stream.Stream;
  * @author Bela Ban
  * @since  1.0
  */
-public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closeable, DiagnosticsHandler.ProbeHandler {
+public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, DiagnosticsHandler.ProbeHandler {
     protected final Map<K,V>                           map=new ConcurrentHashMap<>();
     protected final Log                                log=LogFactory.getLog(TriCache.class);
     protected JChannel                                 ch;
@@ -160,7 +160,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         long req_id=req_table.add(future);
 
         try {
-            Data data=new Data(Data.Type.GET, req_id, key, null, null);
+            Data<K,V> data=new Data<>(Data.Type.GET, req_id, key, null, null);
             send(primary, data, false); // sent as regular message
             return future.get(10000, TimeUnit.MILLISECONDS);  // req_id was removed by ACK processing
         }
@@ -171,7 +171,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     public void clear() {
-        Data data=new Data(Data.Type.CLEAR, 0, null, null, null);
+        Data<K,V> data=new Data<>(Data.Type.CLEAR, 0, null, null, null);
         try {
             send(null, data);
         }
@@ -197,18 +197,18 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     public void receive(Message msg) {
-        ByteArrayDataInputStream in=new ByteArrayDataInputStream(msg.getRawBuffer(), msg.getOffset(), msg.getLength());
+        ByteArrayDataInputStream in=new ByteArrayDataInputStream(msg.getArray(), msg.getOffset(), msg.getLength());
         try {
-            int num_elements=Bits.readInt(in);
+            int num_elements=Bits.readIntCompressed(in);
             if(num_elements == 1) {
-                Data data=new Data().read(in);
+                Data<K,V> data=(Data<K,V>)new Data<>().read(in);
                 process(data, msg.src());
             }
             else {
                 Address sender=msg.src();
-                DataBatch batch=new DataBatch(sender, num_elements);
+                DataBatch<K,V> batch=new DataBatch<>(sender, num_elements);
                 for(int i=0; i < num_elements; i++)
-                    batch.add(new Data().read(in));
+                    batch.add(new Data<K,V>().read(in));
                 avg_batch_size.add(num_elements);
                 process(batch);
             }
@@ -223,10 +223,10 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         DataBatch data_batch=new DataBatch(batch.sender(), max_elements);
         try {
             for(Message msg : batch) {
-                ByteArrayDataInputStream in=new ByteArrayDataInputStream(msg.getRawBuffer(), msg.getOffset(), msg.getLength());
-                int num=Bits.readInt(in);
+                ByteArrayDataInputStream in=new ByteArrayDataInputStream(msg.getArray(), msg.getOffset(), msg.getLength());
+                int num=Bits.readIntCompressed(in);
                 for(int i=0; i < num; i++)
-                    data_batch.add(new Data().read(in));
+                    data_batch.add(new Data<>().read(in));
             }
             avg_batch_size.add(max_elements);
             process(data_batch);
@@ -289,7 +289,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
      * Locks the cache, applies the change, sends a BACKUP message to the backup node asynchronously, unlocks the cache
      * and returns. All PUTs are invoked sequentially, so we don't need locks.
      */
-    protected void handlePut(Data data) {
+    protected void handlePut(Data<K,V> data) {
         // reuse data instead of creating a new instance
         data.type=Data.Type.BACKUP;
 
@@ -306,10 +306,10 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
     /** Handles all PUTs and CLEARs. Processing is sequential, this method will never be called concurrently
      * (with itself or handlePut()). This is needed to ensure PUT handling and sending of BACKUP message atomically */
-    protected void handlePutBatch(DataBatch batch) {
+    protected void handlePutBatch(DataBatch<K,V> batch) {
         long start=stats? Util.micros() : 0;
         for(int i=0; i < batch.pos; i++) {
-            Data data=batch.data[i];
+            Data<K,V> data=batch.data[i];
             if(data == null)
                 continue;
             switch(data.type) {
@@ -351,17 +351,14 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
     // processes all ACK_DELAYED types (changed from ACK before)
-    protected void handleAckBatch(DataBatch batch) {
+    protected void handleAckBatch(DataBatch<K,V> batch) {
         long start=stats? Util.micros() : 0;
         for(int i=0; i < batch.pos; i++) {
-            Data data=batch.data[i];
+            Data<K,V> data=batch.data[i];
             if(data == null)
                 continue;
-            switch(data.type) {
-                case ACK_DELAYED:
-                    handleAck(data);
-                    break;
-            }
+            if(data.type == Data.Type.ACK_DELAYED)
+                handleAck(data);
         }
         if(stats)
             avg_ack_processing_time.add(Util.micros()-start);
@@ -372,7 +369,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
      * Applies a BACKUP. No locking or ordering is needed as updates for the same key always come from the same primary,
      * which sends messages to the backup (us) in FIFO (sender) order anyway
      */
-    protected void handleBackup(Data data) {
+    protected void handleBackup(Data<K,V> data) {
         map.put((K)data.key, (V)data.value);
         // System.out.printf("backup(%s,%d)\n", data.key, Bits.readLong((byte[])data.value, Global.LONG_SIZE*2));
 
@@ -389,7 +386,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
 
-    protected void handleAck(Data data) {
+    protected void handleAck(Data<K,V> data) {
         CompletableFuture<V> future=req_table.remove(data.req_id);
         if(future != null)
             future.complete((V)data.value);
@@ -404,7 +401,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
 
-    protected void sendData(Address dest, Data data, boolean oob) {
+    protected void sendData(Address dest, Data<K,V> data, boolean oob) {
         try {
             Message msg=createMessage(dest, data, oob);
             ch.send(msg);
@@ -443,13 +440,13 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     }
 
 
-    protected void process(DataBatch batch) {
+    protected void process(DataBatch<K,V> batch) {
         int puts=0, gets=0, acks=0;
         num_data_batches_received.increment();
         long start=stats? Util.micros() : 0;
 
         for(int i=0; i < batch.pos; i++) {
-            Data data=batch.data[i];
+            Data<K,V> data=batch.data[i];
             if(data == null)
                 continue;
             switch(data.type) {
@@ -476,8 +473,6 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
                 case ACK:
                     acks++;
                     data.type=Data.Type.ACK_DELAYED; // to prevent async GET handling from re-sending the received ACK
-                    //handleAck(data);
-                    //batch.data[i]=null;
                     break;
                 default:
                     throw new IllegalArgumentException(String.format("type %s not known", data.type));
@@ -485,10 +480,10 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         }
 
         if(puts > 0)
-            put_queue.add(batch.handler(this::handlePutBatch));
+            put_queue.add(batch.handler(db -> handlePutBatch((DataBatch<K,V>)db)));
 
         if(acks > 0)
-            ack_queue.add(batch.handler(this::handleAckBatch));
+            ack_queue.add(batch.handler(db -> handleAckBatch((DataBatch<K,V>)db)));
 
         if(gets > 0) {
             try {
@@ -510,7 +505,7 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
     protected static int countData(MessageBatch batch) {
         int count=0;
         for(Message msg: batch) {
-            byte[] buf=msg.getRawBuffer();
+            byte[] buf=msg.getArray();
             if(buf != null) {
                 int num=Bits.readIntCompressed(buf, msg.getOffset());
                 count+=num;
@@ -519,12 +514,12 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
         return count;
     }
 
-    protected static Message createMessage(Address dest, Data data, boolean oob) throws Exception {
+    protected Message createMessage(Address dest, Data<K,V> data, boolean oob) throws Exception {
         int expected_size=Global.INT_SIZE + data.serializedSize();
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(expected_size);
-        Bits.writeInt(1, out);
+        Bits.writeIntCompressed(1, out);
         data.writeTo(out);
-        Message msg=new Message(dest, out.buffer(), 0, out.position());
+        Message msg=new BytesMessage(dest, out.buffer(), 0, out.position());
         if(oob)
             msg.setFlag(Message.Flag.OOB);
         return msg;
@@ -532,19 +527,19 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
 
 
-    protected static Message createMessage(Address dest, DataBatch data, boolean oob) throws Exception {
+    protected static <K,V> Message createMessage(Address dest, DataBatch<K,V> data, boolean oob) throws Exception {
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(data.serializedSize());
         data.writeTo(out);
-        Message msg=new Message(dest, out.buffer(), 0, out.position());
+        Message msg=new BytesMessage(dest, out.buffer(), 0, out.position());
         if(oob)
             msg.setFlag(Message.Flag.OOB);
         return msg;
     }
 
-    protected static Message createMessage(Address dest, DataBatch data, Data.Type type, boolean oob) throws Exception {
+    protected static <K,V> Message createMessage(Address dest, DataBatch<K,V> data, Data.Type type, boolean oob) throws Exception {
         ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(data.serializedSize(type));
         data.writeTo(out, type);
-        Message msg=new Message(dest, out.buffer(), 0, out.position());
+        Message msg=new BytesMessage(dest, out.buffer(), 0, out.position());
         if(oob)
             msg.setFlag(Message.Flag.OOB);
         return msg;
@@ -552,16 +547,16 @@ public class TriCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closea
 
 
 
-    protected void send(Address dest, Data data) throws Exception {
+    protected void send(Address dest, Data<K,V> data) throws Exception {
         ch.send(createMessage(dest, data, false));
     }
 
-    protected void send(Address dest, Data data, boolean oob) throws Exception {
+    protected void send(Address dest, Data<K,V> data, boolean oob) throws Exception {
         ch.send(createMessage(dest, data, oob));
     }
 
 
-    protected void send(Address dest, DataBatch batch, Data.Type type, boolean oob) throws Exception {
+    protected void send(Address dest, DataBatch<K,V> batch, Data.Type type, boolean oob) throws Exception {
         ch.send(createMessage(dest, batch, type, oob));
     }
 

@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.LongAdder;
  * @author Bela Ban
  * @since  1.0
  */
-public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Closeable, DiagnosticsHandler.ProbeHandler {
+public class DummyCache<K,V> implements Receiver, Cache<K,V>, Closeable, DiagnosticsHandler.ProbeHandler {
     protected final Log                                log=LogFactory.getLog(DummyCache.class);
     protected JChannel                                 ch;
     protected Address                                  local_addr;
@@ -142,7 +142,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
             byte[] get_payload=new byte[Global.BYTE_SIZE + Global.LONG_SIZE];
             get_payload[0]=(byte)Data.Type.GET.ordinal();
             Bits.writeLong(req_id, get_payload, 1);
-            Message msg=new Message(primary, get_payload);
+            Message msg=new BytesMessage(primary, get_payload);
             ch.send(msg);
             return future.get(10000, TimeUnit.MILLISECONDS);  // req_id was removed by ACK processing
         }
@@ -153,7 +153,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
     }
 
     public void clear() {
-        Message msg=new Message(null, CLEAR_PAYLOAD);
+        Message msg=new BytesMessage(null, CLEAR_PAYLOAD);
         try {
             ch.send(msg);
         }
@@ -179,7 +179,7 @@ public class DummyCache<K,V> extends ReceiverAdapter implements Cache<K,V>, Clos
     }
 
     public void receive(Message msg) {
-        byte[] buf=msg.getRawBuffer();
+        byte[] buf=msg.getArray();
 
         byte tmp=buf[0];
         Data.Type type=Data.Type.values()[tmp];

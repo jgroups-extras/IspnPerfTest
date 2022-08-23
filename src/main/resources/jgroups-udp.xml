@@ -18,8 +18,8 @@
          ucast_send_buf_size="5M"
          mcast_recv_buf_size="5M"
          mcast_send_buf_size="5M"
-         max_bundle_size="64K"
-         enable_diagnostics="true"
+         bundler.max_size="64K"
+         diag.enabled="true"
 
          thread_pool.min_threads="0"
          thread_pool.max_threads="1000"
@@ -33,7 +33,7 @@
     <VERIFY_SUSPECT timeout="1500"  />
     <pbcast.NAKACK2 xmit_interval="500"/>
     <UNICAST3 xmit_interval="500"/>
-    <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
+    <pbcast.STABLE desired_avg_gossip="50000"
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
     <UFC max_credits="4M"

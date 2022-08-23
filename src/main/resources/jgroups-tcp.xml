@@ -12,8 +12,8 @@
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
   <TCP bind_addr="match-interface:eth2,match-interface:eth0,match-interface:en0,site_local,loopback"
        bind_port="7800"
-       max_bundle_size="64K"
-       enable_diagnostics="true"
+       bundler.max_size="64K"
+       diag.enabled="true"
 
        thread_pool.enabled="true"
        thread_pool.min_threads="0"
@@ -24,7 +24,6 @@
           initial_hosts="${GLOBALJDGHOSTS:127.0.0.1[7800]}"
           port_range="0"/>
   <MPING mcast_addr="${GLOBAL_MCAST_ADDR:232.6.6.6}" mcast_port="${GLOBAL_MCAST_PORT:7699}"/>
-  <MULTI_PING async_discovery="true"/>
   <MERGE3 max_interval="30000"
           min_interval="10000"/>
   <FD_SOCK/>
@@ -32,7 +31,7 @@
   <VERIFY_SUSPECT timeout="1500"  />
   <pbcast.NAKACK2 xmit_interval="500"/>
   <UNICAST3 ack_threshold="100"/>
-  <pbcast.STABLE stability_delay="1000" desired_avg_gossip="50000"
+  <pbcast.STABLE desired_avg_gossip="50000"
                  max_bytes="8m"/>
   <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
   <UFC max_credits="20M"
@@ -40,5 +39,4 @@
   <MFC max_credits="2M"
        min_threshold="0.4"/>
   <FRAG2 frag_size="60K"  />
-  <DELIVERY_TIME />
 </config>
