@@ -33,7 +33,8 @@ FLAGS="$JAVA_OPTIONS"
 
 ### Note: change max heap to 2G on cluster01-08 (physical mem: 4G) !
 ### On edg-perf, this is OK (physical mem: 32G)
-#FLAGS="$FLAGS -server -Xms2G -Xmx2G"
+### May need to comment on small boxes!!
+FLAGS="$FLAGS -Xms8G -Xmx8G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 ## Delay asking backup for GET in Infinispan:
