@@ -3,7 +3,6 @@ package org.perf;
 import org.jgroups.Global;
 import org.jgroups.blocks.MethodCall;
 import org.jgroups.conf.ClassConfigurator;
-import org.jgroups.raft.util.Bits2;
 import org.jgroups.util.*;
 
 import java.io.DataInput;

@@ -46,7 +46,7 @@
 
     <properties>
         <!--version.jgroups>4.2.0.Final</version.jgroups-->
-        <version.infinispan>13.0.6.Final</version.infinispan>
+        <version.infinispan>13.0.10.Final</version.infinispan>
         <version.hazelcast>5.1</version.hazelcast>
         <version.hdrhistogram>2.1.10</version.hdrhistogram>
 
@@ -212,7 +212,7 @@
         <dependency>
             <groupId>org.jgroups</groupId>
             <artifactId>jgroups-raft</artifactId>
-            <version>0.5.4.Final-SNAPSHOT</version>
+            <version>0.5.3.Final</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jgroups</groupId>

@@ -1,7 +1,16 @@
 package org.perf;
 
-import static org.jgroups.util.Util.printTime;
-import static org.perf.PerfUtil.Config;
+import org.jgroups.*;
+import org.jgroups.annotations.Property;
+import org.jgroups.blocks.MethodCall;
+import org.jgroups.blocks.RequestOptions;
+import org.jgroups.blocks.ResponseMode;
+import org.jgroups.blocks.RpcDispatcher;
+import org.jgroups.blocks.atomic.Counter;
+import org.jgroups.conf.ClassConfigurator;
+import org.jgroups.protocols.TP;
+import org.jgroups.raft.blocks.CounterService;
+import org.jgroups.util.*;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -15,29 +24,8 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.jgroups.Address;
-import org.jgroups.JChannel;
-import org.jgroups.Message;
-import org.jgroups.ReceiverAdapter;
-import org.jgroups.Version;
-import org.jgroups.View;
-import org.jgroups.annotations.Property;
-import org.jgroups.blocks.MethodCall;
-import org.jgroups.blocks.RequestOptions;
-import org.jgroups.blocks.ResponseMode;
-import org.jgroups.blocks.RpcDispatcher;
-import org.jgroups.blocks.atomic.Counter;
-import org.jgroups.conf.ClassConfigurator;
-import org.jgroups.protocols.TP;
-import org.jgroups.raft.blocks.CounterService;
-import org.jgroups.raft.util.Bits2;
-import org.jgroups.util.Average;
-import org.jgroups.util.DefaultThreadFactory;
-import org.jgroups.util.Rsp;
-import org.jgroups.util.RspList;
-import org.jgroups.util.Streamable;
-import org.jgroups.util.ThreadFactory;
-import org.jgroups.util.Util;
+import static org.jgroups.util.Util.printTime;
+import static org.perf.PerfUtil.Config;
 
 
 /**
