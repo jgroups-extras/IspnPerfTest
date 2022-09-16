@@ -33,7 +33,8 @@ FLAGS="$JAVA_OPTIONS"
 
 ### Note: change max heap to 2G on cluster01-08 (physical mem: 4G) !
 ### On edg-perf, this is OK (physical mem: 32G)
-#FLAGS="$FLAGS -server -Xms2G -Xmx2G"
+### May need to comment on small boxes!!
+FLAGS="$FLAGS -Xms8G -Xmx8G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 ## Delay asking backup for GET in Infinispan:
@@ -61,7 +62,7 @@ FLAGS="$FLAGS -Dinfinispan.stagger.delay=5000"
 ## CMS; use -Xms/-Xmx
 # FLAGS="-XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled"
 
-JMX="-Dcom.sun.management.jmxremote"
+#JMX="-Dcom.sun.management.jmxremote"
 
 #java -Xrunhprof:cpu=samples,monitor=y,interval=5,lineno=y,thread=y -classpath $CP $LOG $FLAGS $JMX  $*
 
@@ -74,11 +75,11 @@ JMX="-Dcom.sun.management.jmxremote"
 #BM="-javaagent:$PT/lib/byteman.jar=script:$CONF/delivery.btm,script:$CONF/send.btm,script:$CONF/requests.btm"
 
 ## ASYNC PROFILER
-if [ "${ASYNC_PROFILER_ID}x" != "x" ] ; then
-  # ASYNC_PROFILER_PATH="/path/to/libasyncProfiler.so"
-  ASYNC_PROFILE_EVENT=${ASYNC_PROFILE_EVENT:-cpu}
-  FLAGS="-agentpath:${ASYNC_PROFILER_PATH}=start,event=${ASYNC_PROFILE_EVENT},file=${ASYNC_PROFILER_ID}.html ${FLAGS}"
-fi
+#if [ "${ASYNC_PROFILER_ID}x" != "x" ] ; then
+#  # ASYNC_PROFILER_PATH="/path/to/libasyncProfiler.so"
+#  ASYNC_PROFILE_EVENT=${ASYNC_PROFILE_EVENT:-cpu}
+#  FLAGS="-agentpath:${ASYNC_PROFILER_PATH}=start,event=${ASYNC_PROFILE_EVENT},file=${ASYNC_PROFILER_ID}.html ${FLAGS}"
+#fi
 
 # Uncomment to enable dtrace tracing on the hotspot provider (e.g. lock and method invocation tracing)
 #TRACE=-XX:+ExtendedDTraceProbes
