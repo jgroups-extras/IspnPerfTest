@@ -32,7 +32,7 @@
     <FD_ALL/>
     <VERIFY_SUSPECT timeout="1500"  />
     <pbcast.NAKACK2 xmit_interval="500"/>
-    <UNICAST3 xmit_interval="100" ack_threshold="400"/>
+    <UNICAST3 xmit_interval="100"/>
     <pbcast.STABLE desired_avg_gossip="50000"
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
