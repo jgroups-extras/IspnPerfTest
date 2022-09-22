@@ -18,6 +18,8 @@
        send_buf_size="5m"
        recv_buf_size="20m"
        bundler_type="transfer-queue"
+       buffered_input_stream_size="8192"
+       buffered_output_stream_size="8192"
 
 
        thread_pool.enabled="true"
