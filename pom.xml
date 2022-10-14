@@ -46,7 +46,7 @@
 
     <properties>
         <!--version.jgroups>4.2.0.Final</version.jgroups-->
-        <version.infinispan>14.0.0.Dev04</version.infinispan>
+        <version.infinispan>14.0.0.Final</version.infinispan>
         <version.hazelcast>5.1</version.hazelcast>
         <version.hdrhistogram>2.1.10</version.hdrhistogram>
 

@@ -5,15 +5,15 @@
 
 DIR=`dirname $0`
 TARGET_DIR=$DIR/../target
-DEP=$TARGET_DIR/dependency
+LIBS=$TARGET_DIR/libs
 
 if [ ! -d $TARGET_DIR ]; then
    echo "$TARGET_DIR not found; run build.sh first!"
    exit 1
 fi
 
-if [ ! -d $DEP ]; then
-  echo "$DEP not found; run build.sh first!"
+if [ ! -d $LIBS ]; then
+  echo "$LIBS not found; run build.sh first!"
   exit 1
 fi
 
@@ -29,7 +29,7 @@ if [ -f $HOME/logging.properties ]; then
     LOG="$LOG -Djava.util.logging.config.file=$HOME/logging.properties"
 fi;
 
-CP="$TARGET_DIR/classes:$DEP/*"
+CP="$TARGET_DIR/classes:$LIBS/*"
 
 
 ### Note: change max heap to 2G on cluster01-08 (physical mem: 4G) !
