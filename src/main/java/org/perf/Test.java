@@ -49,6 +49,7 @@ public class Test implements Receiver {
     protected final Promise<Map<Integer,byte[]>>  contents_promise=new Promise<>();
     protected final Promise<Config>               config_promise=new Promise<>();
     protected Thread                              test_runner;
+    protected ThreadFactory                       thread_factory;
 
     protected enum Type {
         START_ISPN,
@@ -97,7 +98,12 @@ public class Test implements Receiver {
         ClassConfigurator.add((short)11000, Results.class);
     }
 
-    public void init(String factory_name, String cfg, String jgroups_config, String cache_name) throws Exception {
+    public void init(String factory_name, String cfg, String jgroups_config, String cache_name, boolean use_virtual_threads) throws Exception {
+        thread_factory=new DefaultThreadFactory("invoker", false, true)
+          .useFibers(use_virtual_threads);
+        if(use_virtual_threads && Util.fibersAvailable())
+            System.out.println("-- using virtual threads");
+
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory_name, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
         cache_factory.init(cfg);
@@ -241,10 +247,12 @@ public class Test implements Receiver {
             // The first call needs to be synchronous with OOB !
             final CountDownLatch latch=new CountDownLatch(1);
             CacheInvoker[] invokers=new CacheInvoker[num_threads];
+            Thread[]       threads=new Thread[num_threads];
             for(int i=0; i < invokers.length; i++) {
                 invokers[i]=new CacheInvoker(latch);
-                invokers[i].setName("invoker-" + i);
-                invokers[i].start();
+                threads[i]=thread_factory.newThread(invokers[i]);
+                threads[i].setName("invoker-" + i);
+                threads[i].start();
             }
 
             double tmp_interval=(time_secs * 1000.0) / 10.0;
@@ -261,8 +269,8 @@ public class Test implements Receiver {
             }
 
             Arrays.stream(invokers).forEach(CacheInvoker::cancel);
-            for(CacheInvoker invoker : invokers)
-                invoker.join();
+            for(Thread t: threads)
+                t.join();
 
             long time=System.currentTimeMillis() - start;
             System.out.println("\ndone (in " + time + " ms)\n");
@@ -270,9 +278,10 @@ public class Test implements Receiver {
             Histogram get_avg=null, put_avg=null;
             if(print_invokers)
                 System.out.print("Round trip times (min/avg/max us):\n");
-            for(CacheInvoker inv : invokers) {
+            for(int i=0; i < invokers.length; i++) {
+                CacheInvoker inv=invokers[i];
                 if(print_invokers)
-                    System.out.printf("%s: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n", inv.getId(),
+                    System.out.printf("%s: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n", threads[i].getId(),
                                       inv.get_avg.getMinValue(), inv.get_avg.getMean(), inv.get_avg.getMaxValueAsDouble(),
                                       inv.put_avg.getMinValue(), inv.put_avg.getMean(), inv.put_avg.getMaxValueAsDouble());
                 if(get_avg == null)
@@ -693,7 +702,7 @@ public class Test implements Receiver {
         System.out.printf("\n%,d local values found\n", local_cache.size());
     }
 
-    protected class CacheInvoker extends Thread {
+    protected class CacheInvoker implements Runnable {
         protected final CountDownLatch latch;
         // max recordable value is 80s
         protected final Histogram      get_avg=new Histogram(1, 80_000_000, 3); // us
@@ -858,6 +867,7 @@ public class Test implements Receiver {
         String           cache_factory_name=InfinispanCacheFactory.class.getName();
         String           jgroups_config="control.xml";
         boolean          run_event_loop=true;
+        boolean          use_vthreads=true;
 
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
@@ -878,6 +888,10 @@ public class Test implements Receiver {
             }
             if("-jgroups-cfg".equals(args[i])) {
                 jgroups_config=args[++i];
+                continue;
+            }
+            if("-use-virtual-threads".equals(args[i]) || "-use-vthreads".equals(args[i])) {
+                use_vthreads=Boolean.parseBoolean(args[++i]);
                 continue;
             }
             help();
@@ -904,7 +918,7 @@ public class Test implements Receiver {
                     cache_factory_name=dummy_factory;
                     break;
             }
-            test.init(cache_factory_name, config_file, jgroups_config, cache_name);
+            test.init(cache_factory_name, config_file, jgroups_config, cache_name, use_vthreads);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             if(run_event_loop)
                 test.eventLoop();
