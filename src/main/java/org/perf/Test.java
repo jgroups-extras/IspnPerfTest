@@ -44,7 +44,6 @@ public class Test implements Receiver {
     protected final LongAdder                     num_reads=new LongAdder();
     protected final LongAdder                     num_writes=new LongAdder();
     protected volatile boolean                    looping=true;
-    protected Thread                              event_loop_thread;
     protected Integer[]                           keys;
     protected final ResponseCollector<Results>    results=new ResponseCollector<>();
     protected final Promise<Map<Integer,byte[]>>  contents_promise=new Promise<>();
@@ -146,29 +145,7 @@ public class Test implements Receiver {
         cache_factory.destroy();
     }
 
-    protected void startEventThread() {
-        event_loop_thread=new Thread("EventLoop") {
-            public void run() {
-                try {
-                    eventLoop();
-                }
-                catch(Throwable ex) {
-                    ex.printStackTrace();
-                    Test.this.stop();
-                }
-            }
-        };
-        event_loop_thread.setDaemon(true);
-        event_loop_thread.start();
-    }
 
-    protected void stopEventThread() {
-        Thread tmp=event_loop_thread;
-        looping=false;
-        if(tmp != null)
-            tmp.interrupt();
-        stop();
-    }
 
     protected synchronized void startTestRunner(final Address addr) {
         if(test_runner != null && test_runner.isAlive())
@@ -321,7 +298,9 @@ public class Test implements Receiver {
 
     protected void quitAll() {
         System.out.println("-- received quitAll(): shutting down");
-        stopEventThread();
+        looping=false;
+        stop();
+        System.exit(0);
     }
 
 
@@ -438,9 +417,6 @@ public class Test implements Receiver {
                     catch(Throwable t) {
                         System.err.println("Calling quitAll() failed: " + t);
                     }
-                    break;
-                case '\n':
-                case '\r':
                     break;
                 default:
                     break;
@@ -931,7 +907,7 @@ public class Test implements Receiver {
             test.init(cache_factory_name, config_file, jgroups_config, cache_name);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             if(run_event_loop)
-                test.startEventThread();
+                test.eventLoop();
         }
         catch(Throwable ex) {
             ex.printStackTrace();
