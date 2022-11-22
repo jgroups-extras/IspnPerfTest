@@ -90,4 +90,4 @@ export proc_id=$$
 
 # exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
 
-java -cp "$LIBS/*" $FLAGS $DEBUG org.perf.Test $*
+java --enable-preview -cp "$LIBS/*" $FLAGS $DEBUG org.perf.Test $*

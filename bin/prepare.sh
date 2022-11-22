@@ -3,9 +3,10 @@
 
 PWD=QwAo2U6GRxyNPKiZaOCx
 ISPN_PERF=IspnPerfTest
-ZIP=$ISPN_PERF.zip
+ZIP=$HOME/$ISPN_PERF.zip
 DIR=$ISPN_PERF/target/libs
-PUB_KEY=$HOME/.ssh/id_rsa.pub
+KEY=id_rsa.pub
+PUB_KEY=$HOME/.ssh/$KEY
 
 if [ $# -eq 0 ]; then
     echo "prepare.sh HOST"
@@ -24,7 +25,8 @@ fi
 
 echo "-- Uploading artifacts to $HOST"
 
-scp $PUB_KEY root@$HOST
+scp $ZIP $PUB_KEY $HOME/infinispan-core*.jar $HOME/$ISPN_PERF/bin/install.sh $HOME/$ISPN_PERF/bin/install2.sh root@$HOST:~/
 
+ssh root@${HOST} chmod +x install.sh
 
 

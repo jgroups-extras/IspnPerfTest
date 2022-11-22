@@ -10,7 +10,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <TCP bind_addr="match-interface:eth2,match-interface:eth0,loopback"
+    <TCP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
          recv_buf_size="20M"
          send_buf_size="10M"
          bundler.max_size="64K"
