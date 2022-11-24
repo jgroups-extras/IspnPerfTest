@@ -865,7 +865,7 @@ public class Test implements Receiver {
         String           config_file="dist-sync.xml";
         String           cache_name="perf-cache";
         String           cache_factory_name=InfinispanCacheFactory.class.getName();
-        String           jgroups_config="control.xml";
+        String           control_cfg="control.xml";
         boolean          run_event_loop=true;
         boolean          use_vthreads=true;
 
@@ -886,8 +886,8 @@ public class Test implements Receiver {
                 run_event_loop=false;
                 continue;
             }
-            if("-jgroups-cfg".equals(args[i])) {
-                jgroups_config=args[++i];
+            if("-control-cfg".equals(args[i])) {
+                control_cfg=args[++i];
                 continue;
             }
             if("-use-virtual-threads".equals(args[i]) || "-use-vthreads".equals(args[i])) {
@@ -918,7 +918,7 @@ public class Test implements Receiver {
                     cache_factory_name=dummy_factory;
                     break;
             }
-            test.init(cache_factory_name, config_file, jgroups_config, cache_name, use_vthreads);
+            test.init(cache_factory_name, config_file, control_cfg, cache_name, use_vthreads);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             if(run_event_loop)
                 test.eventLoop();
@@ -932,7 +932,7 @@ public class Test implements Receiver {
 
     static void help() {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
-                            "[-cache <cache-name>] [-jgroups-cfg] [-nohup]\n" +
+                            "[-cache <cache-name>] [-control-cfg] [-nohup]\n" +
                             "Valid factory names:" +
                             "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n\n",
                           infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory);
