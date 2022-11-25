@@ -20,7 +20,7 @@ echo "-- Configuring host $HOST"
 
 ## Install IspnPerfTest from local installation via scp
 echo "-- Installing zip/unzip/git/tar/ant/netcat/net-tools"
-$INSTALL_TOOL -y install zip unzip git tar ant netcat net-tools
+$INSTALL_TOOL -y install zip unzip git tar ant netcat net-tools emacs
 
 if [ ! -d ~bela ]; then
   useradd bela -p bela

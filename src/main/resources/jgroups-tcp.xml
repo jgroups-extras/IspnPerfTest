@@ -11,18 +11,24 @@
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
     <TCP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
+         bind_port="7800"
          recv_buf_size="20M"
          send_buf_size="10M"
          bundler.max_size="64K"
          diag.enabled="true"
+         diag.enable_tcp="true"
 
          thread_pool.min_threads="0"
          thread_pool.max_threads="1000"
          thread_pool.keep_alive_time="30000" />
     <MPING />
+    <!-- Infinispan can only have *2* variables in a list -->
+    <TCPPING
+         initial_hosts="${tcpping.initial_hosts,env.INITIAL_HOSTS:127.0.0.1[7800]}"
+         port_range="${tcpping.port_range,env.PORT_RANGE:1}"/>
     <MERGE3 max_interval="30000"
             min_interval="10000"/>
-    <FD_SOCK2/>
+    <FD_SOCK/>
     <FD_ALL3 timeout="60000" interval="10000"/>
     <VERIFY_SUSPECT timeout="1500"  />
     <pbcast.NAKACK2 xmit_interval="500"/>

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-PWD=QwAo2U6GRxyNPKiZaOCx
+PASS=QwAo2U6GRxyNPKiZaOCx
 ISPN_PERF=IspnPerfTest
-ZIP=$HOME/$ISPN_PERF.zip
+ZIP=$ISPN_PERF.zip
 DIR=$ISPN_PERF/target/libs
 KEY=google_compute_engine.pub
 PUB_KEY=$HOME/.ssh/$KEY
@@ -14,6 +14,7 @@ if [ $# -eq 0 ]; then
 fi
 
 HOST=$1
+cd $HOME
 
 if [ -f $ZIP ]; then
    echo "$ZIP exists"
@@ -29,6 +30,8 @@ rm -f $HOME/$ISPN_PERF/target/libs/hazel*
 rm -f $HOME/$ISPN_PERF/target/libs/coher*
 rm -f $HOME/$ISPN_PERF/target/libs/rocks*
 scp -i $PUB_KEY $ZIP $PUB_KEY $HOME/infinispan-core*.jar $HOME/$ISPN_PERF/bin/install.sh $HOME/$ISPN_PERF/bin/install2.sh root@$HOST:~/
+
+cd -
 
 ssh root@${HOST} chmod +x install.sh
 

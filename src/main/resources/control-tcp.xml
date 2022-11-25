@@ -1,6 +1,8 @@
 
 <!--
-  TCP-based configuration for running on Google Compute Platform
+  Fast configuration for local mode, ie. all members reside on the same host. Setting ip_ttl to 0 means that
+  no multicast packet will make it outside the local host.
+  Therefore, this configuration will NOT work to cluster members residing on different hosts !
 
   Author: Bela Ban
 -->
@@ -9,20 +11,24 @@
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
     <TCP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
+         bind_port="7900"
          recv_buf_size="20M"
          send_buf_size="10M"
          bundler.max_size="64K"
          diag.enabled="true"
+         diag.enable_tcp="true"
+         diag.port="7501"
 
          thread_pool.min_threads="0"
-         thread_pool.max_threads="1000"
+         thread_pool.max_threads="100"
          thread_pool.keep_alive_time="30000" />
-    <MPING />
-    <org.jgroups.protocols.google.GOOGLE_PING2
-            location="${google.bucket_name:pick-your-own-unique-bucketname}" />
+    <MPING mcast_addr="232.2.2.2" mcast_port="7666" />
+    <TCPPING
+         initial_hosts="${tcpping.initial_hosts_control,INITIAL_HOSTS_CONTROL:127.0.0.1[7900]}"
+         port_range="${tcpping.port_range,PORT_RANGE:1}"/>
     <MERGE3 max_interval="30000"
             min_interval="10000"/>
-    <FD_SOCK2/>
+    <FD_SOCK/>
     <FD_ALL3 timeout="60000" interval="10000"/>
     <VERIFY_SUSPECT timeout="1500"  />
     <pbcast.NAKACK2 xmit_interval="500"/>

@@ -9,7 +9,6 @@
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
     <TCP
-         external_addr="${JGROUPS_EXTERNAL_ADDR:match-interface:eth0}"
 	     bind_addr="site_local,match-interface:eth0"
          bind_port="${TCP_PORT:7900}"
 
@@ -20,9 +19,8 @@
          diag.port="7501"
          thread_naming_pattern="cl"
 
-         use_virtual_threads="${use_fibers:false}"
          thread_pool.min_threads="0"
-         thread_pool.max_threads="100"
+         thread_pool.max_threads="200"
          thread_pool.keep_alive_time="30000" />
 
     <org.jgroups.protocols.google.GOOGLE_PING2
@@ -33,7 +31,7 @@
             min_interval="10000"/>
     <FD_SOCK external_addr="${JGROUPS_EXTERNAL_ADDR}"
              start_port="${FD_SOCK_PORT:9100}"/>
-    <FD_ALL timeout="30000" interval="5000"/>
+    <FD_ALL3 timeout="30000" interval="5000"/>
     <VERIFY_SUSPECT timeout="1500"  />
     <pbcast.NAKACK2 xmit_interval="500"
                     use_mcast_xmit="false"
