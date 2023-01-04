@@ -16,8 +16,8 @@
          diag.enabled="true"
          diag.enable_tcp="true"
 
-         use_io_uring="false"
-         use_native_transport="false"
+         use_io_uring="${IO_URING,env.IO_URING:false}"
+         use_native_transport="${NATIVE_TRANSPORT,env.NATIVE_TRANSPORT:false}"
 
          thread_pool.min_threads="0"
          thread_pool.max_threads="1000"
