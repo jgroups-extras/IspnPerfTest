@@ -6,12 +6,8 @@
     <dependencies>
         <dependency org="org.infinispan"                 name="infinispan-core"        rev="15.0.0-SNAPSHOT"/>
         <dependency org="org.infinispan"                 name="infinispan-commons"     rev="15.0.0-SNAPSHOT"/>
-        <dependency org="org.jgroups"                    name="jgroups"                rev="5.2.10.Final"/>
-        <!--dependency org="org.jboss.logging"              name="jboss-logging"          rev="3.3.+"/-->
-        <!--dependency org="org.jboss.marshalling"          name="jboss-marshalling-osgi" rev="1.4.+"/-->
-        <!--dependency org="log4j"                          name="log4j"                  rev="1.2.+"/-->
-        <!--dependency org="org.apache.logging.log4j"       name="log4j-api"              rev="2.+"/-->
-        <!--dependency org="org.apache.logging.log4j"       name="log4j-core"             rev="2.+"/-->
+        <dependency org="org.jgroups"                    name="jgroups"                rev="5.2.11.Final"/>
+        <dependency org="org.jgroups"                    name="jgroups-netty"          rev="1.0.0.Beta2-SNAPSHOT"/>
         <dependency org="com.hazelcast"                  name="hazelcast"              rev="5.+"/>
         <!--dependency org="com.oracle.coherence.ce"        name="coherence"              rev="22.06"/-->
 
@@ -26,7 +22,6 @@
         <dependency org="org.jgroups.kubernetes"         name="jgroups-kubernetes"     rev="1.0.+"/>
         <dependency org="org.jgroups.google"             name="jgroups-google"         rev="1.0.0.Alpha1"/>
         <dependency org="org.hdrhistogram"               name="HdrHistogram"           rev="2.1.+" />
-        <!--<exclude org="*" ext="*" type="source"/>-->
         <exclude org="*" ext="*" type="javadoc"/>
     </dependencies>
 </ivy-module>
