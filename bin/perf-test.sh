@@ -6,6 +6,7 @@
 DIR=`dirname $0`
 TARGET_DIR=$DIR/../target
 LIBS=$TARGET_DIR/libs
+CP=$TARGET_DIR/classes:$TARGET_DIR/libs/*
 
 if [ ! -d $TARGET_DIR ]; then
    echo "$TARGET_DIR not found; run build.sh first!"
@@ -90,4 +91,4 @@ export proc_id=$$
 
 # exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
 
-java --enable-preview -cp "$LIBS/*" $FLAGS $DEBUG org.perf.Test $*
+java --enable-preview -cp $CP $FLAGS $DEBUG org.perf.Test $*
