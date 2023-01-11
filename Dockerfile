@@ -1,7 +1,7 @@
 
 ## The first stage is used to git-clone and build JGroups; this requires a JDK/javac/git/ant
 FROM adoptopenjdk/openjdk11 as build1
-RUN apt-get update ; apt-get install -y git maven net-tools netcat iputils-ping dnsutils
+RUN apt-get update ; apt-get install -y git maven net-tools netcat iputils-ping dnsutils emacs
 
 FROM build1 as build2
 ## Download and build JGroups src code
