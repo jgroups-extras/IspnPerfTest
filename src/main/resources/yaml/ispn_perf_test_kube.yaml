@@ -1,0 +1,68 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+    labels:
+      run: nyc
+    name: nyc
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        run: nyc
+    template:
+      metadata:
+        labels:
+          run: nyc
+          deploymentConfig: nyc
+      spec:
+        containers:
+        - image: belaban/ispn_perf_test
+          imagePullPolicy: Always
+          name: nyc
+          command: ["perf-test.sh"]
+          args: ["-cfg dist-sync-kube-dns.xml -control-cfg control-kube-dns.xml -nohup"]
+          env:
+            - name: site
+              value: "NYC"
+            - name: backup.site
+              value: "LON"
+            - name: CONTROL_MCAST_PORT
+              value: "55590"
+            - name: local.bind_port
+              value: "7850"
+            - name: global.bind_port
+              value: "7900"
+            - name: jgroups.dns_query
+              value: "NYC"
+            - name: jgroups.tunnel.port_range
+              value: "0"
+            - name: jgroups.tunnel.gossip_router_hosts
+              value: "35.228.95.210[12001],35.232.85.117[12001]"
+kind: List
+metadata: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: nyc
+  labels:
+    run: nyc
+spec:
+  publishNotReadyAddresses: true
+  clusterIP: None
+  ports:
+    - name: nyc
+      port: 7850
+      protocol: TCP
+      targetPort: 7850
+  selector:
+    run: nyc
+
+
+
+
