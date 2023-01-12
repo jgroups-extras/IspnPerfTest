@@ -15,8 +15,8 @@
 
          recv_buf_size="10M"
          send_buf_size="2M"
-         max_bundle_size="64K"
-         enable_diagnostics="true"
+         bundler.max_size="64K"
+         diag.enabled="true"
          thread_naming_pattern="cl"
 
          buffered_input_stream_size="32000"

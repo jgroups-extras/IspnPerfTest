@@ -10,7 +10,7 @@
 
         <!-- Bridge cluster for traffic between sites (joined by site masters only) -->
         <stack name="global" extends="tcp">
-            <TUNNEL xmlns="urn:org:jgroups" enable_diagnostics="true"
+            <TUNNEL xmlns="urn:org:jgroups" diag.enabled="true"
                     port_range="${env.jgroups.tunnel.port_range:0}" bind_port="${env.global.bind_port:7900}"
                     gossip_router_hosts="${env.jgroups.tunnel.gossip_router_hosts:localhost[12001]}"
                     stack.combine="REPLACE" stack.position="TCP"/>
@@ -19,7 +19,7 @@
 
         <!-- Local cluster for intra-site traffic; with a RELAY2  to connect to other sites via the bridge cluster (see above) -->
         <stack name="local" extends="kubernetes">
-            <TCP enable_diagnostics="true" bind_port="${env.local.bind_port:7800}" port_range="1"/>
+            <TCP diag.enabled="true" bind_port="${env.local.bind_port:7800}" port_range="1"/>
             <dns.DNS_PING return_entire_cache="true" dns_query="${env.jgroups.dns_query:xsite}"/>
             <relay.RELAY2 site="${env.site:LON}" xmlns="urn:org:jgroups"
                           max_site_masters="1" stack.combine="INSERT_AFTER" stack.position="FRAG3"/>

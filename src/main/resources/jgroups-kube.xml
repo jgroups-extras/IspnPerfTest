@@ -15,8 +15,8 @@
 
          recv_buf_size="5M"
          send_buf_size="1M"
-         max_bundle_size="64K"
-         enable_diagnostics="true"
+         bundler.max_size="64K"
+         diag.enabled="true"
          thread_naming_pattern="cl"
 
          use_virtual_threads="${use_fibers:false}"
