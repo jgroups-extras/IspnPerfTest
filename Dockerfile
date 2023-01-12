@@ -1,6 +1,6 @@
 
-# Build: docker build -f Dockerfile -t belaban/ispn-perf-test .
-# Push: docker push belaban/ispn-perf-test
+# Build: docker build -f Dockerfile -t belaban/ispn_perf_test .
+# Push: docker push belaban/ispn_perf_test
 
 FROM adoptopenjdk/openjdk11 as build-stage
 RUN apt-get update ; apt-get install -y git maven net-tools netcat iputils-ping dnsutils emacs

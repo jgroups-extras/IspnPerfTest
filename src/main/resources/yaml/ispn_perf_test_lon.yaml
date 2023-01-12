@@ -19,7 +19,7 @@ items:
           deploymentConfig: lon
       spec:
         containers:
-        - image: belaban/ispn-perf-test
+        - image: belaban/ispn_perf_test
           imagePullPolicy: Always
           name: lon
           command: ["perf-test.sh"]
