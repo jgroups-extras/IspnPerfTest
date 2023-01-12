@@ -19,7 +19,7 @@ items:
           deploymentConfig: nyc
       spec:
         containers:
-        - image: belaban/ispn_perf_test
+        - image: belaban/ispn-perf-test
           imagePullPolicy: Always
           name: nyc
           command: ["perf-test.sh"]
