@@ -22,7 +22,7 @@
             <TCP diag.enabled="true" bind_port="${env.local.bind_port:7800}" port_range="1"/>
             <dns.DNS_PING return_entire_cache="true" dns_query="${env.jgroups.dns_query:xsite}"/>
             <relay.RELAY2 site="${env.site:LON}" xmlns="urn:org:jgroups"
-                          max_site_masters="1" stack.combine="INSERT_AFTER" stack.position="FRAG3"/>
+                          max_site_masters="1" stack.combine="INSERT_AFTER" stack.position="FRAG2"/>
             <remote-sites default-stack="global">
                 <remote-site name="LON"/>
                 <remote-site name="NYC"/>
