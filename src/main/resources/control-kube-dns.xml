@@ -12,6 +12,7 @@
          external_addr="${JGROUPS_EXTERNAL_ADDR:match-interface:eth0}"
 	     bind_addr="site_local,match-interface:eth0"
          bind_port="${TCP_PORT:7900}"
+         port_range="3"
 
          recv_buf_size="200k"
          send_buf_size="200k"
@@ -29,7 +30,6 @@
         initial_hosts="172.31.47.164[7800],172.31.43.171[7800]"/-->
 
     <dns.DNS_PING
-            dns_address="${KUBERNETES_SERVICE_HOST:127.0.0.1}"
             dns_query="${DNS_QUERY_CONTROL,env.DNS_QUERY_CONTROL:control-ispn-perf-test}"
     />
 
