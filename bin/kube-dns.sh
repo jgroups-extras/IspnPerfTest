@@ -26,6 +26,6 @@ fi;
 FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
-#DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787"
+#DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:8787"
 
 exec `dirname $0`/perf-test.sh -cfg dist-sync-kube-dns.xml -jgroups-cfg control-kube-dns.xml $*

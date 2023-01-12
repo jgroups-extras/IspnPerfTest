@@ -67,7 +67,7 @@ FLAGS="$FLAGS -Dinfinispan.stagger.delay=5000"
 
 #java -Xrunhprof:cpu=samples,monitor=y,interval=5,lineno=y,thread=y -classpath $CP $LOG $FLAGS $JMX  $*
 
-#DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787"
+#DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:8787"
 #GC_LOG="-XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$HOME/gclog.log"
 
 
