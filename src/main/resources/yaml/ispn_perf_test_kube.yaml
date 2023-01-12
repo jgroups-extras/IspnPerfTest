@@ -37,6 +37,10 @@ items:
               value: "7900"
             - name: jgroups.dns_query
               value: "NYC"
+            - name: DNS_QUERY
+              value: "NYC"
+            - name: DNS_QUERY_CONTROL
+              value: "NYC"
             - name: jgroups.tunnel.port_range
               value: "0"
             - name: jgroups.tunnel.gossip_router_hosts

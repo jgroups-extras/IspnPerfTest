@@ -29,7 +29,7 @@
 
     <dns.DNS_PING
             dns_address="${KUBERNETES_SERVICE_HOST:127.0.0.1}"
-            dns_query="${DNS_QUERY:ispn-perf-test}"
+            dns_query="${DNS_QUERY,env.DNS_QUERY:ispn-perf-test}"
     />
 
     <MERGE3 max_interval="30000"
