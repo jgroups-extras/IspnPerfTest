@@ -28,4 +28,4 @@ FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
 #DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787"
 
-exec `dirname $0`/perf-test.sh -cfg dist-sync-kube.xml -jgroups-cfg control-kube.xml $*
+exec `dirname $0`/perf-test.sh -cfg dist-sync-kube.xml -control-cfg control-kube.xml $*
