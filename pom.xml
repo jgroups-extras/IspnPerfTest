@@ -173,7 +173,7 @@
         <dependency>
             <groupId>org.jgroups</groupId>
             <artifactId>jgroups</artifactId>
-            <version>5.2.10.Final</version>
+            <version>${version.jgroups}</version>
         </dependency>
 
         <dependency>
