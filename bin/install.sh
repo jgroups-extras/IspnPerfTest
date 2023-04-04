@@ -37,7 +37,7 @@ else
 fi
 
 cp $ZIP_FILE ~bela/$ISPN_PERF.zip
-cp infinispan-*.jar id_rsa.pub install2.sh ~bela/
+cp id_rsa.pub install2.sh ~bela/
 chown -R bela:bela ~bela
 
 
