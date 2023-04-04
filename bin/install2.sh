@@ -28,18 +28,9 @@ sdk install java 11.0.12-open
 sdk use java 11.0.12-open
 
 
-#sdk install java 20.ea.24-open
+#sdk install java 21.ea.16-open
 
-echo "--  Installing JGroups"
-git clone https://github.com/belaban/JGroups.git
-cd JGroups ; ant
 
-if [[ -z "${JGROUPS_HOME}" ]]; then
-  export JGROUPS_HOME=$HOME/JGroups
-  PATH=$PATH:$JGROUPS_HOME/bin
-  echo 'export JGROUPS_HOME=$HOME/JGroups
-  PATH=$PATH:$JGROUPS_HOME/bin' >> $HOME/.bashrc
-fi
 
 
 

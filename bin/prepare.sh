@@ -16,6 +16,11 @@ fi
 HOST=$1
 cd $HOME
 
+cd JGroups ; make.sh package ; cd
+rm -f $DIR/jgroups-5*.jar
+cp JGroups/target/jgroups-5*.jar $DIR/
+
+
 if [ -f $ZIP ]; then
    echo "$ZIP exists"
 else
@@ -26,10 +31,7 @@ fi
 
 echo "-- Uploading artifacts to $HOST"
 
-rm -f $HOME/$ISPN_PERF/target/libs/hazel*
-rm -f $HOME/$ISPN_PERF/target/libs/coher*
-rm -f $HOME/$ISPN_PERF/target/libs/rocks*
-scp -i $PUB_KEY $ZIP $PUB_KEY $HOME/infinispan-core*.jar $HOME/$ISPN_PERF/bin/install.sh $HOME/$ISPN_PERF/bin/install2.sh root@$HOST:~/
+scp -i $PUB_KEY $ZIP $PUB_KEY $HOME/$ISPN_PERF/bin/install.sh $HOME/$ISPN_PERF/bin/install2.sh root@$HOST:~/
 
 cd -
 
