@@ -19,6 +19,8 @@ unzip $ISPN_PERF.zip
 echo "-- Installing sdkman"
 curl -s "https://get.sdkman.io" | bash
 
+echo "export PATH=\$PATH:$DIR/bin" >> $HOME/.bashrc
+
 source $HOME/.bashrc
 
 ## Install Java 11 and 19
