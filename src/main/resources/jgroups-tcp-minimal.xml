@@ -11,6 +11,7 @@
 
    <TCP  bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
          bind_port="${jgroups.bind_port:7800}"
+         diag.enable_tcp="true"
 
          recv_buf_size="20M"
          send_buf_size="10M"

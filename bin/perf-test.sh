@@ -30,7 +30,7 @@ if [ -f $HOME/logging.properties ]; then
     LOG="$LOG -Djava.util.logging.config.file=$HOME/logging.properties"
 fi;
 
-FLAGS="$JAVA_OPTIONS"
+FLAGS="$JAVA_OPTS"
 
 ### Note: change max heap to 2G on cluster01-08 (physical mem: 4G) !
 ### On edg-perf, this is OK (physical mem: 32G)
@@ -91,6 +91,6 @@ export proc_id=$$
 
 # exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
 
-FLAGS="$FLAGD -Dorg.infinispan.threads.virtual=true"
+FLAGS="$FLAGS -Dorg.infinispan.threads.virtual=true"
 
 java --enable-preview -cp $CP $FLAGS $DEBUG org.perf.Test $*
