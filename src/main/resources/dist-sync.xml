@@ -10,13 +10,6 @@
         <stack-file name="jgroupsStack" path="jgroups-tcp.xml"/>
     </jgroups>
 
-   <!-- <threads>
-        <thread-factory name="transport-factory"/>
-        <blocking-bounded-queue-thread-pool name="custom-remote" core-threads="0" max-threads="1000"
-                                            keepalive-time="60000" queue-length="5" thread-factory="transport-factory"/>
-    </threads>-->
-
-
     <cache-container name="default" default-cache="perf-cache">
         <!--transport stack="jgroupsStack" lock-timeout="600000" cluster="default" remote-command-executor="custom-remote" /-->
         <transport stack="jgroupsStack" lock-timeout="600000" cluster="default" />
