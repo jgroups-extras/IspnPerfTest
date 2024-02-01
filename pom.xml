@@ -46,9 +46,8 @@
 
     <properties>
         <!--version.jgroups>4.2.0.Final</version.jgroups-->
-        <version.infinispan>15.0.0-SNAPSHOT</version.infinispan>
-        <version.jgroups>5.2.14.Final</version.jgroups>
-        <version.jgroups-netty>1.0.0.Beta2-SNAPSHOT</version.jgroups-netty>
+        <version.infinispan>15.0.0.Dev08</version.infinispan>
+        <version.jgroups>5.3.2.Final</version.jgroups>
         <version.hazelcast>5.2.1</version.hazelcast>
         <version.hdrhistogram>2.1.10</version.hdrhistogram>
 
@@ -165,10 +164,10 @@
         </dependency>
 
 
-        <dependency>
+       <!-- <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-clustered-counter</artifactId>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>org.jgroups</groupId>

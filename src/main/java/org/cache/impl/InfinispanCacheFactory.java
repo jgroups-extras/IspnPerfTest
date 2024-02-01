@@ -3,6 +3,7 @@ package org.cache.impl;
 import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.infinispan.context.Flag;
+import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.notifications.Listener;
@@ -38,12 +39,14 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
         org.infinispan.Cache<K,V> cache=mgr.getCache(cache_name);
         // for a put(), we don't need the previous value
         cache=cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES);
-        return new InfinispanCache(cache);
+        return new InfinispanCache<>(cache);
     }
 
     @ViewChanged
     public static void viewChanged(ViewChangedEvent evt) {
-        Transport transport=evt.getCacheManager().getTransport();
+        // Transport transport=evt.getCacheManager().getTransport();
+        Transport transport=GlobalComponentRegistry.componentOf(evt.getCacheManager(), Transport.class);
+
         if(transport instanceof JGroupsTransport) {
             View view=((JGroupsTransport)transport).getChannel().getView();
             System.out.println("** view: " + view);

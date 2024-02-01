@@ -1,7 +1,7 @@
-package main.test.org.perf;
+package org.perf;
 
-import main.java.org.cache.impl.tri.Data;
-import main.java.org.cache.impl.tri.DataBatch;
+import org.cache.impl.tri.Data;
+import org.cache.impl.tri.DataBatch;
 import org.jgroups.Address;
 import org.jgroups.util.Util;
 
@@ -17,8 +17,8 @@ public class DataBatchTest {
     protected static final Address addr=Util.createRandomAddress("A");
 
     public void testIterator() {
-        DataBatch batch=new DataBatch(addr, 10);
-        Stream.of(TriCacheTest.create()).forEach(batch::add);
+        DataBatch<Integer,byte[]> batch=new DataBatch<>(addr, 10);
+        Stream.of(org.perf.TriCacheTest.create()).forEach(batch::add);
         System.out.println("batch = " + batch);
 
         AtomicInteger num=new AtomicInteger(0);
@@ -39,8 +39,8 @@ public class DataBatchTest {
     }
 
     public void testIterator2() {
-        DataBatch batch=new DataBatch(addr, 10);
-        Stream.of(TriCacheTest.create()).forEach(batch::add);
+        DataBatch<Integer,byte[]> batch=new DataBatch<>(addr, 10);
+        Stream.of(org.perf.TriCacheTest.create()).forEach(batch::add);
         System.out.println("batch = " + batch);
 
         AtomicInteger num=new AtomicInteger(0);
