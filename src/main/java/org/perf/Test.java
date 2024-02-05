@@ -20,6 +20,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,7 +91,7 @@ public class Test implements Receiver {
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
       "\n[5] Keys (%,d) [6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
-      "\n[p] Populate cache [c] Clear cache [v] Versions" +
+      "\n[p] Populate cache (parallel) [P] Populate the cache (serial) [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b) [l] dump local cache" +
       "\n[q] Quit [X] Quit all\n";
@@ -404,7 +406,10 @@ public class Test implements Receiver {
                         changeFieldAcrossCluster("read_percentage", percentage);
                     break;
                 case 'p':
-                    populateCache();
+                    populateCache(50);
+                    break;
+                case 'P':
+                    populateCache(1);
                     break;
                 case 'v':
                     System.out.printf("JGroups: %s, Infinispan: %s\n",
@@ -576,13 +581,16 @@ public class Test implements Receiver {
     }
 
     // Inserts num_keys keys into the cache (in parallel)
-    protected void populateCache() throws InterruptedException {
+    protected void populateCache(int concurrency) throws InterruptedException {
         final AtomicInteger key=new AtomicInteger(1);
         final int           print=num_keys / 10;
         final UUID          local_uuid=(UUID)local_addr;
         final AtomicInteger count=new AtomicInteger(1);
 
-        Thread[] inserters=new Thread[50];
+        Instant start = Instant.now();
+
+        System.out.printf("Starting to load %d keys with concurrency %d%n", (num_keys - key.get()) + 1, concurrency);
+        Thread[] inserters=new Thread[concurrency];
         for(int i=0; i < inserters.length; i++) {
             inserters[i]=new Thread(() -> {
                 for(;;) {
@@ -607,6 +615,9 @@ public class Test implements Receiver {
             inserter.start();
         for(Thread inserter: inserters)
             inserter.join();
+
+        Instant end = Instant.now();
+        System.out.printf("%nFinished loading %s keys with concurrency %d in %dms%n", num_keys, concurrency, Duration.between(start, end).toMillis());
     }
 
     protected static void writeTo(UUID addr, long seqno, byte[] buf, int offset) {
