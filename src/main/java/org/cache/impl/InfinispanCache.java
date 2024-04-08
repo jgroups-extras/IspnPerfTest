@@ -43,9 +43,6 @@ public class InfinispanCache<K,V> implements Cache<K,V> {
     }
 
     public Map<K,V> getContents() {
-        Map<K,V> contents=new HashMap<>();
-        for(Map.Entry<K,V> entry: cache.getAdvancedCache().withFlags(Flag.CACHE_MODE_LOCAL).entrySet())
-            contents.put(entry.getKey(), entry.getValue());
-        return contents;
+        return new HashMap<>(cache.getAdvancedCache().withFlags(Flag.CACHE_MODE_LOCAL));
     }
 }

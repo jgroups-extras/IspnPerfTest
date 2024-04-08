@@ -4,22 +4,22 @@
     <info organisation="org.perf" module="ispn-perf-test" revision="1.0.0"/>
 
     <dependencies>
-        <dependency org="org.infinispan"                 name="infinispan-core"        rev="15.0.0.Dev08"/>
-        <dependency org="org.infinispan"                 name="infinispan-commons"     rev="15.0.0.Dev08"/>
-        <dependency org="org.jgroups"                    name="jgroups"                rev="5.3.2.Final"/>
+        <dependency org="org.infinispan"                 name="infinispan-core"        rev="14.0.27.Final"/>
+        <dependency org="org.infinispan"                 name="infinispan-commons"     rev="14.0.27.Final"/>
+        <dependency org="org.jgroups"                    name="jgroups"                rev="5.2.23.Final"/>
         <dependency org="com.hazelcast"                  name="hazelcast"              rev="5.+"/>
         <!--dependency org="com.oracle.coherence.ce"        name="coherence"              rev="22.06"/-->
 
-        <dependency org="com.lmax"                       name="disruptor"              rev="3.+"/>
+        <dependency org="com.lmax"                       name="disruptor"              rev="4.+"/>
         <!--dependency org="org.jboss.byteman"              name="byteman"                rev="4.+"/>
         <dependency org="org.jboss.byteman"              name="byteman-bmunit"         rev="4.+"/>
         <dependency org="org.jboss.byteman"              name="byteman-install"        rev="4.+"/>
         <dependency org="org.jboss.byteman"              name="byteman-submit"         rev="4.+"/-->
-        <dependency org="org.testng"                     name="testng"                 rev="6.9.+"/>
+        <dependency org="org.testng"                     name="testng"                 rev="7.10.+"/>
         <dependency org="com.amazonaws"                  name="aws-java-sdk-s3"        rev="1.11.+"/>
-        <dependency org="org.jgroups.aws.s3"             name="native-s3-ping"         rev="0.9.3.Final"/>
-        <dependency org="org.jgroups.kubernetes"         name="jgroups-kubernetes"     rev="1.0.+"/>
-        <dependency org="org.jgroups.google"             name="jgroups-google"         rev="1.0.0.Alpha1"/>
+        <dependency org="org.jgroups.aws.s3"             name="native-s3-ping"         rev="1.0.0.Final"/>
+        <dependency org="org.jgroups.kubernetes"         name="jgroups-kubernetes"     rev="2.0.+"/>
+        <dependency org="org.jgroups.google"             name="jgroups-google"         rev="2.0.+"/>
         <dependency org="org.hdrhistogram"               name="HdrHistogram"           rev="2.1.+" />
         <exclude org="*" ext="*" type="javadoc"/>
     </dependencies>
