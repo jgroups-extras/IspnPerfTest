@@ -3,15 +3,12 @@ package org.cache.impl;
 import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.infinispan.context.Flag;
-import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.notifications.Listener;
 import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
 import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
-import org.infinispan.remoting.transport.Transport;
-import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.jgroups.View;
+import org.jgroups.util.Util;
 
 /**
  * @author Bela Ban
@@ -44,14 +41,12 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
 
     @ViewChanged
     public static void viewChanged(ViewChangedEvent evt) {
-        // Transport transport=evt.getCacheManager().getTransport();
-        Transport transport=GlobalComponentRegistry.componentOf(evt.getCacheManager(), Transport.class);
-
-        if(transport instanceof JGroupsTransport) {
-            View view=((JGroupsTransport)transport).getChannel().getView();
-            System.out.println("** view: " + view);
+        StringBuilder sb = new StringBuilder(64);
+        sb.append(evt.getViewId());
+        if (evt.getNewMembers() != null) {
+            sb.append(" (").append(evt.getNewMembers().size()).append(")");
+            sb.append(" [").append(Util.printListWithDelimiter(evt.getNewMembers(), ", ", Util.MAX_LIST_PRINT_SIZE)).append("]");
         }
-        else
-            System.out.println("** view: " + evt);
+        System.out.println("** view: " + sb);
     }
 }
