@@ -20,7 +20,7 @@
          tcp_nodelay="false"
 
          thread_pool.enabled="${tp:true}"
-         use_vthreads="${vthreads:true}"
+         use_virtual_threads="${vthreads:true}"
 
          thread_pool.min_threads="0"
          thread_pool.max_threads="1000"
