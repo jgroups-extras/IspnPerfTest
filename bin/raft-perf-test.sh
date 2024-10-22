@@ -91,4 +91,4 @@ export proc_id=$$
 FLAGS="$FLAGS -Dorg.infinispan.threads.virtual=true"
 
 export raft_id="$@"; shift;
-java -Draft_id=$raft_id --enable-preview -cp $CP $FLAGS $DEBUG org.perf.Test -factory raft -cfg raft.xml $*
+java -Draft_id=$raft_id --enable-preview -cp $CP $FLAGS $DEBUG org.perf.Test -factory raft -cfg jgroups-tcp-raft.xml $*
