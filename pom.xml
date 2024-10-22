@@ -221,7 +221,7 @@
         <dependency>
             <groupId>org.jgroups</groupId>
             <artifactId>jgroups-raft</artifactId>
-            <version>1.0.12.Final</version>
+            <version>1.0.14.Final</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jgroups</groupId>

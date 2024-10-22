@@ -6,6 +6,7 @@ import org.cache.CacheFactory;
 import org.cache.impl.DummyCacheFactory;
 import org.cache.impl.HazelcastCacheFactory;
 import org.cache.impl.InfinispanCacheFactory;
+import org.cache.impl.RaftCacheFactory;
 import org.cache.impl.tri.TriCacheFactory;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
@@ -86,6 +87,7 @@ public class Test implements Receiver {
     protected static final String coherence_factory="org.cache.impl.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String tri_factory=TriCacheFactory.class.getName();
     protected static final String dummy_factory=DummyCacheFactory.class.getName();
+    protected static final String raft_factory= RaftCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
       "\n[5] Keys (%,d) [6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
@@ -917,6 +919,8 @@ public class Test implements Receiver {
                 case "dummy":
                     cache_factory_name=dummy_factory;
                     break;
+                case "raft":
+                    cache_factory_name=raft_factory;
             }
             test.init(cache_factory_name, config_file, control_cfg, cache_name, use_vthreads);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
@@ -934,8 +938,8 @@ public class Test implements Receiver {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
                             "[-cache <cache-name>] [-control-cfg] [-nohup]\n" +
                             "Valid factory names:" +
-                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n\n",
-                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory);
+                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\n\n",
+                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory, raft_factory);
     }
 
 
