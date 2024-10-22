@@ -46,7 +46,7 @@
 
     <properties>
         <version.infinispan>15.0.0.Final</version.infinispan>
-        <version.jgroups>5.3.4.Final</version.jgroups>
+        <version.jgroups>5.3.13.Final</version.jgroups>
         <version.hazelcast>5.2.5</version.hazelcast>
         <version.hdrhistogram>2.1.12</version.hdrhistogram>
         <version.log4j>2.23.0</version.log4j>
