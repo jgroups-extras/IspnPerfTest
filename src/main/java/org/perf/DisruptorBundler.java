@@ -163,7 +163,7 @@ public class DisruptorBundler extends BaseBundler implements EventHandler<Disrup
                         Message msg=msg_queue[i];
                         // since we assigned the matching destination we can do plain ==
                         if(msg != null && msg.getDest() == dest) {
-                            msg.writeToNoAddrs(msg.getSrc(), output, transport.getId());
+                            msg.writeToNoAddrs(msg.getSrc(), output);
                             msg_queue[i]=null;
                         }
                     }
