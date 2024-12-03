@@ -19,7 +19,6 @@
          diag.enable_tcp="true"
          tcp_nodelay="false"
 
-         thread_pool.enabled="${tp:true}"
          use_virtual_threads="${vthreads:true}"
 
          thread_pool.min_threads="0"
