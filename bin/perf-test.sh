@@ -93,4 +93,4 @@ export proc_id=$$
 
 FLAGS="$FLAGS -Dorg.infinispan.threads.virtual=true"
 
-java --enable-preview -cp $CP $FLAGS $DEBUG org.perf.Test $*
+java -cp $CP $FLAGS $DEBUG org.perf.Test $*
