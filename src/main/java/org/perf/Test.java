@@ -102,8 +102,8 @@ public class Test implements Receiver {
 
     public void init(String factory_name, String cfg, String jgroups_config, String cache_name, boolean use_virtual_threads) throws Exception {
         thread_factory=new DefaultThreadFactory("invoker", false, true)
-          .useFibers(use_virtual_threads);
-        if(use_virtual_threads && Util.fibersAvailable())
+          .useVirtualThreads(use_virtual_threads);
+        if(use_virtual_threads && Util.virtualThreadsAvailable())
             System.out.println("-- using virtual threads");
 
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory_name, (Class<?>)null);
@@ -411,7 +411,7 @@ public class Test implements Receiver {
                 case 'v':
                     System.out.printf("JGroups: %s, Infinispan: %s\n",
                                       org.jgroups.Version.printDescription(),
-                                      org.infinispan.Version.printVersion());
+                                      org.infinispan.commons.util.Version.printVersion());
                     break;
                 case 'q':
                 case 0: // remove on upgrade to next JGroups version
