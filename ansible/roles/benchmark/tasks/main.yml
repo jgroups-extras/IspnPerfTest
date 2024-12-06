@@ -1,0 +1,10 @@
+- debug:
+    msg: "Server Operation is {{ operation | default('DEFAULT') }}"
+
+- name: "Initializing benchmark requirements"
+  ansible.builtin.include_tasks: init.yml
+  when: operation is undefined or operation is search("init")
+
+- name: Upload benchmark files
+  ansible.builtin.include_tasks: upload.yml
+  when: operation is undefined or operation is search("upload")

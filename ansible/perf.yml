@@ -1,0 +1,2 @@
+- hosts: "instances"
+  roles: [ benchmark ]

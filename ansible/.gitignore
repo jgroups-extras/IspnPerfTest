@@ -1,0 +1,4 @@
+*.pem
+*inventory.yaml
+ansible.cfg
+env

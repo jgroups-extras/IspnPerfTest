@@ -1,0 +1,83 @@
+- name: Get Ansible Control Host's public IP
+  shell: curl -ks --ipv4 https://ifconfig.me
+  register: control_host_ip
+  no_log: "{{ no_log_sensitive }}"
+
+- debug: var=cidr_ip
+
+- name: Create Security Group
+  amazon.aws.ec2_security_group:
+    state: present
+    region: '{{ region }}'
+    name: '{{ cluster_name }}'
+    description: '{{ cluster_name }}'
+    rules:
+      # Open for SSH
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: '{{ cidr_ip }}'
+
+      # Open all inbound from same security group
+      - proto: -1
+        group_name: "{{ cluster_name }}"
+  register: group
+  no_log: "{{ no_log_sensitive }}"
+
+- name: Create Key
+  amazon.aws.ec2_key:
+    state: present
+    region: '{{ region }}'
+    name: '{{ cluster_name }}'
+  register: key
+  no_log: "{{ no_log_sensitive }}"
+
+- name: Save Private Key on Ansible Control Machine
+  when: key.changed
+  copy:
+    content: '{{ key.key.private_key }}'
+    dest: '{{ cluster_name }}_{{ region }}.pem'
+    mode: 0600
+  no_log: "{{ no_log_sensitive }}"
+
+- name: "Look up AMI {{ test_ami_name }}"
+  amazon.aws.ec2_ami_info:
+    region: "{{ region }}"
+    filters:
+      name: "{{ test_ami_name }}"
+  register: ami_info
+
+- name: "Create {{ test_cluster_size }} EC2 Instances"
+  amazon.aws.ec2_instance:
+    state: started
+    region: "{{ region }}"
+    name: "ispn_perf_{{ cluster_name }}"
+    count: "{{ test_cluster_size }}"
+    instance_type: "{{ test_instance_type }}"
+    image_id: "{{ ami_info.images[0].image_id }}"
+    key_name: "{{ cluster_name }}"
+    security_group: "{{ group.group_id }}"
+    network:
+      assign_public_ip: yes
+    volumes:
+      - device_name: "{{ test_volume_name }}"
+        ebs:
+          volume_size: "{{ test_volume_size }}"
+          delete_on_termination: true
+  register: instance_info
+  no_log: "{{ no_log_sensitive }}"
+
+# Needed because register doesn't allow for dynamic variable name generation but set_fact does
+- name: Set instance information
+  set_fact:
+    "test_instances": "{{ instance_info.instances }}"
+
+- name: Create Inventory File
+  template:
+    src: inventory.yaml.j2
+    dest: '{{ cluster_name }}_{{ region }}_inventory.yaml'
+
+- name: Create environment file
+  template:
+    src: env.j2
+    dest: env

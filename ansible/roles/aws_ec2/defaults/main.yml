@@ -1,0 +1,13 @@
+cluster_identifier: "{{ lookup('env', 'USER') }}"
+cluster_name: "benchmark_{{ cluster_identifier }}"
+
+cidr_ip: "{{ control_host_ip.stdout }}/32"
+
+test_cluster_size: 1
+test_instance_type: t4g.small
+test_ami_name: al2023-ami-2023.6.20241121.0-kernel-6.1-arm64
+test_user: ec2-user
+test_volume_name: /dev/xvda
+test_volume_size: 8
+
+no_log_sensitive: true

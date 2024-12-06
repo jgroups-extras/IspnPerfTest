@@ -1,0 +1,4 @@
+# Used to explicitly override the installed java package.
+# If not supplied will pick one based on OS of Fedora, RedHat
+# Ubuntu, Debian or Linux
+java_package: "{{ undef() }}"

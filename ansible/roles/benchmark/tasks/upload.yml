@@ -1,0 +1,8 @@
+- name: "Upload script files"
+  synchronize: src="{{ bin_folder }}" dest="{{ remote_folder }}"
+
+- name: "Upload target folder"
+  synchronize: src="{{ target_folder }}" dest="{{ remote_folder }}"
+
+- name: "Upload env file"
+  synchronize: src="env" dest="{{ remote_folder }}"

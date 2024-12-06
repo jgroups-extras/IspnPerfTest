@@ -1,0 +1,11 @@
+all:
+  vars:
+    ansible_ssh_private_key_file: {{ cluster_name }}_{{ region }}.pem
+
+instances:
+   vars:
+     ansible_user: {{ test_user }}
+   hosts:
+{% for instance in test_instances %}
+     {{ instance.public_dns_name }}:
+{% endfor %}

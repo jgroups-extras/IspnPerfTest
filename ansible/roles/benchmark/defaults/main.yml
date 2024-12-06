@@ -1,0 +1,4 @@
+bin_folder: "../bin"
+target_folder: "../target"
+
+remote_folder: "/home/{{ ansible_user }}"

@@ -1,0 +1,9 @@
+- name: "Installing Java on instances"
+  ansible.builtin.include_role:
+    name: java_installer
+
+- name: Install rsync
+  package:
+    name: rsync
+    state: present
+  become: true
