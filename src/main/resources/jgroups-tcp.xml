@@ -22,8 +22,8 @@
          use_virtual_threads="${vthreads:true}"
 
          thread_pool.min_threads="0"
-         thread_pool.max_threads="1000"
-         thread_pool.keep_alive_time="30000" />
+         thread_pool.max_threads="200"
+         thread_pool.keep_alive_time="60s" />
     <MPING />
     <!-- Infinispan can only have *2* variables in a list -->
     <TCPPING
@@ -39,12 +39,6 @@
     <pbcast.STABLE desired_avg_gossip="50000"
                    max_bytes="8m"/>
     <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
-
-
-    <!--BATCH2 flush_interval="50"
-               poll_timeout="100"
-               max_batch_size="50" /-->
-
     <UFC max_credits="4M"
          min_threshold="0.4"/>
     <MFC max_credits="4M"
