@@ -1,0 +1,6 @@
+- debug:
+    msg: "Stopping IspnPerf test"
+
+- block:
+    - name: Stopping java processes
+      ansible.builtin.shell: "pkill java"

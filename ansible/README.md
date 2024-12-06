@@ -12,25 +12,51 @@ The nodes provisioned by Ansible require sshd and the correct keys uploaded.
 Playbooks
 ---------
 
-The main playbook to run IspnPerf is `perf.yml`.
-This playbook allows to interact with the provisioned nodes to synchronize, start, and stop the test.
+There are multiple playbooks to help manage dependencies, files, start and stop the test.
+
+### perf.yml
+
+This playbook allows to interact with the provisioned nodes to synchronize and install dependencies.
+This should be run before trying to run any test.
 This is defined by which kind of operation to perform:
 
 * `-e operation=upload`: Will synchronize the files from the parent folder in all nodes.
 This should be executed after changes in the configuration files or the Java source.
 You need to recompile the project and synchronize. This step uploads the scripts in `bin/`, the compiled source (`target/`) and the environment file `env`.
 * `-e operation=init`: Install the dependencies to run the tests.
-* `-e operation=start`: Start IspnPerf with the provided arguments. It skips the first host in the inventory file, as it should be the control node.
-* `-e operation=stop`: Stop all nodes running IspnPerf.
 
 To run this playbook the inventory file is required. You can run as:
 
 ```bash
-$ ansible-playbook -i inventory.yaml perf.yml -e operation=[init|upload|start|stop]
+$ ansible-playbook -i inventory.yaml perf.yml -e operation=[init|upload]
 ```
 
 > [!NOTE]
 > Running without the `-e operation` argument runs the `init` and `upload` steps.
+
+### start.yml
+
+This playbook will start IspnPerf in `-nohup` mode with the provided arguments:
+
+* `-e script_file`: To provide which script in the `bin/` folder to execute. Defaults to `perf-test.sh`.
+* `-e control_config`: Which configuration to utilize for control nodes. Defaults to `control-tcp.sh`.
+* `-e cache_config`: Which configuration to utilize for the cache. Defaults to `dist-sync.xml`.
+* `-e java_opts`: Provide custom arguments to the JVM, for example, changing garbage collection. Defaults to empty string.
+
+```bash
+$ ansible-playbook -i inventory.yaml start.yml
+```
+
+> [!HINT]
+> The controller node will not start the test. It should be started manually through SSH.
+
+### stop.yml
+
+This playbook will stop the Java process running on all nodes.
+
+```bash
+$ ansible-playbook -i inventory.yaml stop.yml
+```
 
 EC2 Provision
 -------------
@@ -74,6 +100,21 @@ $ ansible-playbook -i , aws-ec2.yml -e operation=create -e region=sa-east-1
 The AWS instances are open for SSH from the Ansible control node only.
 You can SSH by utilizing the generated key and utilizing the Ansible user name.
 The user name is available on the inventory file.
+
+In the uploaded files, there is an `env` file, which defines environment variables to help utilize the discovery protocols.
+Before running the bash script to initialize the perf test, execute the following to populate the variables:
+
+```bash
+$ . ./env [optional-java-arguments]
+```
+
+This will create the variables `INITIAL_HOSTS_CONTROL` for the control nodes to discover each other, `INITIAL_HOSTS` for
+the cache nodes to discover each other, and `JAVA_OPTS` populated with arguments in `[optional-java-arguments]`.
+For example:
+
+```bash
+$ . ./env "-XX:+UseZGC -XX:+ZGenerational"
+```
 
 
 License

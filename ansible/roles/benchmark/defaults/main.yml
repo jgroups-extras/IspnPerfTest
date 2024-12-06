@@ -2,3 +2,9 @@ bin_folder: "../bin"
 target_folder: "../target"
 
 remote_folder: "/home/{{ ansible_user }}"
+
+# Properties for IspnPerf test.
+script_file: "perf-test.sh"
+control_config: "control-tcp.xml"
+cache_config: "dist-sync.xml"
+java_opts: ""

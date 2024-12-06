@@ -1,0 +1,4 @@
+- hosts: "instances:!controller"
+  roles: [ benchmark ]
+  vars:
+    operation: start

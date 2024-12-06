@@ -1,0 +1,6 @@
+- debug:
+    msg: "Starting test on all except controller node"
+
+- block:
+    - name: "Running {{ script_file }}"
+      ansible.builtin.shell: ". {{ remote_folder }}/env {{ java_opts }} && nohup {{ remote_folder }}/bin/{{ script_file }} -control-cfg {{ control_config }} -cfg {{ cache_config }} -nohup &"

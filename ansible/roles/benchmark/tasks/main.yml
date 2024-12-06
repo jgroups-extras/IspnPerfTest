@@ -8,3 +8,11 @@
 - name: Upload benchmark files
   ansible.builtin.include_tasks: upload.yml
   when: operation is undefined or operation is search("upload")
+
+- name: Starting IspnPerf
+  ansible.builtin.include_tasks: start.yml
+  when: operation is defined and operation is search("start")
+
+- name: Stopping IspnPerf
+  ansible.builtin.include_tasks: stop.yml
+  when: operation is defined and operation is search("stop")

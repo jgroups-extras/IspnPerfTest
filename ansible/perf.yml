@@ -1,2 +1,12 @@
+- name: Verify if operation permitted
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Verify operation
+      fail:
+        msg: "Operation '{{ operation }}' is not allowed in this playbook!"
+      when: operation is defined and (operation is search("start") or operation is search("stop"))
+
 - hosts: "instances"
   roles: [ benchmark ]
