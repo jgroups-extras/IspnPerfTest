@@ -1,48 +1,41 @@
 
-<!--
-  Fast configuration for local mode, ie. all members reside on the same host. Setting ip_ttl to 0 means that
-  no multicast packet will make it outside the local host.
-  Therefore, this configuration will NOT work to cluster members residing on different hosts !
 
-  Author: Bela Ban
--->
+<config xmlns="urn:org:jgroups"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups-5.3.xsd">
+   <TCP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
+        bind_port="7800"
+        recv_buf_size="20M"
+        send_buf_size="10M"
+        bundler.max_size="64K"
+        diag.enabled="true"
+        diag.enable_tcp="true"
+        tcp_nodelay="false"
 
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns="urn:org:jgroups"
-        xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <TCP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
-         bind_port="7800"
-         recv_buf_size="20M"
-         send_buf_size="10M"
-         bundler.max_size="64K"
-         diag.enabled="true"
-         diag.enable_tcp="true"
-         tcp_nodelay="false"
+        use_virtual_threads="${vthreads:true}"
 
-         use_virtual_threads="${vthreads:true}"
-
-         thread_pool.min_threads="0"
-         thread_pool.max_threads="200"
-         thread_pool.keep_alive_time="60s" />
-    <MPING />
-    <!-- Infinispan can only have *2* variables in a list -->
-    <TCPPING
-         initial_hosts="${tcpping.initial_hosts,env.INITIAL_HOSTS:127.0.0.1[7800]}"
-         port_range="${tcpping.port_range,env.PORT_RANGE:1}"/>
-    <MERGE3 max_interval="30000"
-            min_interval="10000"/>
-    <FD_SOCK/>
-    <FD_ALL3 timeout="60000" interval="10000"/>
-    <VERIFY_SUSPECT timeout="1500"  />
-    <pbcast.NAKACK2 xmit_interval="0.5s"/>
-    <UNICAST3 xmit_interval="0.5s" />
-    <pbcast.STABLE desired_avg_gossip="50000"
-                   max_bytes="8m"/>
-    <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
-    <UFC max_credits="4M"
-         min_threshold="0.4"/>
-    <MFC max_credits="4M"
-         min_threshold="0.4"/>
-    <FRAG4 frag_size="60K"  />
-    <TIME/>
+        thread_pool.min_threads="0"
+        thread_pool.max_threads="200"
+        thread_pool.keep_alive_time="60s" />
+   <MPING />
+   <!-- Infinispan can only have *2* variables in a list -->
+   <TCPPING
+        initial_hosts="${tcpping.initial_hosts,env.INITIAL_HOSTS:127.0.0.1[7800]}"
+        port_range="${tcpping.port_range,env.PORT_RANGE:1}"/>
+   <MERGE3 max_interval="30000"
+           min_interval="10000"/>
+   <FD_SOCK/>
+   <FD_ALL3 timeout="60000" interval="10000"/>
+   <VERIFY_SUSPECT timeout="1500"  />
+   <pbcast.NAKACK2 xmit_interval="0.5s"/>
+   <UNICAST3 xmit_interval="0.5s" />
+   <pbcast.STABLE desired_avg_gossip="50000"
+                  max_bytes="8m"/>
+   <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
+   <UFC max_credits="4M"
+        min_threshold="0.4"/>
+   <MFC max_credits="4M"
+        min_threshold="0.4"/>
+   <FRAG4 frag_size="60K"  />
+   <TIME/>
 </config>
