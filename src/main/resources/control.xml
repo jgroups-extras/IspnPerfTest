@@ -17,6 +17,7 @@
          bundler.max_size="64K"
          diag.enabled="true"
          diag.port="7501"
+         use_virtual_threads="${vthreads:true}"
 
          thread_pool.enabled="true"
          thread_pool.min_threads="0"
