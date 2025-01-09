@@ -94,7 +94,7 @@ public class Test implements Receiver {
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b) [l] dump local cache" +
-      "\n[q] Quit [X] Quit all\n";
+      "\n[x] Exit [X] Exit all\n";
 
     static {
         ClassConfigurator.add((short)11000, Results.class);
@@ -413,7 +413,7 @@ public class Test implements Receiver {
                                       org.jgroups.Version.printDescription(),
                                       org.infinispan.commons.util.Version.printVersion());
                     break;
-                case 'q':
+                case 'x':
                 case 0: // remove on upgrade to next JGroups version
                 case -1:
                     stop();
