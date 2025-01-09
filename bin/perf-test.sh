@@ -24,7 +24,9 @@ fi;
 
 if [ -f $HOME/log4j2.xml ]; then
     LOG="$LOG -Dlog4j.configurationFile=$HOME/log4j2.xml"
-fi;
+else
+    LOG="$LOG -Dlog4j.configurationFile=log4j2.xml"
+fi
 
 if [ -f $HOME/logging.properties ]; then
     LOG="$LOG -Djava.util.logging.config.file=$HOME/logging.properties"
