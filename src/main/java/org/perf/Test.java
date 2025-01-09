@@ -926,6 +926,10 @@ public class Test implements Receiver {
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             if(run_event_loop)
                 test.eventLoop();
+            else {
+                for(;;)
+                    Util.sleep(60_000);
+            }
         }
         catch(Throwable ex) {
             ex.printStackTrace();
