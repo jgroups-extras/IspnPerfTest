@@ -95,4 +95,4 @@ export proc_id=$$
 
 FLAGS="$FLAGS -Dorg.infinispan.threads.virtual=true"
 
-java -cp $CP $FLAGS $DEBUG org.perf.Test $*
+java -cp $CP $LOG $FLAGS $DEBUG org.perf.Test $*
