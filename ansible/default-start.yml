@@ -1,0 +1,7 @@
+- hosts: "instances:!controller"
+  roles: [ benchmark ]
+  vars:
+    operation: start
+    script_file: "perf-test-gcp.sh"
+    control_config: "control-gcp.xml"
+    cache_config: "dist-sync-gcp.xml"

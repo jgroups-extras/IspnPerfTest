@@ -6,3 +6,8 @@
 
 - name: "Upload env file"
   synchronize: src="env" dest="{{ remote_folder }}"
+
+- name: Create hosts file
+  template:
+    src: hosts.txt.j2
+    dest: "{{ remote_folder }}/target/classes/hosts.txt"
