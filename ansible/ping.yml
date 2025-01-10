@@ -1,0 +1,5 @@
+- name: Servers intra-cluster latency
+  hosts: "instances"
+  roles: [latency_summary]
+  vars:
+    group: "instances"

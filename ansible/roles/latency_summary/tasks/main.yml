@@ -1,0 +1,13 @@
+- name: Import inventory back to memory
+  ansible.builtin.include_vars:
+    file: "{{ inventory_file }}"
+    name: benchmark_inventory
+
+- block:
+    - name: "Check {{ group }} latency from {{ group_names[0] }}"
+      ansible.builtin.script: "./measure_hosts.sh {{ benchmark_inventory | community.general.json_query(group + '.hosts|keys(@)') | join(' ') }}"
+      register: ping
+
+    - name: Latency summary
+      ansible.builtin.debug:
+        msg: "{{ ping.stdout_lines }}"
