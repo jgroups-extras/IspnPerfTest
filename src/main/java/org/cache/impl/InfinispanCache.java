@@ -2,6 +2,7 @@ package org.cache.impl;
 
 import org.cache.Cache;
 import org.infinispan.context.Flag;
+import org.infinispan.remoting.transport.Transport;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -45,4 +46,6 @@ public class InfinispanCache<K,V> implements Cache<K,V> {
     public Map<K,V> getContents() {
         return new HashMap<>(cache.getAdvancedCache().withFlags(Flag.CACHE_MODE_LOCAL));
     }
+
+    public Transport getTransport() {return cache.getAdvancedCache().getRpcManager().getTransport();}
 }

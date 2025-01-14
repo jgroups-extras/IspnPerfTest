@@ -3,26 +3,24 @@ package org.perf;
 import org.HdrHistogram.Histogram;
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.cache.impl.DummyCacheFactory;
-import org.cache.impl.HazelcastCacheFactory;
-import org.cache.impl.InfinispanCacheFactory;
-import org.cache.impl.RaftCacheFactory;
+import org.cache.impl.*;
 import org.cache.impl.tri.TriCacheFactory;
+import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
 import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.jmx.JmxConfigurator;
-import org.jgroups.util.*;
+import org.jgroups.protocols.TP;
 import org.jgroups.util.UUID;
+import org.jgroups.util.*;
 
 import javax.management.MBeanServer;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.zip.DataFormatException;
@@ -38,6 +36,7 @@ public class Test implements Receiver {
     protected CacheFactory<Integer,byte[]>        cache_factory;
     protected Cache<Integer,byte[]>               cache;
     protected JChannel                            control_channel;
+    protected String                              cfg="dist-sync.xml", control_cfg="control.xml";
     protected Address                             local_addr;
     protected final List<Address>                 members=new ArrayList<>();
     protected volatile View                       view;
@@ -51,6 +50,7 @@ public class Test implements Receiver {
     protected final Promise<Config>               config_promise=new Promise<>();
     protected Thread                              test_runner;
     protected ThreadFactory                       thread_factory;
+    protected boolean                             done; // set to true if batch-mode and run was triggered
 
     protected enum Type {
         START_ISPN,
@@ -64,16 +64,16 @@ public class Test implements Receiver {
     }
 
     // ============ configurable properties ==================
-    @Property
-    protected int     num_threads=100;
-    @Property
-    protected int     num_keys=100000, time_secs=60, msg_size=1000;
-    @Property
-    protected double  read_percentage=0.8; // 80% reads, 20% writes
-    @Property
-    protected boolean print_details=true;
-    @Property
-    protected boolean print_invokers;
+    @Property protected int     num_threads=100;
+    @Property protected int     num_keys=100000;
+    @Property protected int     time=60, warmup; // in secs
+    @Property protected int     msg_size=1000;
+    @Property protected boolean batch_mode;
+    @Property protected int     num_nodes;
+    @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
+    @Property protected String  result_file="results.txt";
+    @Property protected boolean print_details=true;
+    @Property protected boolean print_invokers;
     // ... add your own here, just don't forget to annotate them with @Property
     // =======================================================
 
@@ -100,18 +100,35 @@ public class Test implements Receiver {
         ClassConfigurator.add((short)11000, Results.class);
     }
 
-    public void init(String factory_name, String cfg, String jgroups_config, String cache_name, boolean use_virtual_threads) throws Exception {
-        thread_factory=new DefaultThreadFactory("invoker", false, true)
-          .useVirtualThreads(use_virtual_threads);
-        if(use_virtual_threads && Util.virtualThreadsAvailable())
+    public Test cfg(String c)            {this.cfg=c; return this;}
+    public Test controlCfg(String c)     {this.control_cfg=c; return this;}
+    public Test numThreads(int n)        {this.num_threads=n; return this;}
+    public Test numKeys(int n)           {this.num_keys=n; return this;}
+    public Test time(int t)              {this.time=t; return this;}
+    public Test warmup(int t)            {this.warmup=t; return this;}
+    public Test msgSize(int s)           {this.msg_size=s; return this;}
+    public Test numNodes(int n)          {this.num_nodes=n; return this;}
+    public Test readPercentage(double p) {this.read_percentage=p; return this;}
+    public Test resultFile(String f)     {this.result_file=f; return this;}
+    public Test batchMode(boolean b)     {this.batch_mode=b; return this;}
+
+    public void init(String factory, String cache_name, boolean use_vthreads) throws Exception {
+        // sanity checks:
+        if(batch_mode) {
+            if(num_nodes <= 0)
+                throw new IllegalStateException("nodes cannot be 0 when batch-mode is enabled");
+        }
+
+        thread_factory=new DefaultThreadFactory("invoker", false, true).useVirtualThreads(use_vthreads);
+        if(use_vthreads && Util.virtualThreadsAvailable())
             System.out.println("-- using virtual threads");
 
-        Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory_name, (Class<?>)null);
+        Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
         cache_factory.init(cfg);
         cache=cache_factory.create(cache_name);
 
-        control_channel=new JChannel(jgroups_config);
+        control_channel=new JChannel(control_cfg);
         control_channel.setReceiver(this);
         control_channel.connect("cfg");
         local_addr=control_channel.getAddress();
@@ -148,18 +165,17 @@ public class Test implements Receiver {
         System.out.printf("created %,d keys: [%,d-%,d]\n", keys.length, keys[0], keys[keys.length - 1]);
     }
 
-    void stop() {
+    protected void stop() {
         Util.close(control_channel);
-        cache_factory.destroy();
+        if(cache_factory != null)
+            cache_factory.destroy();
     }
 
-
-
-    protected synchronized void startTestRunner(final Address addr) {
+    protected synchronized void startTestRunner(final Address addr, int time_secs) {
         if(test_runner != null && test_runner.isAlive())
             System.err.println("test is already running - wait until complete to start a new run");
         else {
-            test_runner=new Thread(() -> startIspnTest(addr), "testrunner");
+            test_runner=new Thread(() -> startIspnTest(addr, time_secs), "testrunner");
             test_runner.start();
         }
     }
@@ -180,7 +196,6 @@ public class Test implements Receiver {
         }
     }
 
-
     protected void _receive(Message msg) throws Throwable {
         ByteArrayDataInputStream in;
         Address sender=msg.src();
@@ -191,7 +206,8 @@ public class Test implements Receiver {
         Type type=Type.values()[t];
         switch(type) {
             case START_ISPN:
-                startTestRunner(sender);
+                int time_secs=Util.primitiveFromStream(new ByteArrayDataInputStream(buf, offset, 5));
+                startTestRunner(sender, time_secs);
                 break;
             case GET_CONFIG_REQ:
                 send(sender, Type.GET_CONFIG_RSP, getConfig());
@@ -232,13 +248,24 @@ public class Test implements Receiver {
         this.view=new_view;
         members.clear();
         members.addAll(new_view.getMembers());
+
+        if(!batch_mode || done)
+            return;
+
+        boolean is_coord=Objects.equals(new_view.getCoord(), local_addr);
+        if(new_view.size() < num_nodes && is_coord) {
+            System.out.printf("-- new view has %d members; waiting for %d\n", new_view.size(), num_nodes);
+            return;
+        }
+        // more than num_nodes members and am I the coord to start the batch?
+        if(new_view.size() >= num_nodes && is_coord) {
+            System.out.printf("-- reached expected number of members (%d): starting test in batch-mode\n", num_nodes);
+            new Thread(this::runBatch).start();
+            done=true;
+        }
     }
 
-
-    // =================================== callbacks ======================================
-
-
-    protected void startIspnTest(Address sender) {
+    protected void startIspnTest(Address sender, int time_secs) {
         num_requests.reset();
         num_reads.reset();
         num_writes.reset();
@@ -274,8 +301,8 @@ public class Test implements Receiver {
             for(Thread t: threads)
                 t.join();
 
-            long time=System.currentTimeMillis() - start;
-            System.out.println("\ndone (in " + time + " ms)\n");
+            long t=System.currentTimeMillis() - start;
+            System.out.println("\ndone (in " + t + " ms)\n");
 
             Histogram get_avg=null, put_avg=null;
             if(print_invokers)
@@ -299,11 +326,29 @@ public class Test implements Receiver {
                 System.out.printf("\nall: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n",
                                   get_avg.getMinValue(), get_avg.getMean(), get_avg.getMaxValueAsDouble(),
                                   put_avg.getMinValue(), put_avg.getMean(), put_avg.getMaxValueAsDouble());
-            Results result=new Results(num_reads.sum(), num_writes.sum(), time, get_avg, put_avg);
+            Results result=new Results(num_reads.sum(), num_writes.sum(), t, get_avg, put_avg);
             send(sender, Type.RESULTS, result);
         }
         catch(Throwable t) {
             t.printStackTrace();
+        }
+    }
+
+    // Only run when coordinator
+    protected void runBatch() {
+        try {
+            System.out.printf("-- Populating cache with %d keys:\n", num_keys);
+            populateCache();
+            System.out.println();
+            if(warmup > 0)
+                startBenchmark(warmup, false);
+            Util.sleep(2000);
+            startBenchmark(time, true);
+            Util.sleep(2000);
+            control_channel.send(null, new byte[]{(byte)Type.QUIT_ALL.ordinal()});
+        }
+        catch(Throwable t) {
+            System.err.println("Calling quitAll() failed: " + t);
         }
     }
 
@@ -313,7 +358,6 @@ public class Test implements Receiver {
         stop();
         System.exit(0);
     }
-
 
     protected void set(String field_name, Object value) {
         Field field=Util.getField(this.getClass(), field_name);
@@ -325,7 +369,6 @@ public class Test implements Receiver {
         }
         changeKeySet();
     }
-
 
     protected Config getConfig() {
         Config config=new Config();
@@ -356,15 +399,14 @@ public class Test implements Receiver {
 
     // ================================= end of callbacks =====================================
 
-
     public void eventLoop() throws Throwable {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
-                                              num_threads, keys != null? keys.length : 0, time_secs, Util.printBytes(msg_size),
+                                              num_threads, keys != null? keys.length : 0, time, Util.printBytes(msg_size),
                                               read_percentage, print_details, print_invokers));
             switch(c) {
                 case '1':
-                    startBenchmark();
+                    startBenchmark(time, false);
                     break;
                 case '2':
                     printView();
@@ -379,7 +421,7 @@ public class Test implements Receiver {
                     changeFieldAcrossCluster("num_keys", Util.readIntFromStdin("Number of keys: "));
                     break;
                 case '6':
-                    changeFieldAcrossCluster("time_secs", Util.readIntFromStdin("Time (secs): "));
+                    changeFieldAcrossCluster("time", Util.readIntFromStdin("Time (secs): "));
                     break;
                 case '7':
                     int new_msg_size=Util.readIntFromStdin("Message size: ");
@@ -437,10 +479,10 @@ public class Test implements Receiver {
 
 
     /** Kicks off the benchmark on all cluster nodes */
-    protected void startBenchmark() {
+    protected void startBenchmark(int time_secs, boolean write_results) {
         results.reset(members);
         try {
-            send(null, Type.START_ISPN);
+            send(null, Type.START_ISPN, time_secs);
         }
         catch(Throwable t) {
             System.err.printf("starting the benchmark failed: %s\n", t);
@@ -476,15 +518,25 @@ public class Test implements Receiver {
         double reqs_sec_node=total_reqs / (total_time / 1000.0);
         double reqs_sec_cluster=total_reqs / (longest_time / 1000.0);
         double throughput=reqs_sec_node * msg_size;
-        System.out.println("\n");
-        System.out.println(Util.bold(String.format("Throughput: %,.0f reqs/sec/node (%s/sec) %,.0f reqs/sec/cluster\n" +
-                                                     "Roundtrip:  gets %s,\n" +
-                                                     "            puts %s\n",
-                                                   reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
-                                                   print(get_avg, print_details), print(put_avg, print_details))));
-        System.out.println("\n\n");
+        String result=String.format("\nThroughput: %,.0f reqs/sec/node (%s/sec) %,.0f reqs/sec/cluster\n" +
+                                      "RTT GETs:   %s,\n" +
+                                      "RTT PUTs:   %s\n\n",
+                                    reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
+                                    print(get_avg, print_details), print(put_avg, print_details));
+        System.out.println(Util.bold(result));
+        if(batch_mode && write_results) {
+            try(DataOutputStream out=new DataOutputStream(new FileOutputStream(result_file, true))) {
+                String s=env();
+                byte[] bytes=s.getBytes();
+                out.write(bytes, 0, bytes.length);
+                bytes=result.getBytes();
+                out.write(bytes, 0, bytes.length);
+            }
+            catch(IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
-
 
     protected static double getReadPercentage() throws Exception {
         double tmp=Util.readDoubleFromStdin("Read percentage: ");
@@ -505,11 +557,9 @@ public class Test implements Receiver {
         return tmp;
     }
 
-
     protected void changeFieldAcrossCluster(String field_name, Object value) throws Exception {
         send(null, Type.SET, field_name, value);
     }
-
 
     protected void send(Address dest, Type type, Object ... args) throws Exception {
         if(args == null || args.length == 0) {
@@ -522,7 +572,6 @@ public class Test implements Receiver {
             Util.objectToStream(arg, out);
         control_channel.send(dest, out.buffer(), 0, out.position());
     }
-
 
     protected void printView() {
         System.out.printf("\n-- local: %s\n-- view: %s\n", local_addr, view);
@@ -541,6 +590,63 @@ public class Test implements Receiver {
           String.format("avg = %,.2f us", avg.getMean());
     }
 
+    public String env() {
+        StringBuilder sb=new StringBuilder(String.format("\n-------------------- %s -------------------------\n", new Date()));
+
+        String fmt="node: %s\nip: %s\nview: %s\nJGroups: %s\nInfinispan: %s\nJava: %s\nvthreads: %b\n";
+        sb.append(String.format(fmt, realAddress(), physicalAddress(),
+                                clusterView(), org.jgroups.Version.printDescription(),
+                                org.infinispan.commons.util.Version.printVersion(),
+                                Util.JAVA_VERSION, vthreads()));
+        sb.append(String.format("cfg: %s\ncontrol_cfg: %s\n", cfg, control_cfg));
+        sb.append(String.format("num_threads: %d\nnum_keys: %,d\ntime: %s\nwarmup: %s\nmsg_size: %s\n" +
+                                  "nodes: %d\nread_percentage: %.2f\n",
+                                num_threads, num_keys, Util.printTime(time, TimeUnit.SECONDS),
+                                Util.printTime(warmup, TimeUnit.SECONDS), Util.printBytes(msg_size),
+                                num_nodes, read_percentage));
+
+        return sb.toString();
+    }
+
+    protected String realAddress() {
+        if(cache instanceof InfinispanCache) {
+            JGroupsTransport transport=(JGroupsTransport)((InfinispanCache<?,?>)cache).getTransport();
+            org.infinispan.remoting.transport.Address addr=transport.getAddress();
+            return addr != null? addr.toString() : "n/a";
+        }
+        return "n/a";
+    }
+
+    protected String physicalAddress() {
+        if(cache instanceof InfinispanCache) {
+            JGroupsTransport transport=(JGroupsTransport)((InfinispanCache<?,?>)cache).getTransport();
+            JChannel ch=transport.getChannel();
+            Address addr=ch != null? (Address)ch.down(new Event(Event.GET_PHYSICAL_ADDRESS, ch.address())) : null;
+            return addr != null? addr.toString() : "n/a";
+        }
+        return "n/a";
+    }
+
+    protected String clusterView() {
+        if(cache instanceof InfinispanCache) {
+            JGroupsTransport transport=(JGroupsTransport)((InfinispanCache<?,?>)cache).getTransport();
+            JChannel ch=transport.getChannel();
+            View cluster_view=ch != null? ch.getView() : null;
+            return cluster_view != null? cluster_view.toString() : "n/a";
+        }
+        return "n/a";
+    }
+
+    protected boolean vthreads() {
+        if(cache instanceof InfinispanCache) {
+            JGroupsTransport transport=(JGroupsTransport)((InfinispanCache<?,?>)cache).getTransport();
+            JChannel ch=transport.getChannel();
+            TP tp=ch.getProtocolStack().getTransport();
+            return tp.useVirtualThreads();
+        }
+        return false;
+    }
+
     protected static String percentiles(Histogram h) {
         StringBuilder sb=new StringBuilder();
         for(double percentile: PERCENTILES) {
@@ -552,9 +658,9 @@ public class Test implements Receiver {
     }
 
     protected String printAverage(long start_time) {
-        long time=System.currentTimeMillis() - start_time;
+        long t=System.currentTimeMillis() - start_time;
         long reads=num_reads.sum(), writes=num_writes.sum();
-        double reqs_sec=num_requests.sum() / (time / 1000.0);
+        double reqs_sec=num_requests.sum() / (t / 1000.0);
         return String.format("%,.0f reqs/sec (%,d reads %,d writes)", reqs_sec, reads, writes);
     }
 
@@ -562,7 +668,6 @@ public class Test implements Receiver {
         int size=cache.size();
         System.out.println("-- cache has " + size + " elements");
     }
-
 
     protected void clearCache() {
         cache.clear();
@@ -584,7 +689,7 @@ public class Test implements Receiver {
         final UUID          local_uuid=(UUID)local_addr;
         final AtomicInteger count=new AtomicInteger(1);
 
-        Thread[] inserters=new Thread[50];
+        Thread[] inserters=new Thread[num_threads];
         for(int i=0; i < inserters.length; i++) {
             inserters[i]=new Thread(() -> {
                 for(;;) {
@@ -618,7 +723,6 @@ public class Test implements Receiver {
         Bits.writeLong(seqno, buf, offset + Global.LONG_SIZE *2);
     }
 
-
     protected void validate() {
         View v=control_channel.getView();
         Map<Integer, List<byte[]>> map=new HashMap<>(num_keys), error_map=new HashMap<>();
@@ -640,8 +744,7 @@ public class Test implements Receiver {
                 }
             }
 
-            int size=mbr_map.size();
-            int errors=0;
+            int size=mbr_map.size(), errors=0;
             total_keys+=size;
 
             System.out.printf("-- Validating contents of %s (%,d keys): ", mbr, size);
@@ -741,8 +844,8 @@ public class Test implements Receiver {
                         if(is_this_a_read) {
                             long start=Util.micros();
                             cache.get(key);
-                            long time=Util.micros() - start;
-                            get_avg.recordValue(time);
+                            long t=Util.micros() - start;
+                            get_avg.recordValue(t);
                             num_reads.increment();
                         }
                         else {
@@ -750,8 +853,8 @@ public class Test implements Receiver {
                             writeTo(local_uuid, count++, buffer, 0);
                             long start=Util.micros();
                             cache.put(key, buffer);
-                            long time=Util.micros() - start;
-                            put_avg.recordValue(time);
+                            long t=Util.micros() - start;
+                            put_avg.recordValue(t);
                             num_writes.increment();
                         }
                         break;
@@ -860,20 +963,15 @@ public class Test implements Receiver {
     }
 
 
-
-
-
     public static void main(String[] args) {
-        String           config_file="dist-sync.xml";
-        String           cache_name="perf-cache";
-        String           cache_factory_name=InfinispanCacheFactory.class.getName();
-        String           control_cfg="control.xml";
-        boolean          run_event_loop=true;
-        boolean          use_vthreads=true;
+        String  cache_name="perf-cache";
+        String  cache_factory_name=InfinispanCacheFactory.class.getName();
+        boolean interactive=true, use_vthreads=true;
 
+        Test test=new Test();
         for(int i=0; i < args.length; i++) {
             if(args[i].equals("-cfg")) {
-                config_file=args[++i];
+                test.cfg(args[++i]);
                 continue;
             }
             if(args[i].equals("-cache")) {
@@ -885,24 +983,63 @@ public class Test implements Receiver {
                 continue;
             }
             if("-nohup".equals(args[i])) {
-                run_event_loop=false;
+                interactive=false;
                 continue;
             }
             if("-control-cfg".equals(args[i])) {
-                control_cfg=args[++i];
+                test.controlCfg(args[++i]);
                 continue;
             }
             if("-use-virtual-threads".equals(args[i]) || "-use-vthreads".equals(args[i])) {
                 use_vthreads=Boolean.parseBoolean(args[++i]);
                 continue;
             }
+            if("-threads".equals(args[i])) {
+                test.numThreads(Integer.parseInt(args[++i]));
+                continue;
+            }
+            if("-keys".equals(args[i])) {
+                test.numKeys(Integer.parseInt(args[++i]));
+                continue;
+            }
+            if("-time".equals(args[i])) {
+                test.time(Integer.parseInt(args[++i]));
+                continue;
+            }
+            if("-warmup".equals(args[i])) {
+                test.warmup(Integer.parseInt(args[++i]));
+                continue;
+            }
+            if("-msg-size".equals(args[i])) {
+                test.msgSize(Integer.parseInt(args[++i]));
+                continue;
+            }
+            if("-nodes".equals(args[i])) {
+                test.numNodes(Integer.parseInt(args[++i]));
+                continue;
+            }
+            if("-read-percentage".equals(args[i])) {
+                test.readPercentage(Double.parseDouble(args[++i]));
+                continue;
+            }
+            if("-batch-mode".equals(args[i])) {
+                test.batchMode(Boolean.parseBoolean(args[++i]));
+                continue;
+            }
+            if("-result-file".equals(args[i])) {
+                test.resultFile(args[++i]);
+                continue;
+            }
+            if("-env".equals(args[i])) {
+                String env=test.env();
+                System.out.println("env = " + env);
+                return;
+            }
             help();
             return;
         }
 
-        Test test=null;
         try {
-            test=new Test();
             switch(cache_factory_name) {
                 case "ispn":
                     cache_factory_name=infinispan_factory;
@@ -922,14 +1059,14 @@ public class Test implements Receiver {
                 case "raft":
                     cache_factory_name=raft_factory;
             }
-            test.init(cache_factory_name, config_file, control_cfg, cache_name, use_vthreads);
+            test.init(cache_factory_name, cache_name, use_vthreads);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
-            if(run_event_loop)
-                test.eventLoop();
-            else {
+            if(!interactive || test.batch_mode) {
                 for(;;)
                     Util.sleep(60_000);
             }
+            else
+                test.eventLoop();
         }
         catch(Throwable ex) {
             ex.printStackTrace();
@@ -938,9 +1075,11 @@ public class Test implements Receiver {
         }
     }
 
-    static void help() {
-        System.out.printf("Test [-factory <cache factory classname>] [-cfg <config-file>] " +
-                            "[-cache <cache-name>] [-control-cfg] [-nohup]\n" +
+    protected static void help() {
+        System.out.printf("Test [-factory <cache factory classname>] [-cfg <file>] [-cache <name>] [-control-cfg <file>]\n" +
+                            "[-nohup] [-batch-mode true|false] [-nodes <num>] [-warmup <secs>] [-result-file <file>]\n" +
+                            "[-threads <num>] [-keys <num>] [-msg-size <bytes>] [-time <secs>]\n" +
+                            "[-read-percentage <percentage>]" +
                             "Valid factory names:" +
                             "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\n\n",
                           infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory, raft_factory);
