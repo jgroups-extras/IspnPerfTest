@@ -1,0 +1,32 @@
+
+Cloud based perftests
+=====================
+
+When running perftest in a cloud env (AWS, GCP), we (currently) define the following attributes as constants:
+* Number of nodes: 8
+* Threads: 100
+* Message size: 1000 bytes
+* Read/write ratio: 80/20
+* Number of keys 100'000
+* Warump time: 60s
+* Time: 120s
+* Machine type: GCP c2-standard-8 (eval again!) / AWS ?
+
+JDK command line (already in run.sh):
+* -Xmx2G -Xms2G
+
+Permutations:
+* vthreads: enable / disable
+* JDK: 17, 21, 25-ea-latest
+* configs: standard JGroups (UNICAST3), new JGroups (UNICAST4)
+* Versions: Infinispan 15.0.11 / JGroups 5.3.14, Infinispan 15.1.x / JGroups 5.4.x
+
+With JGroups < 5.4, the new configs are not available, so we have 2 * 3 = 6 permutations.
+With JGroups 5.4.x, we have 2 * 3 * 3 = 12 permutations.
+
+We first run the 5.3.14 combo of 6 permutations (= 6 runs) via Ansible, then change the versions in pom.xml,
+mvn clean package, then run the 12 permutations via Ansible.
+
+When done, results.txt is fetched from the leader and displayed graphically. To that end, we need to think how
+to display the results, so they can be fed to a Google docs spreadsheet, or another graphing tool.
+
