@@ -214,8 +214,8 @@ public class Test implements Receiver {
                 break;
             case GET_CONFIG_RSP:
                 in=new ByteArrayDataInputStream(buf, offset, len);
-                Config cfg=Util.objectFromStream(in);
-                config_promise.setResult(cfg);
+                Config c=Util.objectFromStream(in);
+                config_promise.setResult(c);
                 break;
             case SET:
                 in=new ByteArrayDataInputStream(buf, offset, len);
@@ -593,7 +593,7 @@ public class Test implements Receiver {
     public String env() {
         StringBuilder sb=new StringBuilder(String.format("\n-------------------- %s -------------------------\n", new Date()));
 
-        String fmt="node: %s\nip: %s\nview: %s\nJGroups: %s\nInfinispan: %s\nJava: %s\nvthreads: %b\n";
+        String fmt="Node: %s\nIP: %s\nView: %s\nJGroups: %s\nInfinispan: %s\nJava: %s\nvthreads: %b\n";
         sb.append(String.format(fmt, realAddress(), physicalAddress(),
                                 clusterView(), org.jgroups.Version.printDescription(),
                                 org.infinispan.commons.util.Version.printVersion(),
