@@ -36,19 +36,41 @@ $ ansible-playbook -i inventory.yaml perf.yml -e operation=[init|upload]
 
 ### start.yml
 
-This playbook will start IspnPerf in `-nohup` mode with the provided arguments:
+This playbook will start IspnPerf in `-batch-mode` mode with the provided arguments:
 
-* `-e script_file`: To provide which script in the `bin/` folder to execute. Defaults to `perf-test.sh`.
-* `-e control_config`: Which configuration to utilize for control nodes. Defaults to `control-tcp.sh`.
-* `-e cache_config`: Which configuration to utilize for the cache. Defaults to `dist-sync.xml`.
+* `-e script_file`: To provide which script in the `bin/` folder to execute. Defaults to `perf-test-gcp.sh`.
+* `-e control_config`: Which configuration to utilize for control nodes. Defaults to `control-gcp.xml`.
+* `-e cache_config`: Which configuration to utilize for the cache. Defaults to `dist-sync-gcp.xml`.
 * `-e java_opts`: Provide custom arguments to the JVM, for example, changing garbage collection. Defaults to empty string.
+
+Additionally, we can tweak options for the benchmark:
+
+* `-e num_threads`: Number of client threads submitting operations. Defaults to `100`.
+* `-e num_keys`: Number of keys to randomly choose in the test. Default key space contains `100000` keys.
+* `-e test_duration`: Duration in seconds of the benchmark running get/set operations. Defaults to `120` seconds.
+* `-e warmup_duration`: Duration in seconds to warmup before running the benchmark. Defaults to `60` seconds.
+* `-e msg_size`: Size in bytes of the messages. Defaults to `1000` bytes.
+* `-e use_virtual_threads`: Whether to use virtual threads in JGroups and Infinispan. Defaults to `true`.
+
+We also offer a configuration to change the JDK version.
+This option uses the version available in SDKMAN! to be installed in the provisioned hosts.
+The available options, installed by default during setup, are:
+
+```yaml
+jdks:
+  - 21.0.2-open
+  - 25.ea.5-open
+  - 17-open
+```
+
+When running a test, the option to set the JDK version is `-e jdk_version`, using one of the installed versions listed above.
+The default version is `21.0.2-open`.
 
 ```bash
 $ ansible-playbook -i inventory.yaml start.yml
 ```
 
-> [!HINT]
-> The controller node will not start the test. It should be started manually through SSH.
+The playbook will run the tests and will download a `result.txt` file at the end.
 
 ### stop.yml
 

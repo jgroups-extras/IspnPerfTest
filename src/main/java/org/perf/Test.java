@@ -33,6 +33,9 @@ import java.util.zip.DataFormatException;
  * @author Bela Ban
  */
 public class Test implements Receiver {
+    private static final String NODE_STARTED_MESSAGE = "Node completed start setup";
+    private static final String TEST_FINISHED_MESSAGE = "Test execution completed";
+
     protected CacheFactory<Integer,byte[]>        cache_factory;
     protected Cache<Integer,byte[]>               cache;
     protected JChannel                            control_channel;
@@ -163,6 +166,7 @@ public class Test implements Receiver {
         }
         keys=createKeys(num_keys);
         System.out.printf("created %,d keys: [%,d-%,d]\n", keys.length, keys[0], keys[keys.length - 1]);
+        System.out.println(NODE_STARTED_MESSAGE);
 
         if (num_nodes == 1 && view == null) {
             viewAccepted(control_channel.view());
@@ -353,6 +357,8 @@ public class Test implements Receiver {
         }
         catch(Throwable t) {
             System.err.println("Calling quitAll() failed: " + t);
+        } finally {
+            System.out.println(TEST_FINISHED_MESSAGE);
         }
     }
 

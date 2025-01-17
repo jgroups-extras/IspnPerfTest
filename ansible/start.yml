@@ -2,3 +2,32 @@
   roles: [ benchmark ]
   vars:
     operation: start
+
+- hosts: controller
+  tasks:
+    - name: Wait until coordinator started
+      ansible.builtin.wait_for:
+        path: '/home/{{ ansible_user }}/ispn-perf.log'
+        search_regex: Node completed start setup
+
+- hosts: "instances:!controller"
+  roles: [ benchmark ]
+  vars:
+    operation: start
+
+- hosts: controller
+  tasks:
+    - name: Time we started waiting for the test to complete
+      ansible.builtin.debug:
+        msg: "Starting to listen: {{ now() }}"
+
+    - name: Wait until test finished
+      ansible.builtin.wait_for:
+        path: '/home/{{ ansible_user }}/ispn-perf.log'
+        search_regex: Test execution completed
+
+    - name: Download results from coordinator
+      ansible.builtin.fetch:
+        src: '/home/{{ ansible_user }}/results.txt'
+        dest: results.txt
+        flat: true

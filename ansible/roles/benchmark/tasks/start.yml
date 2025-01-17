@@ -17,4 +17,4 @@
           -warmup {{ warmup_duration }} \
           -msg-size {{ msg_size }} \
           -nodes {{ groups['instances'] | length }} \
-          -batch-mode true &
+          -batch-mode true &> ispn-perf.log &
