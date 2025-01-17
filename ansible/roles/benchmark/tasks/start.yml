@@ -3,4 +3,18 @@
 
 - block:
     - name: "Running {{ script_file }}"
-      ansible.builtin.shell: ". {{ remote_folder }}/env {{ java_opts }} && nohup {{ remote_folder }}/bin/{{ script_file }} -control-cfg {{ control_config }} -cfg {{ cache_config }} -nohup &"
+      ansible.builtin.shell: |
+        source {{ remote_folder }}/env
+        source {{ sdkman_folder }}/bin/sdkman-init.sh
+        sdk use java {{ jdk_version }}
+        nohup {{ remote_folder }}/bin/{{ script_file }} \
+          -control-cfg {{ control_config }} \
+          -cfg {{ cache_config }} \
+          -use-vthreads {{ use_virtual_threads }} \
+          -threads {{ num_threads }} \
+          -keys {{ num_keys }} \
+          -time {{ test_duration }} \
+          -warmup {{ warmup_duration }} \
+          -msg-size {{ msg_size }} \
+          -nodes {{ groups['instances'] | length }} \
+          -batch-mode true &

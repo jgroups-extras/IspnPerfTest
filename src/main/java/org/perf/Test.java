@@ -163,6 +163,10 @@ public class Test implements Receiver {
         }
         keys=createKeys(num_keys);
         System.out.printf("created %,d keys: [%,d-%,d]\n", keys.length, keys[0], keys[keys.length - 1]);
+
+        if (num_nodes == 1 && view == null) {
+            viewAccepted(control_channel.view());
+        }
     }
 
     protected void stop() {

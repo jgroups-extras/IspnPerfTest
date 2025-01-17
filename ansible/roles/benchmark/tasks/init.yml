@@ -1,6 +1,25 @@
-- name: "Installing Java on instances"
-  ansible.builtin.include_role:
-    name: java_installer
+- name: Install and configure SDKMAN!
+  block:
+    - name: Install SDKMAN!
+      ansible.builtin.shell: "curl -s 'https://get.sdkman.io' | bash"
+      args:
+        creates: "{{ sdkman_folder }}/etc/config"
+
+    - name: Configure SDKMAN!
+      ansible.builtin.shell: |
+        sed -i 's/sdkman_auto_answer=false/sdkman_auto_answer=true/g' "{{ sdkman_folder }}/etc/config"
+
+    - name: Install all JDKs
+      ansible.builtin.shell: |
+        source {{ sdkman_folder }}/bin/sdkman-init.sh
+        echo "Installing JDK {{ item }}"
+        sdk install java {{ item }}
+      loop: "{{ jdks }}"
+
+    - name: Cleaning up
+      ansible.builtin.shell: |
+        source {{ sdkman_folder }}/bin/sdkman-init.sh
+        sdk flush
 
 - name: Install rsync
   package:
