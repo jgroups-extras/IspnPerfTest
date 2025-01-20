@@ -1,5 +1,3 @@
-- debug:
-    msg: "Starting test on all except controller node"
 
 - block:
     - name: "Running {{ script_file }}"
@@ -18,3 +16,6 @@
           -msg-size {{ msg_size }} \
           -nodes {{ groups['instances'] | length }} \
           -batch-mode true &> ispn-perf.log &
+      args:
+        executable: /bin/bash
+

@@ -1,4 +1,4 @@
 *.pem
-*inventory.yaml
+*inventory.*
 ansible.cfg
 env
