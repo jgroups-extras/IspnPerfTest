@@ -1089,7 +1089,7 @@ public class Test implements Receiver {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <file>] [-cache <name>] [-control-cfg <file>]\n" +
                             "[-nohup] [-batch-mode true|false] [-nodes <num>] [-warmup <secs>] [-result-file <file>]\n" +
                             "[-threads <num>] [-keys <num>] [-msg-size <bytes>] [-time <secs>]\n" +
-                            "[-read-percentage <percentage>]" +
+                            "[-read-percentage <percentage>] [-use-vthreads true|false]" +
                             "Valid factory names:" +
                             "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\n\n",
                           infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory, raft_factory);
