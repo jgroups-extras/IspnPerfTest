@@ -2,7 +2,6 @@
 - block:
     - name: "Running {{ script_file }}"
       ansible.builtin.shell: |
-        source {{ remote_folder }}/env
         source {{ sdkman_folder }}/bin/sdkman-init.sh
         sdk use java {{ jdk_version }}
         nohup {{ remote_folder }}/bin/{{ script_file }} \
@@ -18,4 +17,5 @@
           -batch-mode true &> ispn-perf.log &
       args:
         executable: /bin/bash
-
+      environment:
+        JAVA_OPTS: "{{ java_opts }}"

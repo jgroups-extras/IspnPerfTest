@@ -4,10 +4,18 @@
 - name: "Upload target folder"
   synchronize: src="{{ target_folder }}" dest="{{ remote_folder }}"
 
-- name: "Upload env file"
-  synchronize: src="env" dest="{{ remote_folder }}"
+- block:
+  - name: Get the private addresses to add
+    set_fact: test_instances="{{ test_instances + [ hostvars[item].ansible_facts.all_ipv4_addresses[0] ] }}"
+    loop: "{{ groups['instances'] }}"
+    vars:
+      test_instances: "{{ [] }}"
 
-- name: Create hosts file
-  template:
-    src: hosts.txt.j2
-    dest: "{{ remote_folder }}/target/classes/hosts.txt"
+  - name: Host list to create cluster
+    ansible.builtin.debug:
+      msg: "Hosts: {{ test_instances }}"
+
+  - name: Create hosts file
+    template:
+      src: hosts.txt.j2
+      dest: "{{ remote_folder }}/target/classes/hosts.txt"

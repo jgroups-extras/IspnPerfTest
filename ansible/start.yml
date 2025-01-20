@@ -9,6 +9,7 @@
       ansible.builtin.wait_for:
         path: '/home/{{ ansible_user }}/ispn-perf.log'
         search_regex: Node completed start setup
+        timeout: 20
 
 - hosts: "instances:!controller"
   roles: [ benchmark ]
