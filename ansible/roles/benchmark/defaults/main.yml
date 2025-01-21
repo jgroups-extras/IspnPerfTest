@@ -23,7 +23,7 @@ cache_config: "dist-sync-gcp.xml"
 jdks:
   - 21.0.2-open
   - 25.ea.5-open
-  - 17-open
+  - 17.0.13-tem
 jdk_version: 21.0.2-open
 
 # Extra variables
