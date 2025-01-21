@@ -14,12 +14,16 @@
         source {{ sdkman_folder }}/bin/sdkman-init.sh
         echo "Installing JDK {{ item }}"
         sdk install java {{ item }}
+      args:
+        executable: /bin/bash
       loop: "{{ jdks }}"
 
     - name: Cleaning up
       ansible.builtin.shell: |
         source {{ sdkman_folder }}/bin/sdkman-init.sh
         sdk flush
+      args:
+        executable: /bin/bash
 
 - name: Install rsync
   package:
