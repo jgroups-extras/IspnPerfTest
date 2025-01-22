@@ -16,3 +16,13 @@
 - name: Stopping IspnPerf
   ansible.builtin.include_tasks: stop.yml
   when: operation is defined and operation is search("stop")
+
+- name: Run all test permutations
+  ansible.builtin.include_tasks: complete.yml
+  vars:
+    jdk_version: "{{ c.jdk_version }}"
+    use_virtual_threads: "{{ c.use_virtual_threads }}"
+  loop: "{{ benchmark_configuration }}"
+  loop_control:
+    loop_var: c
+  when: benchmark_configuration is defined and operation is defined and operation is search("run")

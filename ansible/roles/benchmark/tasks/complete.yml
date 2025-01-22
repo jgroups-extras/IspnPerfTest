@@ -1,0 +1,57 @@
+- block:
+  - name: Starting IspnPerf in controller
+    ansible.builtin.include_role:
+      name: benchmark
+      public: true
+      apply:
+        delegate_to: "{{ controller_host }}"
+    run_once: true
+    vars:
+      operation: start
+
+  - name: Waiting until controller started
+    ansible.builtin.wait_for:
+      path: '/home/{{ ansible_user }}/ispn-perf.log'
+      search_regex: Node completed start setup
+      timeout: 20
+    delegate_to: "{{ controller_host }}"
+
+- name: Start remaining nodes
+  ansible.builtin.include_role:
+    name: benchmark
+    public: true
+    apply:
+      delegate_to: "{{ item }}"
+  vars:
+    operation: start
+  loop: "{{ groups['instances'] | difference(groups['controller']) }}"
+
+- block:
+  - name: Time we started to wait for test completion
+    ansible.builtin.debug:
+      msg: "Starting to listen: {{ now() }}"
+
+  - name: Wait until test finished
+    ansible.builtin.wait_for:
+      path: '/home/{{ ansible_user }}/ispn-perf.log'
+      search_regex: Test execution completed
+    delegate_to: "{{ controller_host }}"
+
+  - name: Download results from coordinator
+    ansible.builtin.fetch:
+      src: '/home/{{ ansible_user }}/results.txt'
+      dest: results.txt
+      flat: true
+    delegate_to: "{{ controller_host }}"
+
+- name: Ensure all nodes stopped
+  ansible.builtin.include_role:
+    name: benchmark
+    public: true
+    apply:
+      delegate_to: "{{ item }}"
+      ignore_errors: true
+  run_once: true
+  vars:
+    operation: stop
+  loop: "{{ groups['instances'] }}"

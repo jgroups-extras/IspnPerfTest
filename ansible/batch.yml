@@ -1,0 +1,22 @@
+- ansible.builtin.import_playbook: perf.yml
+
+- hosts: localhost
+  tasks:
+    - name: Create test permutation
+      set_fact:
+        permutation: >-
+          {{ jdks | product(vthreads)
+                  | map('zip', ['jdk_version', 'use_virtual_threads'])
+                  | map('map', 'reverse')
+                  | map('community.general.dict') }}
+
+    - name: Start test
+      ansible.builtin.include_role:
+        name: benchmark
+        public: true
+      vars:
+        operation: run
+        benchmark_configuration: "{{ permutation }}"
+
+  vars:
+    operation: run

@@ -1,4 +1,3 @@
-
 - block:
     - name: "Running {{ script_file }}"
       ansible.builtin.shell: |
@@ -14,8 +13,9 @@
           -warmup {{ warmup_duration }} \
           -msg-size {{ msg_size }} \
           -nodes {{ groups['instances'] | length }} \
-          -batch-mode true &> ispn-perf.log &
+          {{ batch_mode | ansible.builtin.ternary('-batch-mode true', '') }} \
+          {{ nohup_mode | ansible.builtin.ternary('-nohup', '') }} &> ispn-perf.log &
       args:
         executable: /bin/bash
       environment:
-        JAVA_OPTS: "{{ java_opts }}"
+        JAVA_OPTS: "-Dorg.infinispan.threads.virtual={{ use_virtual_threads}} -Dvthreads={{ use_virtual_threads }} {{ java_opts }}"

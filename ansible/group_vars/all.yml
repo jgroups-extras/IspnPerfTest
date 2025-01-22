@@ -1,0 +1,10 @@
+# JDKs utilized for testing
+jdks:
+  - 21.0.2-open
+  - 25.ea.5-open
+  - 17.0.13-tem
+jdk_version: 21.0.2-open
+
+vthreads:
+  - true
+  - false

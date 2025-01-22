@@ -3,6 +3,10 @@ target_folder: "../target"
 
 remote_folder: "/home/{{ ansible_user }}"
 
+# Modes to run IspnPerf.
+batch_mode: true
+nohup_mode: true
+
 # Extra properties passed to the JVM.
 java_opts: ""
 
@@ -18,13 +22,6 @@ use_virtual_threads: true
 script_file: "perf-test-gcp.sh"
 control_config: "control-gcp.xml"
 cache_config: "dist-sync-gcp.xml"
-
-# JDKs utilized for testing
-jdks:
-  - 21.0.2-open
-  - 25.ea.5-open
-  - 17.0.13-tem
-jdk_version: 21.0.2-open
 
 # Extra variables
 sdkman_folder: /home/{{ ansible_user }}/.sdkman
