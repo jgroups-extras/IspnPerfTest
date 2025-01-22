@@ -5,6 +5,7 @@ import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.cache.impl.*;
 import org.cache.impl.tri.TriCacheFactory;
+import org.infinispan.commons.jdkspecific.ThreadCreator;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
@@ -20,6 +21,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
@@ -603,11 +605,12 @@ public class Test implements Receiver {
     public String env() {
         StringBuilder sb=new StringBuilder(String.format("\n-------------------- %s -------------------------\n", new Date()));
 
-        String fmt="Node: %s\nIP: %s\nView: %s\nJGroups: %s\nInfinispan: %s\nJava: %s\nvthreads: %b\n";
+        String fmt="Node: %s\nIP: %s\nView: %s\nJGroups: %s\nInfinispan: %s\nJava: %s\njg-vthreads: %b\n" +
+          "ispn-vthreads: %b\n";
         sb.append(String.format(fmt, realAddress(), physicalAddress(),
                                 clusterView(), org.jgroups.Version.printDescription(),
                                 org.infinispan.commons.util.Version.printVersion(),
-                                Util.JAVA_VERSION, vthreads()));
+                                Util.JAVA_VERSION, jgroupsVThreads(), ispnVThrads()));
         sb.append(String.format("cfg: %s\ncontrol_cfg: %s\n", cfg, control_cfg));
         sb.append(String.format("num_threads: %d\nnum_keys: %,d\ntime: %s\nwarmup: %s\nmsg_size: %s\n" +
                                   "nodes: %d\nread_percentage: %.2f\n",
@@ -647,7 +650,7 @@ public class Test implements Receiver {
         return "n/a";
     }
 
-    protected boolean vthreads() {
+    protected boolean jgroupsVThreads() {
         if(cache instanceof InfinispanCache) {
             JGroupsTransport transport=(JGroupsTransport)((InfinispanCache<?,?>)cache).getTransport();
             JChannel ch=transport.getChannel();
@@ -655,6 +658,12 @@ public class Test implements Receiver {
             return tp.useVirtualThreads();
         }
         return false;
+    }
+
+    protected static boolean ispnVThrads() {
+        // kludge ahead:
+        Optional<ExecutorService> blocking_executor=ThreadCreator.createBlockingExecutorService();
+        return blocking_executor.isPresent();
     }
 
     protected static String percentiles(Histogram h) {
