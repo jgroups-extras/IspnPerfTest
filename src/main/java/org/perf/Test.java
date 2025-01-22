@@ -609,7 +609,8 @@ public class Test implements Receiver {
           "ispn-vthreads: %b\n";
         sb.append(String.format(fmt, realAddress(), physicalAddress(),
                                 clusterView(), org.jgroups.Version.printDescription(),
-                                org.infinispan.commons.util.Version.printVersion(),
+                                String.format("%s (%s)", org.infinispan.commons.util.Version.getBrandVersion(),
+                                              org.infinispan.commons.util.Version.getCodename()),
                                 Util.JAVA_VERSION, jgroupsVThreads(), ispnVThrads()));
         sb.append(String.format("cfg: %s\ncontrol_cfg: %s\n", cfg, control_cfg));
         sb.append(String.format("num_threads: %d\nnum_keys: %,d\ntime: %s\nwarmup: %s\nmsg_size: %s\n" +
