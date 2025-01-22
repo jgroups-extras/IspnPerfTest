@@ -25,6 +25,37 @@
       args:
         executable: /bin/bash
 
+- name: Install and configure asprof
+  block:
+    - name: Check if asprof already downloaded
+      stat:
+        path: "{{ remote_folder }}/asprof.tar.gz"
+      register: stat_result
+
+    - name: Async-profiler for x86_64 arch
+      set_fact:
+        asprof_arch: "x64"
+      when: "{{ ansible_facts.architecture == 'x86_64' }}"
+
+    - name: Async-profiler for ARM
+      set_fact:
+        asprof_arch: "arm64"
+      when: "{{ ansible_facts.architecture == 'aarch64' }}"
+
+    - name: Download async-profiler {{ asprof_arch }}
+      ansible.builtin.get_url:
+        url: "https://github.com/async-profiler/async-profiler/releases/download/v3.0/async-profiler-3.0-linux-{{ asprof_arch }}.tar.gz"
+        dest: "{{ remote_folder }}/asprof.tar.gz"
+      when: not stat_result.stat.exists
+
+    - name: Unarchive async-profiler
+      ansible.builtin.unarchive:
+        src: "{{ remote_folder }}/asprof.tar.gz"
+        dest: "{{ remote_folder }}"
+        remote_src: yes
+      when: not stat_result.stat.exists
+
+
 - name: Install rsync
   package:
     name: rsync

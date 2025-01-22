@@ -1,0 +1,15 @@
+- name: Verify not in batch mode
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Verify options
+      fail:
+        msg: "Batch mode is not allowed in this playbook"
+      when: batch_mode is defined and batch_mode is true
+
+- hosts: "instances:!controller"
+  roles: [ benchmark ]
+  vars:
+    operation: start
+    batch_mode: false

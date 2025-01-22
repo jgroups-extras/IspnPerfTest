@@ -86,4 +86,6 @@ export proc_id=$$
 
 # exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
 
+FLAGS="-Dorg.infinispan.threads.virtual=true $FLAGS"
+
 java -cp $CP $LOG $FLAGS $*

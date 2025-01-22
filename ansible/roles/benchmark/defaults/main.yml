@@ -25,3 +25,4 @@ cache_config: "dist-sync-gcp.xml"
 
 # Extra variables
 sdkman_folder: /home/{{ ansible_user }}/.sdkman
+asprof_arch: "{{ undef() }}"
