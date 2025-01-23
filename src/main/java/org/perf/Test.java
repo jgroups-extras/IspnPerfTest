@@ -19,6 +19,9 @@ import javax.management.MBeanServer;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -77,6 +80,8 @@ public class Test implements Receiver {
     @Property protected int     num_nodes;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
     @Property protected String  result_file="results.txt";
+    @Property protected String  results_file_csv="results.csv";
+    @Property protected String  csv_filter;
     @Property protected boolean print_details=true;
     @Property protected boolean print_invokers;
     // ... add your own here, just don't forget to annotate them with @Property
@@ -116,6 +121,7 @@ public class Test implements Receiver {
     public Test readPercentage(double p) {this.read_percentage=p; return this;}
     public Test resultFile(String f)     {this.result_file=f; return this;}
     public Test batchMode(boolean b)     {this.batch_mode=b; return this;}
+    public Test csvFilter(String f)      {this.csv_filter=f; return this;}
 
     public void init(String factory, String cache_name, boolean use_vthreads) throws Exception {
         // sanity checks:
@@ -537,8 +543,9 @@ public class Test implements Receiver {
                                     print(get_avg, print_details), print(put_avg, print_details));
         System.out.println(Util.bold(result));
         if(batch_mode && write_results) {
+            Map<String,Object> map=envMap();
             try(DataOutputStream out=new DataOutputStream(new FileOutputStream(result_file, true))) {
-                String s=env();
+                String s=env(map);
                 byte[] bytes=s.getBytes();
                 out.write(bytes, 0, bytes.length);
                 bytes=result.getBytes();
@@ -546,6 +553,26 @@ public class Test implements Receiver {
             }
             catch(IOException e) {
                 throw new RuntimeException(e);
+            }
+            if(csv_filter != null) {
+                File f=new File(results_file_csv);
+                boolean add_header=!f.exists();
+                try(DataOutputStream out=new DataOutputStream(new FileOutputStream(results_file_csv, true))) {
+                    if(add_header) {
+                        String header="Description, Throughput\n";
+                        byte[] bytes=header.getBytes();
+                        out.write(bytes, 0, bytes.length);
+                    }
+                    String s=csv(map, csv_filter);
+                    byte[] bytes=s.getBytes();
+                    out.write(bytes, 0, bytes.length);
+                    s=String.format(", %.2f\n", reqs_sec_node);
+                    bytes=s.getBytes();
+                    out.write(bytes, 0, bytes.length);
+                }
+                catch(IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
@@ -602,24 +629,61 @@ public class Test implements Receiver {
           String.format("avg = %,.2f us", avg.getMean());
     }
 
-    public String env() {
-        StringBuilder sb=new StringBuilder(String.format("\n-------------------- %s -------------------------\n", new Date()));
-
-        String fmt="Node: %s\nIP: %s\nView: %s\nJGroups: %s\nInfinispan: %s\nJava: %s\njg-vthreads: %b\n" +
-          "ispn-vthreads: %b\n";
-        sb.append(String.format(fmt, realAddress(), physicalAddress(),
-                                clusterView(), org.jgroups.Version.printDescription(),
-                                String.format("%s (%s)", org.infinispan.commons.util.Version.getBrandVersion(),
-                                              org.infinispan.commons.util.Version.getCodename()),
-                                Util.JAVA_VERSION, jgroupsVThreads(), ispnVThrads()));
-        sb.append(String.format("cfg: %s\ncontrol_cfg: %s\n", cfg, control_cfg));
-        sb.append(String.format("num_threads: %d\nnum_keys: %,d\ntime: %s\nwarmup: %s\nmsg_size: %s\n" +
-                                  "nodes: %d\nread_percentage: %.2f\n",
-                                num_threads, num_keys, Util.printTime(time, TimeUnit.SECONDS),
-                                Util.printTime(warmup, TimeUnit.SECONDS), Util.printBytes(msg_size),
-                                num_nodes, read_percentage));
-
+    public static String env(Map<String,Object> m) {
+        StringBuilder sb=new StringBuilder(String.format("\n-------------------- %s -------------------------\n", m.get("date")));
+        String fmt="node: %s\nip: %s\nview: %s\njgroups: %s\ninfinispan: %s\njdk: %s\njg-vthreads: %b\n" +
+          "ispn-vthreads: %b\ncfg: %s\ncontrol_cfg: %s\nnum_threads: %d\nnum_keys: %,d\ntime: %s\nwarmup: %s\n" +
+          "msg_size: %s\nnodes: %d\nread_percentage: %.2f\n";
+        sb.append(String.format(fmt, m.get("node"), m.get("ip"),
+                                m.get("view"), m.get("jg"), m.get("ispn"),
+                                m.get("jdk"), m.get("jg-vthreads"), m.get("ispn-vthreads"),
+                                m.get("cfg"), m.get("control-cfg"),
+                                m.get("threads"), m.get("keys"), Util.printTime((Integer)m.get("time"), TimeUnit.SECONDS),
+                                Util.printTime((Integer)m.get("warmup"), TimeUnit.SECONDS),
+                                Util.printBytes((Integer)m.get("msg-size")),
+                                m.get("nodes"), m.get("read-percentage")));
         return sb.toString();
+    }
+
+    public static String csv(Map<String,Object> m, String filter) {
+        StringBuilder sb=new StringBuilder(String.format("%s", m.get("date")));
+        StringTokenizer tok=new StringTokenizer(filter, ",");
+        while(tok.hasMoreTokens()) {
+            String key=tok.nextToken();
+            Object val=m.get(key);
+            if(val != null)
+                sb.append(String.format(" %s=%s", key, val));
+        }
+        return sb.toString();
+    }
+
+    public Map<String,Object> envMap() {
+        Map<String,Object> m=new LinkedHashMap<>();
+        m.put("date", getDate());
+        m.put("node", realAddress());
+        m.put("ip", physicalAddress());
+        m.put("view", clusterView());
+        m.put("jdk", Util.JAVA_VERSION);
+        m.put("jg", org.jgroups.Version.printVersion());
+        m.put("ispn", String.format("%s", org.infinispan.commons.util.Version.getBrandVersion()));
+        m.put("jg-vthreads", jgroupsVThreads());
+        m.put("ispn-vthreads", ispnVThrads());
+        m.put("cfg", cfg);
+        m.put("control-cfg", control_cfg);
+        m.put("threads", num_threads);
+        m.put("keys", num_keys);
+        m.put("warmup", warmup);
+        m.put("time", time);
+        m.put("nodes", num_nodes);
+        m.put("msg-size", msg_size);
+        m.put("read-percentage", read_percentage);
+        return m;
+    }
+
+    protected static String getDate() {
+        LocalDate d=LocalDate.now();
+        LocalTime t=LocalTime.now().truncatedTo(ChronoUnit.SECONDS);
+        return String.format("%s %s", d, t);
     }
 
     protected String realAddress() {
@@ -1050,8 +1114,12 @@ public class Test implements Receiver {
                 test.resultFile(args[++i]);
                 continue;
             }
+            if("-csv".equals(args[i])) {
+                test.csvFilter(args[++i]);
+                continue;
+            }
             if("-env".equals(args[i])) {
-                String env=test.env();
+                String env=Test.env(test.envMap());
                 System.out.println("env = " + env);
                 return;
             }
@@ -1095,13 +1163,21 @@ public class Test implements Receiver {
         }
     }
 
+    protected static String csvFilters() {
+        Test t=new Test();
+        Map<String,Object> m=t.envMap();
+        return m.keySet().toString();
+    }
+
     protected static void help() {
         System.out.printf("Test [-factory <cache factory classname>] [-cfg <file>] [-cache <name>] [-control-cfg <file>]\n" +
                             "[-nohup] [-batch-mode true|false] [-nodes <num>] [-warmup <secs>] [-result-file <file>]\n" +
                             "[-threads <num>] [-keys <num>] [-msg-size <bytes>] [-time <secs>]\n" +
-                            "[-read-percentage <percentage>] [-use-vthreads true|false]" +
+                            "[-read-percentage <percentage>] [-use-vthreads true|false] [-csv \"<filter>\"]\n" +
+                            "CSV filters: %s\n" +
                             "Valid factory names:" +
                             "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\n\n",
+                          csvFilters(),
                           infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory, raft_factory);
     }
 
