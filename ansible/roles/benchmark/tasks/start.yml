@@ -13,6 +13,7 @@
           -warmup {{ warmup_duration }} \
           -msg-size {{ msg_size }} \
           -nodes {{ groups['instances'] | length }} \
+          -csv "jdk,jg,ispn,jg-vthreads,ispn-vthreads" \
           {{ batch_mode | ansible.builtin.ternary('-batch-mode true', '') }} \
           {{ nohup_mode | ansible.builtin.ternary('-nohup', '') }} &> ispn-perf.log &
       args:
