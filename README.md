@@ -2,7 +2,7 @@
 IspnPerfTest
 ============
 
-Author: Bela Ban
+Author: Bela Ban, Jose Bolina
 
 Tests performance of Infinispan and other data grids.
 
