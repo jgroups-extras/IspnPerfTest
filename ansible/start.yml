@@ -36,5 +36,5 @@
     - name: Download results.csv from controller
       ansible.builtin.fetch:
         src: '/home/{{ ansible_user }}/results.csv'
-        dest: results.txt
+        dest: results.csv
         flat: true
