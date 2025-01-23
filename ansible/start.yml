@@ -32,3 +32,9 @@
         src: '/home/{{ ansible_user }}/results.txt'
         dest: results.txt
         flat: true
+
+    - name: Download results from coordinator
+      ansible.builtin.fetch:
+        src: '/home/{{ ansible_user }}/results.csv'
+        dest: results.txt
+        flat: true
