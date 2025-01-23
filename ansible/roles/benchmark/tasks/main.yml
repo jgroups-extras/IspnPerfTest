@@ -22,6 +22,8 @@
   vars:
     jdk_version: "{{ c.jdk_version }}"
     use_virtual_threads: "{{ c.use_virtual_threads }}"
+    controller_host: "{{ groups['controller'][0] }}"
+    ansible_user: "{{ hostvars[groups['controller'][0]]['ansible_user'] }}"
   loop: "{{ benchmark_configuration }}"
   loop_control:
     loop_var: c
