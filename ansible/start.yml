@@ -27,13 +27,13 @@
         path: '/home/{{ ansible_user }}/ispn-perf.log'
         search_regex: Test execution completed
 
-    - name: Download results from coordinator
+    - name: Download results.txt from controller
       ansible.builtin.fetch:
         src: '/home/{{ ansible_user }}/results.txt'
         dest: results.txt
         flat: true
 
-    - name: Download results from coordinator
+    - name: Download results.csv from controller
       ansible.builtin.fetch:
         src: '/home/{{ ansible_user }}/results.csv'
         dest: results.txt
