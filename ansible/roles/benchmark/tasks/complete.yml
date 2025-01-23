@@ -37,10 +37,17 @@
       search_regex: Test execution completed
     delegate_to: "{{ controller_host }}"
 
-  - name: Download results from coordinator
+  - name: Download results.txt from coordinator
     ansible.builtin.fetch:
       src: '/home/{{ ansible_user }}/results.txt'
       dest: results.txt
+      flat: true
+    delegate_to: "{{ controller_host }}"
+
+  - name: Download results.csv from coordinator
+    ansible.builtin.fetch:
+      src: '/home/{{ ansible_user }}/results.csv'
+      dest: results.csv
       flat: true
     delegate_to: "{{ controller_host }}"
 
