@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<infinispan
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:infinispan:config:15.0  http://www.infinispan.org/schemas/infinispan-config-15.0.xsd"
+        xmlns="urn:infinispan:config:15.0">
+
+
+    <jgroups>
+        <stack-file name="jgroupsStack" path="jgroups-gcp-new.xml"/>
+    </jgroups>
+
+    <cache-container name="default" default-cache="perf-cache">
+        <!--transport stack="jgroupsStack" lock-timeout="600000" cluster="default" remote-command-executor="custom-remote" /-->
+        <transport stack="jgroupsStack" lock-timeout="600000" cluster="default" />
+        <jmx>
+            <property name="enabled">true</property>
+        </jmx>
+        <distributed-cache name="perf-cache" statistics="true"/>
+        <!-- replicated-cache name="perf-cache" statistics="true" mode="ASYNC"/-->
+    </cache-container>
+
+</infinispan>
