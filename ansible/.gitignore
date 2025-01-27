@@ -1,4 +1,5 @@
 *.pem
 *inventory.*
+gcp.yml
 ansible.cfg
 env
