@@ -19,4 +19,4 @@
       args:
         executable: /bin/bash
       environment:
-        JAVA_OPTS: "-Dorg.infinispan.threads.virtual={{ use_virtual_threads}} -Dvthreads={{ use_virtual_threads }} {{ java_opts }}"
+        JAVA_OPTS: "-Dorg.infinispan.threads.virtual={{ use_virtual_threads }} -Dvthreads={{ use_virtual_threads }} {{ java_opts }}"
