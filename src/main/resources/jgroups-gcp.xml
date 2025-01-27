@@ -22,7 +22,7 @@
    <!-- Infinispan can only have *2* variables in a list -->
    <TCPPING
         initial_hosts_file="hosts.txt"
-        port_range="${tcpping.port_range,env.PORT_RANGE:1}"/>
+        port_range="${tcpping.port_range,env.PORT_RANGE:0}"/>
    <MERGE3 max_interval="30000"
            min_interval="10000"/>
    <FD_SOCK2 offset="20" port_range="0" connect_timeout="300"/>
