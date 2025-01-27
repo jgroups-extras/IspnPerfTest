@@ -8,7 +8,8 @@
           {{ jdks | product(vthreads)
                   | map('zip', ['jdk_version', 'use_virtual_threads'])
                   | map('map', 'reverse')
-                  | map('community.general.dict') }}
+                  | map('community.general.dict')
+                  | difference(forbidden_states) }}
 
     - name: Start test
       ansible.builtin.include_role:
