@@ -1,3 +1,13 @@
+- name: Destroy previous artifacts
+  ansible.builtin.file:
+    state: absent
+    path: "{{ folder }}"
+  loop:
+    - "{{ remote_folder }}/bin"
+    - "{{ remote_folder }}/target"
+  loop_control:
+    loop_var: folder
+
 - name: "Upload script files"
   synchronize: src="{{ bin_folder }}" dest="{{ remote_folder }}"
 

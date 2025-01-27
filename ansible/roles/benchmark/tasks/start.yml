@@ -6,12 +6,13 @@
         nohup {{ remote_folder }}/bin/{{ script_file }} \
           -control-cfg {{ control_config }} \
           -cfg {{ cache_config }} \
-          -use-vthreads {{ use_virtual_threads }} \
+          -use-vthreads true \
           -threads {{ num_threads }} \
           -keys {{ num_keys }} \
           -time {{ test_duration }} \
           -warmup {{ warmup_duration }} \
           -msg-size {{ msg_size }} \
+          -read-percentage {{read_percentage }} \
           -nodes {{ groups['instances'] | length }} \
           -csv "jdk,jg,ispn,jg-vthreads,ispn-vthreads" \
           {{ batch_mode | ansible.builtin.ternary('-batch-mode true', '') }} \
