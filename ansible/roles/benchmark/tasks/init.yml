@@ -1,3 +1,22 @@
+
+- name: Install zip
+  package:
+    name: zip
+    state: present
+  become: true
+
+- name: Install unzip
+  package:
+    name: unzip
+    state: present
+  become: true
+
+- name: Install net-tools
+  package:
+    name: net-tools
+    state: present
+  become: true
+
 - name: Install and configure SDKMAN!
   block:
     - name: Install SDKMAN!
