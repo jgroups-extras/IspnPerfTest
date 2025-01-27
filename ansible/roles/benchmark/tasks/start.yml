@@ -6,7 +6,7 @@
         nohup {{ remote_folder }}/bin/{{ script_file }} \
           -control-cfg {{ control_config }} \
           -cfg {{ cache_config }} \
-          -use-vthreads true \
+          -use-vthreads {{ use_virtual_threads }} \
           -threads {{ num_threads }} \
           -keys {{ num_keys }} \
           -time {{ test_duration }} \
