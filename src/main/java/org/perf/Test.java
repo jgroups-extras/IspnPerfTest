@@ -48,7 +48,6 @@ public class Test implements Receiver {
     protected Address                             local_addr;
     protected final List<Address>                 members=new ArrayList<>();
     protected volatile View                       view;
-    protected final LongAdder                     num_requests=new LongAdder();
     protected final LongAdder                     num_reads=new LongAdder();
     protected final LongAdder                     num_writes=new LongAdder();
     protected volatile boolean                    looping=true;
@@ -283,7 +282,6 @@ public class Test implements Receiver {
     }
 
     protected void startIspnTest(Address sender, int time_secs) {
-        num_requests.reset();
         num_reads.reset();
         num_writes.reset();
 
@@ -745,7 +743,7 @@ public class Test implements Receiver {
     protected String printAverage(long start_time) {
         long t=System.currentTimeMillis() - start_time;
         long reads=num_reads.sum(), writes=num_writes.sum();
-        double reqs_sec=num_requests.sum() / (t / 1000.0);
+        double reqs_sec=(reads+writes) / (t / 1000.0);
         return String.format("%,.0f reqs/sec (%,d reads %,d writes)", reqs_sec, reads, writes);
     }
 
@@ -916,8 +914,6 @@ public class Test implements Receiver {
                 e.printStackTrace();
             }
             while(running) {
-                num_requests.increment();
-
                 // get a random key in range [0 .. num_keys-1]
                 int index=(int)Util.random(num_keys) -1;
                 Integer key=keys[index];
