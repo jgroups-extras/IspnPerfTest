@@ -12,4 +12,5 @@ shift
 echo "enabling virtual threads: $threads"
 
 $DIR/run.sh -Dorg.infinispan.threads.virtual=$threads -Dvthreads=$threads \
-     org.perf.Test -cfg dist-sync-gcp.xml -control-cfg control-gcp.xml $*
+     org.perf.Test -cfg dist-sync-gcp.xml -control-cfg control-gcp.xml \
+     -read-percentage 1 $*
