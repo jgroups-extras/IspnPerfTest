@@ -97,7 +97,8 @@ public class Test implements Receiver {
     protected static final String coherence_factory="org.cache.impl.CoherenceCacheFactory"; // to prevent loading of Coherence up-front
     protected static final String tri_factory=TriCacheFactory.class.getName();
     protected static final String dummy_factory=DummyCacheFactory.class.getName();
-    protected static final String raft_factory= RaftCacheFactory.class.getName();
+    protected static final String raft_factory=RaftCacheFactory.class.getName();
+    protected static final String local_factory=LocalCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
       "\n[5] Keys (%,d) [6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
@@ -1146,6 +1147,9 @@ public class Test implements Receiver {
                     break;
                 case "raft":
                     cache_factory_name=raft_factory;
+                    break;
+                case "local":
+                    cache_factory_name=local_factory;
             }
             test.init(cache_factory_name, cache_name, use_vthreads);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
@@ -1176,9 +1180,9 @@ public class Test implements Receiver {
                             "[-read-percentage <percentage>] [-use-vthreads true|false] [-csv \"<filter>\"]\n" +
                             "CSV filters: %s\n" +
                             "Valid factory names:" +
-                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\n\n",
+                            "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\nlocal: %s\n",
                           csvFilters(),
-                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory, raft_factory);
+                          infinispan_factory, hazelcast_factory, coherence_factory, tri_factory, dummy_factory, raft_factory, local_factory);
     }
 
 
