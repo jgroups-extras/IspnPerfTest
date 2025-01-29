@@ -927,19 +927,19 @@ public class Test implements Receiver {
                 while(true) {
                     try {
                         if(is_this_a_read) {
-                            long start=Util.micros();
+                            long start=System.nanoTime();
                             cache.get(key);
-                            long t=Util.micros() - start;
-                            get_avg.recordValue(t);
+                            long t=System.nanoTime() - start;
+                            get_avg.recordValue(t/1000);
                             num_reads.increment();
                         }
                         else {
                             byte[] buffer=new byte[msg_size];
                             writeTo(local_uuid, count++, buffer, 0);
-                            long start=Util.micros();
+                            long start=System.nanoTime();
                             cache.put(key, buffer);
-                            long t=Util.micros() - start;
-                            put_avg.recordValue(t);
+                            long t=System.nanoTime() - start;
+                            put_avg.recordValue(t/1000);
                             num_writes.increment();
                         }
                         break;
