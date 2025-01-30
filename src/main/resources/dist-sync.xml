@@ -11,13 +11,12 @@
     </jgroups>
 
     <cache-container name="default" default-cache="perf-cache">
-        <!--transport stack="jgroupsStack" lock-timeout="600000" cluster="default" remote-command-executor="custom-remote" /-->
         <transport stack="jgroupsStack" lock-timeout="600000" cluster="default" />
         <jmx>
             <property name="enabled">true</property>
         </jmx>
-        <distributed-cache name="perf-cache" statistics="true"/>
-        <!-- replicated-cache name="perf-cache" statistics="true" mode="ASYNC"/-->
+        <distributed-cache name="perf-cache"/>
+        <local-cache name="local" simple-cache="true"/>
     </cache-container>
 
 </infinispan>
