@@ -17,6 +17,10 @@
   ansible.builtin.include_tasks: stop.yml
   when: operation is defined and operation is search("stop")
 
+- name: Downloading JFR file
+  ansible.builtin.include_tasks: download.yml
+  when: operation is defined and operation is search('download') and file_path is defined
+
 - name: Run all test permutations
   ansible.builtin.include_tasks: complete.yml
   vars:

@@ -1,0 +1,16 @@
+- name: "Find files matching: {{ file_path }}/{{ file_path }}"
+  ansible.builtin.find:
+    paths: "{{ remote_folder }}"
+    patterns: "{{ file_path }}"
+    use_regex: False
+  register: files
+
+- name: "Download files: {{ files.files }}"
+  ansible.builtin.synchronize:
+    src: "{{ file.path }}"
+    dest: "downloads/"
+    mode: pull
+  loop: "{{ files.files }}"
+  loop_control:
+    loop_var: file
+
