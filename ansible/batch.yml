@@ -1,4 +1,4 @@
-- ansible.builtin.import_playbook: perf.yml
+- ansible.builtin.import_playbook: setup.yml
 
 - hosts: localhost
   tasks:
