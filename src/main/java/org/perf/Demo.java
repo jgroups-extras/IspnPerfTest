@@ -56,7 +56,7 @@ public class Demo implements Receiver {
     protected static final String raft_factory=RaftCacheFactory.class.getName();
     protected static final String local_factory=LocalCacheFactory.class.getName();
 
-    protected static final String input_str="[1] Get [2] Put [3] View [4] Cache size\n" +
+    protected static final String input_str="[1] Get [2] Put [3] View [4] Cache size [5] Populate\n" +
       "[7] Value size (%s) \n[v] Versions\n" +
       "[x] Exit [X] Exit all\n";
 
@@ -196,6 +196,12 @@ public class Demo implements Receiver {
                     break;
                 case '4':
                     printCacheSize();
+                    break;
+                case '5':
+                    int highest_key=Util.readIntFromStdin("highest key: ");
+                    byte[] v=new byte[msg_size];
+                    for(int k=1; k <= highest_key; k++)
+                        cache.put(k, v);
                     break;
                 case '7':
                     int new_msg_size=Util.readIntFromStdin("Message size: ");
