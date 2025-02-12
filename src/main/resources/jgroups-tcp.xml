@@ -40,4 +40,5 @@
    <MFC max_credits="${jgroups.max_credits:4m}"
         min_threshold="0.4"/>
    <FRAG4 frag_size="60K"/>
+   <TIME/>
 </config>
