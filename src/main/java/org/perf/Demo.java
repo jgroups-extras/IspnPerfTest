@@ -178,62 +178,71 @@ public class Demo implements Receiver {
 
     // ================================= end of callbacks =====================================
 
-    public void eventLoop() throws Throwable {
+    public void eventLoop() {
         while(looping) {
-            int c=Util.keyPress(String.format(input_str, Util.printBytes(msg_size)));
-            switch(c) {
-                case '1': // get
-                    int key=Util.readIntFromStdin("key: ");
-                    byte[] val=cache.get(key);
-                    System.out.printf("val: " + (val == null? "null\n" : (val.length + " bytes\n")));
-                    break;
-                case '2': // put
-                    key=Util.readIntFromStdin("key: ");
-                    cache.put(key, new byte[msg_size]);
-                    break;
-                case '3':
-                    printView();
-                    break;
-                case '4':
-                    printCacheSize();
-                    break;
-                case '5':
-                    int highest_key=Util.readIntFromStdin("highest key: ");
-                    byte[] v=new byte[msg_size];
-                    for(int k=1; k <= highest_key; k++)
-                        cache.put(k, v);
-                    break;
-                case '7':
-                    int new_msg_size=Util.readIntFromStdin("Message size: ");
-                    if(new_msg_size < Global.LONG_SIZE*3)
-                        System.err.println("msg size must be >= " + Global.LONG_SIZE*3);
-                    else
-                        changeFieldAcrossCluster("msg_size", new_msg_size);
-                    break;
-                case 'c':
-                    clearCache();
-                    break;
-                case 'v':
-                    System.out.printf("JGroups: %s, Infinispan: %s\n",
-                                      Version.printDescription(),
-                                      org.infinispan.commons.util.Version.printVersion());
-                    break;
-                case 'x':
-                case 0: // remove on upgrade to next JGroups version
-                case -1:
-                    stop();
-                    return;
-                case 'X':
-                    try {
-                        control_channel.send(null, new byte[]{(byte)Type.QUIT_ALL.ordinal()});
-                    }
-                    catch(Throwable t) {
-                        System.err.println("Calling quitAll() failed: " + t);
-                    }
-                    break;
-                default:
-                    break;
+            try {
+                _eventLoop();
             }
+            catch(Throwable t) {
+                System.err.printf("failure in event loop: %s\n", t.getMessage());
+            }
+        }
+    }
+
+    protected void _eventLoop() throws Throwable {
+        int c=Util.keyPress(String.format(input_str, Util.printBytes(msg_size)));
+        switch(c) {
+            case '1': // get
+                int key=Util.readIntFromStdin("key: ");
+                byte[] val=cache.get(key);
+                System.out.printf("val: " + (val == null? "null\n" : (val.length + " bytes\n")));
+                break;
+            case '2': // put
+                key=Util.readIntFromStdin("key: ");
+                cache.put(key, new byte[msg_size]);
+                break;
+            case '3':
+                printView();
+                break;
+            case '4':
+                printCacheSize();
+                break;
+            case '5':
+                int highest_key=Util.readIntFromStdin("highest key: ");
+                byte[] v=new byte[msg_size];
+                for(int k=1; k <= highest_key; k++)
+                    cache.put(k, v);
+                break;
+            case '7':
+                int new_msg_size=Util.readIntFromStdin("Message size: ");
+                if(new_msg_size < Global.LONG_SIZE*3)
+                    System.err.println("msg size must be >= " + Global.LONG_SIZE*3);
+                else
+                    changeFieldAcrossCluster("msg_size", new_msg_size);
+                break;
+            case 'c':
+                clearCache();
+                break;
+            case 'v':
+                System.out.printf("JGroups: %s, Infinispan: %s\n",
+                                  Version.printDescription(),
+                                  org.infinispan.commons.util.Version.printVersion());
+                break;
+            case 'x':
+            case 0: // remove on upgrade to next JGroups version
+            case -1:
+                stop();
+                return;
+            case 'X':
+                try {
+                    control_channel.send(null, new byte[]{(byte)Type.QUIT_ALL.ordinal()});
+                }
+                catch(Throwable t) {
+                    System.err.println("Calling quitAll() failed: " + t);
+                }
+                break;
+            default:
+                break;
         }
     }
 

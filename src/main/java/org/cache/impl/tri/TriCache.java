@@ -132,7 +132,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
                 put_queue.add(data.handler(this::handlePut));
             else
                 send(primary, data);
-            return future.get(10000, TimeUnit.MILLISECONDS); // req_id was removed by ACK processing
+            return future.get(10, TimeUnit.SECONDS); // req_id was removed by ACK processing
         }
         catch(Throwable t) {
             req_table.remove(req_id);                        // req_id is removed on exception
