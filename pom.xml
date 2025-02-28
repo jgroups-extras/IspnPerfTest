@@ -45,7 +45,7 @@
     </scm>
 
     <properties>
-        <version.infinispan>15.0.12.Final</version.infinispan>
+        <version.infinispan>15.1.7.Final</version.infinispan>
         <version.jgroups>5.4.4.Final</version.jgroups>
         <version.hazelcast>5.5.0</version.hazelcast>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
