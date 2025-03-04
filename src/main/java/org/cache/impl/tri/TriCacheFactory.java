@@ -9,8 +9,8 @@ import org.jgroups.util.Util;
  * @since  1.0
  */
 public class TriCacheFactory<K,V> implements CacheFactory<K,V> {
-    protected String   config;
-    protected TriCache cache;
+    protected String        config;
+    protected TriCache<K,V> cache;
 
     public void init(String config) throws Exception {
         this.config=config;
@@ -22,7 +22,7 @@ public class TriCacheFactory<K,V> implements CacheFactory<K,V> {
 
     public Cache<K,V> create(String cache_name) {
         try {
-            cache=new TriCache(config);
+            cache=new TriCache<>(config, cache_name);
             return cache;
         }
         catch(Exception e) {
