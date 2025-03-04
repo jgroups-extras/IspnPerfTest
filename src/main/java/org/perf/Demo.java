@@ -17,6 +17,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 
 
@@ -33,7 +34,6 @@ public class Demo implements Receiver {
     protected final List<Address>                 members=new ArrayList<>();
     protected volatile View                       view;
     protected volatile boolean                    looping=true;
-    protected Integer[]                           keys;
     protected final Promise<Config>               config_promise=new Promise<>();
     protected ThreadFactory                       thread_factory;
 
@@ -57,7 +57,7 @@ public class Demo implements Receiver {
     protected static final String local_factory=LocalCacheFactory.class.getName();
 
     protected static final String input_str="[1] Get [2] Put [3] View [4] Cache size [5] Populate\n" +
-      "[7] Value size (%s) \n[v] Versions\n" +
+      "[7] Value size (%s) \n[v] Versions [l] List contents\n" +
       "[x] Exit [X] Exit all\n";
 
     public Demo cfg(String c)            {this.cfg=c; return this;}
@@ -227,6 +227,10 @@ public class Demo implements Receiver {
                 System.out.printf("JGroups: %s, Infinispan: %s\n",
                                   Version.printDescription(),
                                   org.infinispan.commons.util.Version.printVersion());
+                break;
+            case 'l':
+                SortedSet<Integer> keys=new ConcurrentSkipListSet<>(cache.keySet());
+                System.out.printf("%s\n", keys);
                 break;
             case 'x':
             case 0: // remove on upgrade to next JGroups version
@@ -400,7 +404,7 @@ public class Demo implements Receiver {
                 test.cfg(args[++i]);
                 continue;
             }
-            if(args[i].equals("-cache")) {
+            if(args[i].equals("-cache") || args[i].equals("-name")) {
                 cache_name=args[++i];
                 continue;
             }
@@ -459,7 +463,8 @@ public class Demo implements Receiver {
     }
 
     protected static void help() {
-        System.out.printf("Test [-factory <cache factory classname>] [-cfg <file>] [-cache <name>] [-control-cfg <file>]\n" +
+        System.out.printf("Test [-factory <cache factory classname>] [-cfg <file>] [-cache <name>] [-name name] " +
+                            "[-control-cfg <file>]\n" +
                             "[-msg-size <bytes>] [-use-vthreads true|false]\n" +
                             "Valid factory names:" +
                             "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\nlocal: %s\n",

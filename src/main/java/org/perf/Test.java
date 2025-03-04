@@ -1055,7 +1055,7 @@ public class Test implements Receiver {
                 test.cfg(args[++i]);
                 continue;
             }
-            if(args[i].equals("-cache")) {
+            if(args[i].equals("-cache") || args[i].equals("-name")) {
                 cache_name=args[++i];
                 continue;
             }
