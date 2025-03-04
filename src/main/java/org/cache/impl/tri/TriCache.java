@@ -19,10 +19,12 @@ import java.util.concurrent.atomic.LongAdder;
 
 
 /**
- * Cache which simulates the way Infinispan "triangle" works, but doesn't support rehashing. Fixed replication count of 2.
+ * Cache which simulates the way Infinispan "triangle" works, but doesn't support rebalancing.<br/>
+ * Fixed replication count of 2.<br/>
  * A PUT is sent to the primary which applies the change and forwards it to the backup node. The backup node also applies
  * the change and sends an ACK back to the caller. The caller blocks until it gets the ACK with the value, or a timeout
- * kicks in.
+ * kicks in.<br/>
+ * GETs can be returned by both primary and backup owner unless {@link #only_primary_handles_gets} is true.
  * @author Bela Ban
  * @since  1.0
  */
