@@ -16,9 +16,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.stream.Stream;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 
 /**
@@ -54,10 +51,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
 
     // Queue to handle PUT and CLEAR messages
     protected final ProcessingQueue                    put_queue;
-
-    protected final LongAdder                          num_single_msgs_received=new LongAdder();
-    protected final Average                            avg_put_processing_time=new AverageMinMax().unit(NANOSECONDS);
-    protected final Average                            avg_ack_processing_time=new AverageMinMax().unit(NANOSECONDS);
+    protected final LongAdder                          num_msgs_received=new LongAdder();
 
 
     protected final RejectedExecutionHandler resubmit_handler=(r,tp) -> {
@@ -232,11 +226,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
             switch(key) {
                 case "tri":
                     m.put("tri.req-table", req_table.toString());
-                    if(stats) {
-                        m.put("tri.avg_batch_put_processing_time", avg_put_processing_time.toString());
-                        m.put("tri.avg_ack_processing_time", avg_ack_processing_time.toString());
-                    }
-                    m.put("tri.num_single_msgs_received", String.valueOf(num_single_msgs_received.sum()));
+                    m.put("tri.num_msgs_received", String.format("%,d", num_msgs_received.sum()));
                     m.put("tri.put-queue", put_queue.toString());
                     break;
                 case "tri.compact":
@@ -244,12 +234,10 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
                     m.put("compact", String.valueOf(result));
                     break;
                 case "tri.reset":
-                    Stream.of(avg_put_processing_time, avg_ack_processing_time).forEach(Average::clear);
-                    num_single_msgs_received.reset();
+                    num_msgs_received.reset();
                     break;
             }
         }
-
         return m;
     }
 
@@ -329,7 +317,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
     }
 
     protected void process(Data<K,V> data, Address sender) throws Exception {
-        num_single_msgs_received.increment();
+        num_msgs_received.increment();
         switch(data.type) {
             case PUT:
                 put_queue.add(data.sender(sender).handler(this::handlePut));
@@ -445,7 +433,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
         public String toString() {
             if(thread_pool instanceof ThreadPoolExecutor) {
                 ThreadPoolExecutor p=(ThreadPoolExecutor)thread_pool;
-                return String.format("[pool=%d, largest pool=%d, active=%d, queued tasks=%d, completed tasks=%d]",
+                return String.format("[pool=%d, largest pool=%d, active=%d, queued tasks=%,d, completed tasks=%,d]",
                                      p.getPoolSize(), p.getLargestPoolSize(), p.getActiveCount(),
                                      p.getQueue().size(), p.getCompletedTaskCount());
             }
