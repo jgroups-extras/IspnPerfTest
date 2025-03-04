@@ -44,7 +44,6 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
 
     // If true, a GET for key K is handled by the primary owner of K only, otherwise any owner for K can handle a GET(K)
     protected boolean                                  only_primary_handles_gets;
-    protected boolean                                  stats=true;
 
     // Maps req-ids to futures on which callers block (e.g. put() or get()) until an ACK has been received
     protected final RequestTable<CompletableFuture<V>> req_table=new RequestTable<>(128);
