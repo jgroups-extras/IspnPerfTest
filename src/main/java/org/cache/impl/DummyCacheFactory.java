@@ -20,7 +20,7 @@ public class DummyCacheFactory<K,V> implements CacheFactory<K,V> {
         Util.close(cache);
     }
 
-    public Cache<K,V> create(String cache_name) {
+    public Cache<K,V> create(String ignore, String ignored) {
         try {
             cache=new DummyCache(config);
             return cache;

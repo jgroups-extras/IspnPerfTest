@@ -29,7 +29,7 @@ public class HazelcastCacheFactory<K,V> implements CacheFactory<K,V> {
         hc.shutdown();
     }
 
-    public Cache<K,V> create(String cache_name) {
+    public Cache<K,V> create(String cache_name, String ignored) {
         return new HazelcastCache<>(hc, cache_name);
     }
 

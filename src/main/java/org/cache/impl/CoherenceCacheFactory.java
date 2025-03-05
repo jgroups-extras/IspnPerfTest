@@ -25,7 +25,7 @@ public class CoherenceCacheFactory<K,V> implements CacheFactory<K,V> {
         com.tangosol.net.CacheFactory.shutdown();
     }
 
-    public Cache<K,V> create(String cache_name) {
+    public Cache<K,V> create(String cache_name, String ignored) {
         return new CoherenceCache<>(com.tangosol.net.CacheFactory.getCache(cache_name));
     }
 

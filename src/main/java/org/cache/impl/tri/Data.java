@@ -1,6 +1,7 @@
 package org.cache.impl.tri;
 
 import org.jgroups.Address;
+import org.jgroups.Constructable;
 import org.jgroups.Global;
 import org.jgroups.util.Bits;
 import org.jgroups.util.SizeStreamable;
@@ -10,6 +11,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static org.cache.impl.tri.Data.Type.BACKUP;
 import static org.cache.impl.tri.TriCache.estimatedSizeOf;
@@ -19,7 +21,7 @@ import static org.cache.impl.tri.TriCache.estimatedSizeOf;
  * @author Bela Ban
  * @since  1.0
  */
-public class Data<K,V> implements SizeStreamable, Runnable {
+public class Data<K,V> implements SizeStreamable, Runnable, Constructable<Data<K,V>> {
     protected Data.Type           type;
     protected long                req_id; // the ID of the request: unique per node
     protected K                   key;
@@ -38,8 +40,10 @@ public class Data<K,V> implements SizeStreamable, Runnable {
         this.sender=sender;
     }
 
-    public Data<K,V> sender(Address s)         {this.sender=s; return this;}
-    public Data<K,V> handler(Consumer<Data<K,V>> h) {this.handler=h; return this;}
+    public Data<K,V>                     sender(Address s)         {this.sender=s; return this;}
+    public Data<K,V>                     handler(Consumer<Data<K,V>> h) {this.handler=h; return this;}
+    @Override
+    public Supplier<? extends Data<K,V>> create() {return Data::new;}
 
     public void run() {
         if(handler != null)

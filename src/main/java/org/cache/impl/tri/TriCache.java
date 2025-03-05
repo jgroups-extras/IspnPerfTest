@@ -3,6 +3,7 @@ package org.cache.impl.tri;
 import org.cache.Cache;
 import org.jgroups.*;
 import org.jgroups.annotations.ManagedAttribute;
+import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.logging.Log;
 import org.jgroups.logging.LogFactory;
 import org.jgroups.stack.DiagnosticsHandler;
@@ -55,16 +56,9 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
     protected static final ThreadFactory               thread_factory=new DefaultThreadFactory("tri", false, true)
                                                                              .useVirtualThreads(true);
 
-
-    protected final RejectedExecutionHandler resubmit_handler=(r,tp) -> {
-        try {
-            tp.getQueue().put(r); // blocks until element can be added to the queue
-        }
-        catch(InterruptedException e) {
-            log.error("resubmitting the runnable %s failed: %s", r, e);
-        }
-    };
-
+    static {
+        ClassConfigurator.add((short)1500, Data.class);
+    }
 
 
     public TriCache(String config, String name) throws Exception {
@@ -194,9 +188,8 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
     }
 
     public void receive(Message msg) {
-        ByteArrayDataInputStream in=new ByteArrayDataInputStream(msg.getArray(), msg.getOffset(), msg.getLength());
         try {
-            Data<K,V> data=(Data<K,V>)new Data<>().read(in);
+            Data<K,V> data=msg.getObject();
             process(data, msg.src());
         }
         catch(Exception t) {
@@ -358,10 +351,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
     }
 
     protected Message createMessage(Address dest, Data<K,V> data, boolean oob) throws Exception {
-        int expected_size=Global.INT_SIZE + data.serializedSize();
-        ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(expected_size);
-        data.writeTo(out);
-        Message msg=new BytesMessage(dest, out.buffer(), 0, out.position());
+        Message msg=new ObjectMessage(dest, data);
         if(oob)
             msg.setFlag(Message.Flag.OOB);
         return msg;

@@ -64,7 +64,7 @@ public class Demo implements Receiver {
     public Demo controlCfg(String c)     {this.control_cfg=c; return this;}
     public Demo msgSize(int s)           {this.msg_size=s; return this;}
 
-    public void init(String factory, String cache_name, boolean use_vthreads) throws Exception {
+    public void init(String factory, String cache_name, String name, boolean use_vthreads) throws Exception {
         thread_factory=new DefaultThreadFactory("invoker", false, true).useVirtualThreads(use_vthreads);
         if(use_vthreads && Util.virtualThreadsAvailable())
             System.out.println("-- using virtual threads");
@@ -72,7 +72,7 @@ public class Demo implements Receiver {
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
         cache_factory.init(cfg);
-        cache=cache_factory.create(cache_name);
+        cache=cache_factory.create(cache_name, name);
 
         control_channel=new JChannel(control_cfg);
         control_channel.setReceiver(this);
@@ -394,7 +394,7 @@ public class Demo implements Receiver {
 
 
     public static void main(String[] args) {
-        String  cache_name="perf-cache";
+        String  cache_name="perf-cache", name=null;
         String  cache_factory_name=InfinispanCacheFactory.class.getName();
         boolean use_vthreads=true;
 
@@ -404,8 +404,12 @@ public class Demo implements Receiver {
                 test.cfg(args[++i]);
                 continue;
             }
-            if(args[i].equals("-cache") || args[i].equals("-name")) {
+            if(args[i].equals("-cache")) {
                 cache_name=args[++i];
+                continue;
+            }
+            if(args[i].equals("-name")) {
+                name=args[++i];
                 continue;
             }
             if("-factory".equals(args[i])) {
@@ -451,7 +455,7 @@ public class Demo implements Receiver {
                 case "local":
                     cache_factory_name=local_factory;
             }
-            test.init(cache_factory_name, cache_name, use_vthreads);
+            test.init(cache_factory_name, cache_name, name, use_vthreads);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             test.eventLoop();
         }

@@ -32,7 +32,7 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
         mgr.stop();
     }
 
-    public Cache<K,V> create(String cache_name) {
+    public Cache<K,V> create(String cache_name, String ignored) {
         org.infinispan.Cache<K,V> cache=mgr.getCache(cache_name);
         // for a put(), we don't need the previous value
         cache=cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES);

@@ -21,7 +21,7 @@ public class RaftCacheFactory<K, V> implements CacheFactory<K, V> {
   }
 
   @Override
-  public Cache<K, V> create(String cache_name) {
+  public Cache<K, V> create(String cache_name, String ignore) {
     System.out.println("Creating raft cache: " + cache_name);
     return new RaftCache<>(channel);
   }

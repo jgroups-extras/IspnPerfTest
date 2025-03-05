@@ -123,7 +123,7 @@ public class Test implements Receiver {
     public Test batchMode(boolean b)     {this.batch_mode=b; return this;}
     public Test csvFilter(String f)      {this.csv_filter=f; return this;}
 
-    public void init(String factory, String cache_name, boolean use_vthreads) throws Exception {
+    public void init(String factory, String cache_name, String name, boolean use_vthreads) throws Exception {
         // sanity checks:
         if(batch_mode) {
             if(num_nodes <= 0)
@@ -137,7 +137,7 @@ public class Test implements Receiver {
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
         cache_factory.init(cfg);
-        cache=cache_factory.create(cache_name);
+        cache=cache_factory.create(cache_name, name);
 
         control_channel=new JChannel(control_cfg);
         control_channel.setReceiver(this);
@@ -1045,7 +1045,7 @@ public class Test implements Receiver {
 
 
     public static void main(String[] args) {
-        String  cache_name="perf-cache";
+        String  cache_name="perf-cache", name=null;
         String  cache_factory_name=InfinispanCacheFactory.class.getName();
         boolean interactive=true, use_vthreads=true;
 
@@ -1055,8 +1055,12 @@ public class Test implements Receiver {
                 test.cfg(args[++i]);
                 continue;
             }
-            if(args[i].equals("-cache") || args[i].equals("-name")) {
+            if(args[i].equals("-cache")) {
                 cache_name=args[++i];
+                continue;
+            }
+            if(args[i].equals("-name")) {
+                name=args[++i];
                 continue;
             }
             if("-factory".equals(args[i])) {
@@ -1147,7 +1151,7 @@ public class Test implements Receiver {
                 case "local":
                     cache_factory_name=local_factory;
             }
-            test.init(cache_factory_name, cache_name, use_vthreads);
+            test.init(cache_factory_name, cache_name, name, use_vthreads);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             if(!interactive || test.batch_mode) {
                 for(;;)
@@ -1170,7 +1174,8 @@ public class Test implements Receiver {
     }
 
     protected static void help() {
-        System.out.printf("Test [-factory <cache factory classname>] [-cfg <file>] [-cache <name>] [-control-cfg <file>]\n" +
+        System.out.printf("Test [-factory <cache factory classname>] [-cfg <file>] [-cache <name>] [-name <node name>] " +
+                            "[-control-cfg <file>]\n" +
                             "[-nohup] [-batch-mode true|false] [-nodes <num>] [-warmup <secs>] [-result-file <file>]\n" +
                             "[-threads <num>] [-keys <num>] [-msg-size <bytes>] [-time <secs>]\n" +
                             "[-read-percentage <percentage>] [-use-vthreads true|false] [-csv \"<filter>\"]\n" +

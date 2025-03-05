@@ -19,7 +19,7 @@ public class LocalCacheFactory<K,V> implements CacheFactory<K,V> {
     }
 
     @Override
-    public Cache<K,V> create(String cache_name) {
+    public Cache<K,V> create(String ignore, String ignored) {
         return new LocalCache<>();
     }
 }

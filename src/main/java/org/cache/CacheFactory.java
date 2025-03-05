@@ -25,5 +25,5 @@ public interface CacheFactory<K,V> {
      *                   defined in the configuration
      * @return a newly created and configured cache
      */
-    Cache<K,V> create(String cache_name);
+    Cache<K,V> create(String cache_name, String name);
 }

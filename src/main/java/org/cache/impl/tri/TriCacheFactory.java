@@ -20,9 +20,9 @@ public class TriCacheFactory<K,V> implements CacheFactory<K,V> {
         Util.close(cache);
     }
 
-    public Cache<K,V> create(String cache_name) {
+    public Cache<K,V> create(String cache_name, String name) {
         try {
-            cache=new TriCache<>(config, cache_name);
+            cache=new TriCache<>(config, name);
             return cache;
         }
         catch(Exception e) {

@@ -18,7 +18,7 @@ public class IspnTest {
     protected void start() throws Exception {
         cache_factory=new InfinispanCacheFactory();
         cache_factory.init(config);
-        cache=cache_factory.create("perf-cache");
+        cache=cache_factory.create("perf-cache", "X");
 
         for(int i=0; i < NUM; i++)
             cache.put(i, new byte[i]);
