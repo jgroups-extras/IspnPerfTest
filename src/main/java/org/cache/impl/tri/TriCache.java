@@ -7,13 +7,11 @@ import org.jgroups.logging.Log;
 import org.jgroups.logging.LogFactory;
 import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.util.*;
+import org.jgroups.util.ThreadFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -28,7 +26,7 @@ import java.util.concurrent.atomic.LongAdder;
  * @author Bela Ban
  * @since  1.0
  */
-public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, DiagnosticsHandler.ProbeHandler {
+public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable, DiagnosticsHandler.ProbeHandler {
     protected final Map<K,V>                           map=new ConcurrentHashMap<>();
     protected final Log                                log=LogFactory.getLog(TriCache.class);
     protected final boolean                            is_trace;
@@ -51,8 +49,11 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
     protected final RequestTable<CompletableFuture<V>> req_table=new RequestTable<>(128);
 
     // Queue to handle PUT and CLEAR messages
-    protected final ProcessingQueue                    put_queue;
+    protected final BlockingQueue<Data<K,V>>           put_queue;
     protected final LongAdder                          num_msgs_received=new LongAdder();
+    protected final Runner                             put_handler;
+    protected static final ThreadFactory               thread_factory=new DefaultThreadFactory("tri", false, true)
+                                                                             .useVirtualThreads(true);
 
 
     protected final RejectedExecutionHandler resubmit_handler=(r,tp) -> {
@@ -77,7 +78,9 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
         log.info("I'm %s, backup is %s", local_addr, backup);
         ch.getProtocolStack().getTransport().registerProbeHandler(this);
         req_table.removesTillCompaction(removes_till_compaction);
-        put_queue=new ProcessingQueue(put_queue_max_size, 1, 30000, "put-queue-handler", resubmit_handler);
+        put_queue=new ArrayBlockingQueue<>(put_queue_max_size);
+        put_handler=new Runner(thread_factory, "put_handler", this, null);
+        put_handler.start();
         is_trace=log.isTraceEnabled();
     }
 
@@ -97,7 +100,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
 
 
     public void close() throws IOException {
-        Util.close(put_queue, ch);
+        Util.close(put_handler, ch);
     }
 
     /**
@@ -226,9 +229,9 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
         for(String key: keys) {
             switch(key) {
                 case "tri":
-                    m.put("tri.req-table", req_table.toString());
+                    m.put("tri.req_table", req_table.toString());
                     m.put("tri.num_msgs_received", String.format("%,d", num_msgs_received.sum()));
-                    m.put("tri.put-queue", put_queue.toString());
+                    m.put("tri.put_queue_size", String.format("%,d", put_queue.size()));
                     break;
                 case "tri.compact":
                     boolean result=req_table.compact();
@@ -244,6 +247,15 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Diagnosti
 
     public String[] supportedKeys() {
         return new String[]{"tri", "tri.compact", "tri.reset"};
+    }
+
+    public void run() {
+        try {
+            Data<K,V> data=put_queue.take();
+            handlePut(data);
+        }
+        catch(InterruptedException e) {
+        }
     }
 
     /**
