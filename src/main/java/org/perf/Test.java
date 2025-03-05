@@ -915,7 +915,7 @@ public class Test implements Receiver {
             }
             while(running) {
                 // get a random key in range [0 .. num_keys-1]
-                int index=(int)Util.random(num_keys) -1;
+                int index=Util.random(num_keys) -1;
                 Integer key=keys[index];
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
@@ -930,6 +930,8 @@ public class Test implements Receiver {
                             num_reads.increment();
                         }
                         else {
+                            // Adding the ID is for validation (option [8]). We cannot reuse this byte array as JGroups
+                            // queues the message before it is sent: modifying the byte array might lead to corruption
                             byte[] buffer=new byte[msg_size];
                             writeTo(local_uuid, count++, buffer, 0);
                             long start=System.nanoTime();
