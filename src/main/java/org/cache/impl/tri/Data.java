@@ -10,7 +10,6 @@ import org.jgroups.util.Util;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.cache.impl.tri.Data.Type.BACKUP;
@@ -21,13 +20,12 @@ import static org.cache.impl.tri.TriCache.estimatedSizeOf;
  * @author Bela Ban
  * @since  1.0
  */
-public class Data<K,V> implements SizeStreamable, Runnable, Constructable<Data<K,V>> {
+public class Data<K,V> implements SizeStreamable, Constructable<Data<K,V>> {
     protected Data.Type           type;
     protected long                req_id; // the ID of the request: unique per node
     protected K                   key;
     protected V                   value;
     protected Address             sender; // if type == BACKUP: the backup node needs to send an ACK to the original sender
-    protected Consumer<Data<K,V>> handler;
 
     public Data() {
     }
@@ -41,14 +39,8 @@ public class Data<K,V> implements SizeStreamable, Runnable, Constructable<Data<K
     }
 
     public Data<K,V>                     sender(Address s)         {this.sender=s; return this;}
-    public Data<K,V>                     handler(Consumer<Data<K,V>> h) {this.handler=h; return this;}
     @Override
     public Supplier<? extends Data<K,V>> create() {return Data::new;}
-
-    public void run() {
-        if(handler != null)
-            handler.accept(this);
-    }
 
     public int serializedSize() {
         int retval=Global.BYTE_SIZE;

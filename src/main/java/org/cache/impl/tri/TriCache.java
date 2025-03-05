@@ -103,8 +103,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
      * @param value the new value
      */
     public V put(K key, V value) {
-        int hash=hash(key);
-        Address primary=getPrimary(hash);
+        Address primary=getPrimary(key.hashCode());
         CompletableFuture<V> future=new CompletableFuture<>(); // used to block for response (or timeout)
         long req_id=req_table.add(future);
 
@@ -113,7 +112,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
             if(Objects.equals(primary, local_addr)) {
                 if(is_trace)
                     log.trace("%s: local put (req=%d key=%s)", local_addr, req_id, key);
-                put_queue.add(data.handler(this::handlePut));
+                put_queue.add(data);
             }
             else {
                 if(is_trace)
@@ -134,7 +133,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
      * @return the value associated with the key, or null if key has not been set
      */
     public V get(K key) {
-        Address primary=getPrimary(hash(key));
+        Address primary=getPrimary(key.hashCode());
         if(primary == null)
             throw new IllegalArgumentException("primary must not be null");
 
@@ -308,9 +307,9 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
     protected void handleAck(Data<K,V> data) {
         CompletableFuture<V> future=req_table.remove(data.req_id);
         if(future != null) {
+            future.complete(data.value);
             if(is_trace)
                 log.trace("%s: ack (req=%d)", local_addr, data.req_id);
-            future.complete(data.value);
         }
     }
 
@@ -318,15 +317,11 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
         map.clear();
     }
 
-    protected int hash(K key) {
-        return key.hashCode();
-    }
-
     protected void process(Data<K,V> data, Address sender) throws Exception {
         num_msgs_received.increment();
         switch(data.type) {
             case PUT:
-                put_queue.add(data.sender(sender).handler(this::handlePut));
+                put_queue.add(data.sender(sender));
                 break;
             case GET:
                 if(is_trace)
@@ -397,51 +392,6 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
         if(obj instanceof String)
             return ((String)obj).length() *2 +4;
         return 255;
-    }
-
-
-
-    protected static class ProcessingQueue implements Closeable {
-        protected final BlockingQueue<Runnable> queue;
-        protected final Executor                thread_pool;
-        protected volatile boolean              running=true;
-
-
-        protected ProcessingQueue() {
-            thread_pool=new DirectExecutor();
-            queue=null;
-        }
-
-        protected ProcessingQueue(int queue_capacity, int max_threads, long keep_alive_millis,
-                                  String base_name, RejectedExecutionHandler rejection_handler) {
-            queue=new ArrayBlockingQueue<>(queue_capacity);
-
-            // min == max, but core threads can time out: creates up to max_threads first, then queues
-            thread_pool=new ThreadPoolExecutor(max_threads, max_threads, keep_alive_millis, TimeUnit.MILLISECONDS,
-                                               queue, new DefaultThreadFactory(base_name, false, true),
-                                               rejection_handler);
-            ((ThreadPoolExecutor)thread_pool).allowCoreThreadTimeOut(true);
-        }
-
-        protected ProcessingQueue         add(Runnable r)  {thread_pool.execute(r); return this;}
-        protected BlockingQueue<Runnable> queue()          {return queue;}
-        protected boolean                 isRunning()      {return running;}
-        protected int                     size()           {return queue != null? queue.size() : 0;}
-
-        public void close() {
-            if(thread_pool instanceof ExecutorService)
-                ((ExecutorService)thread_pool).shutdown();
-        }
-
-        public String toString() {
-            if(thread_pool instanceof ThreadPoolExecutor) {
-                ThreadPoolExecutor p=(ThreadPoolExecutor)thread_pool;
-                return String.format("[pool=%d, largest pool=%d, active=%d, queued tasks=%,d, completed tasks=%,d]",
-                                     p.getPoolSize(), p.getLargestPoolSize(), p.getActiveCount(),
-                                     p.getQueue().size(), p.getCompletedTaskCount());
-            }
-            return thread_pool.toString();
-        }
     }
 
 }
