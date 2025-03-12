@@ -721,6 +721,10 @@ public class Test implements Receiver {
             TP tp=ch.getProtocolStack().getTransport();
             return tp.useVirtualThreads();
         }
+
+        if (cache instanceof RaftCache) {
+            return ((RaftCache<?, ?>) cache).isVirtualThreadsEnabled();
+        }
         return false;
     }
 

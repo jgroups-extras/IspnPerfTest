@@ -64,7 +64,7 @@
     - name: Download async-profiler {{ asprof_arch }}
       ansible.builtin.get_url:
         #url: "https://github.com/async-profiler/async-profiler/releases/download/v3.0/async-profiler-3.0-linux-{{ asprof_arch }}.tar.gz"
-        url: "https://github.com/async-profiler/async-profiler/releases/download/nightly/async-profiler-3.0-d1498a6-linux-{{ asprof_arch }}.tar.gz"
+        url: "https://github.com/async-profiler/async-profiler/releases/download/nightly/async-profiler-3.0-5ea64a1-linux-{{ asprof_arch }}.tar.gz"
         dest: "{{ remote_folder }}/asprof.tar.gz"
       when: not stat_result.stat.exists
 

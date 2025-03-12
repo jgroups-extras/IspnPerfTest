@@ -10,7 +10,7 @@
   when: operation is undefined or operation is search("upload")
 
 - name: Starting IspnPerf
-  ansible.builtin.include_tasks: start.yml
+  ansible.builtin.include_tasks: "{{ raft | ansible.builtin.ternary('start-raft.yml', 'start.yml') }}"
   when: operation is defined and operation is search("start")
 
 - name: Stopping IspnPerf

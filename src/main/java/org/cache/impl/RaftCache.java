@@ -2,6 +2,7 @@ package org.cache.impl;
 
 import org.cache.Cache;
 import org.jgroups.JChannel;
+import org.jgroups.protocols.TP;
 import org.jgroups.raft.blocks.ReplicatedStateMachine;
 
 import java.util.Map;
@@ -15,6 +16,13 @@ public class RaftCache<K, V> implements Cache<K, V> {
     public RaftCache(JChannel channel) {
         this.rsm = new ExtendedReplicatedStateMachine<>(channel);
         rsm.addRoleChangeListener(role -> System.out.println(channel.address() + ": New role: " + role));
+    }
+
+    public boolean isVirtualThreadsEnabled() {
+        TP tp = rsm.channel().getProtocolStack().getTransport();
+        if (tp == null) return false;
+
+        return tp.useVirtualThreads();
     }
 
     @Override

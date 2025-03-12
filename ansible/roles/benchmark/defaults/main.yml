@@ -2,6 +2,8 @@ bin_folder: "../bin"
 target_folder: "../target"
 
 remote_folder: "/home/{{ ansible_user }}"
+raft: false
+raft_id: "{{ undef() }}"
 
 # Modes to run IspnPerf.
 batch_mode: true

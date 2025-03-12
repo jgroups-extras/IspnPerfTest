@@ -2,7 +2,7 @@
 jdks:
   - 17.0.13-tem
   - 21.0.2-open
-  - 25.ea.5-open
+  - 25.ea.10-open
 jdk_version: 21.0.2-open
 
 vthreads:

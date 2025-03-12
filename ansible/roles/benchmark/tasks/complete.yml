@@ -8,6 +8,7 @@
     run_once: true
     vars:
       operation: start
+      raft_id: "{{ controller_host }}"
 
   - name: Waiting until controller started
     ansible.builtin.wait_for:
@@ -24,6 +25,7 @@
       delegate_to: "{{ item }}"
   vars:
     operation: start
+    raft_id: "{{ item }}"
   loop: "{{ groups['instances'] | difference(groups['controller']) }}"
 
 - block:

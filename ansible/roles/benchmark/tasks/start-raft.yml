@@ -1,0 +1,23 @@
+- block:
+    - name: "Running RAFT"
+      ansible.builtin.shell: |
+        source {{ sdkman_folder }}/bin/sdkman-init.sh
+        sdk use java {{ jdk_version }}
+        nohup {{ remote_folder }}/bin/raft-perf-test.sh \
+          {{ raft_id | default(inventory_hostname) }} \
+          -control-cfg {{ control_config }} \
+          -use-vthreads {{ use_virtual_threads }} \
+          -threads {{ num_threads }} \
+          -keys {{ num_keys }} \
+          -time {{ test_duration }} \
+          -warmup {{ warmup_duration }} \
+          -msg-size {{ msg_size }} \
+          -read-percentage {{read_percentage }} \
+          -nodes {{ groups['instances'] | length }} \
+          -csv "jdk,jg,jg-vthreads" \
+          {{ batch_mode | ansible.builtin.ternary('-batch-mode true', '') }} \
+          {{ nohup_mode | ansible.builtin.ternary('-nohup', '') }} &> ispn-perf.log &
+      args:
+        executable: /bin/bash
+      environment:
+        JAVA_OPTS: "-Dvthreads={{ use_virtual_threads }} -Draft_members={{ groups['instances'] | join(',') }} {{ java_opts }}"

@@ -18,18 +18,15 @@
          diag.enabled="true"
          diag.enable_tcp="true"
 
-
          tcp_nodelay="true"
          use_virtual_threads="${vthreads:true}"
 
          thread_pool.min_threads="0"
          thread_pool.max_threads="1000"
          thread_pool.keep_alive_time="30000" />
-    <MPING />
-    <!-- Infinispan can only have *2* variables in a list -->
     <TCPPING
-         initial_hosts="${tcpping.initial_hosts,env.INITIAL_HOSTS:127.0.0.1[7800]}"
-         port_range="${tcpping.port_range,env.PORT_RANGE:1}"/>
+            initial_hosts_file="hosts.txt"
+            port_range="${tcpping.port_range,env.PORT_RANGE:1}"/>
     <MERGE3 max_interval="30000"
             min_interval="10000"/>
     <FD_SOCK/>
@@ -51,7 +48,9 @@
                log_class="org.jgroups.protocols.raft.FileBasedLog"
                max_log_size="100000000"
                raft_id="${raft_id}"
-               log_dir="${log_dir}" />
+               log_dir="${log_dir}"
+               log_use_fsync="true"
+        />
     <raft.REDIRECT/>
     <raft.CLIENT bind_addr="0.0.0.0" />
 </config>
