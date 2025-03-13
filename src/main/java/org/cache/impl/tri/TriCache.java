@@ -381,17 +381,5 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
         return null;
     }
 
-    // simple method to compute sizes of keys and values. we know we use Integer as keys and byte[] as values
-    protected static int estimatedSizeOf(Object obj) {
-        if(obj == null)
-            return 1;
-        if(obj instanceof Integer)
-            return Global.INT_SIZE +1;
-        if(obj instanceof byte[])
-            return ((byte[])obj).length + 1 + Global.INT_SIZE*2; // byte[], offset, length
-        if(obj instanceof String)
-            return ((String)obj).length() *2 +4;
-        return 255;
-    }
 
 }

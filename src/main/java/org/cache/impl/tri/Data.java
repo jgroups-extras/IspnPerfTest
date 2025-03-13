@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.function.Supplier;
 
 import static org.cache.impl.tri.Data.Type.BACKUP;
-import static org.cache.impl.tri.TriCache.estimatedSizeOf;
 
 
 /**
@@ -122,8 +121,6 @@ public class Data<K,V> implements SizeStreamable, Constructable<Data<K,V>> {
         }
     }
 
-
-
     public String toString() {
         switch(type) {
             case PUT:
@@ -144,5 +141,18 @@ public class Data<K,V> implements SizeStreamable, Constructable<Data<K,V>> {
         PUT, GET, ACK, BACKUP, CLEAR;
         private static final Type[] values=Type.values();
         public static Type get(int ordinal) {return values[ordinal];}
+    }
+
+    // simple method to compute sizes of keys and values. we know we use Integer as keys and byte[] as values
+    protected static int estimatedSizeOf(Object obj) {
+        if(obj == null)
+            return 1;
+        if(obj instanceof Integer)
+            return Global.INT_SIZE +1;
+        if(obj instanceof byte[])
+            return ((byte[])obj).length + 1 + Global.INT_SIZE*2; // byte[], offset, length
+        if(obj instanceof String)
+            return ((String)obj).length() *2 +4;
+        return 255;
     }
 }
