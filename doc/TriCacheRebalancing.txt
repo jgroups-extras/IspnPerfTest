@@ -1,0 +1,23 @@
+
+Rebalancing of keys in TriCache on view change
+==============================================
+
+On a view change, keys/value tuples may have to be rebalanced, depending on whether a member is still the
+primary or backup owner
+
+Algorithm
+---------
+
+- Current view: v1, new view v2
+
+- For every key K in local map:
+  - old-primary (OP): primary(k,v1)
+  - new-primary (NP): primary(k,v2)
+  - old-backup (OB):  backup(k,v1)
+  - new-backup (NB):  backup(k,v2)
+  - primary-changed: OP != NP
+  - backup-changed: NB != OB
+
+  - if !primary-changed && !backup-changed -> return
+  - primary-changed:
+    -
