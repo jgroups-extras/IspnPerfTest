@@ -16,7 +16,6 @@
             <property name="enabled">true</property>
         </jmx>
         <distributed-cache name="perf-cache"/>
-        <local-cache name="local" simple-cache="true"/>
     </cache-container>
 
 </infinispan>
