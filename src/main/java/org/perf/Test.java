@@ -12,8 +12,8 @@ import org.jgroups.annotations.Property;
 import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.jmx.JmxConfigurator;
 import org.jgroups.protocols.TP;
-import org.jgroups.util.UUID;
 import org.jgroups.util.*;
+import org.jgroups.util.UUID;
 
 import javax.management.MBeanServer;
 import java.io.*;
@@ -29,6 +29,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.zip.DataFormatException;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.jgroups.util.Util.printTime;
 
 
 /**
@@ -321,13 +324,17 @@ public class Test implements Receiver {
 
             Histogram get_avg=null, put_avg=null;
             if(print_invokers)
-                System.out.print("Round trip times (min/avg/max us):\n");
+                System.out.print("Round trip times (min/avg/max):\n");
             for(int i=0; i < invokers.length; i++) {
                 CacheInvoker inv=invokers[i];
                 if(print_invokers)
-                    System.out.printf("%s: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n", threads[i].getId(),
-                                      inv.get_avg.getMinValue(), inv.get_avg.getMean(), inv.get_avg.getMaxValueAsDouble(),
-                                      inv.put_avg.getMinValue(), inv.put_avg.getMean(), inv.put_avg.getMaxValueAsDouble());
+                    System.out.printf("%s: get %s / %s / %s, put: %s / %s / %s\n", threads[i].getId(),
+                                      printTime(inv.get_avg.getMinValue(), NANOSECONDS),
+                                      printTime(inv.get_avg.getMean(), NANOSECONDS),
+                                      printTime(inv.get_avg.getMaxValueAsDouble(), NANOSECONDS),
+                                      printTime(inv.put_avg.getMinValue(), NANOSECONDS),
+                                      printTime(inv.put_avg.getMean(), NANOSECONDS),
+                                      printTime(inv.put_avg.getMaxValueAsDouble(), NANOSECONDS));
                 if(get_avg == null)
                     get_avg=inv.get_avg;
                 else
@@ -338,9 +345,13 @@ public class Test implements Receiver {
                     put_avg.add(inv.put_avg);
             }
             if(print_details || print_invokers)
-                System.out.printf("\nall: get %d / %,.2f / %,.2f, put: %d / %,.2f / %,.2f\n",
-                                  get_avg.getMinValue(), get_avg.getMean(), get_avg.getMaxValueAsDouble(),
-                                  put_avg.getMinValue(), put_avg.getMean(), put_avg.getMaxValueAsDouble());
+                System.out.printf("\nall: get %s / %s / %s, put: %s / %s / %s\n",
+                                  printTime(get_avg.getMinValue(), NANOSECONDS),
+                                  printTime(get_avg.getMean(), NANOSECONDS),
+                                  printTime(get_avg.getMaxValueAsDouble(), NANOSECONDS),
+                                  printTime(put_avg.getMinValue(), NANOSECONDS),
+                                  printTime(put_avg.getMean(), NANOSECONDS),
+                                  printTime(put_avg.getMaxValueAsDouble(), NANOSECONDS));
             Results result=new Results(num_reads.sum(), num_writes.sum(), t, get_avg, put_avg);
             send(sender, Type.RESULTS, result);
         }
@@ -536,7 +547,7 @@ public class Test implements Receiver {
         double reqs_sec_cluster=total_reqs / (longest_time / 1000.0);
         double throughput=reqs_sec_node * msg_size;
         String result=String.format("\nThroughput: %,.0f reqs/sec/node (%s/sec) %,.0f reqs/sec/cluster\n" +
-                                      "RTT GETs:   %s,\n" +
+                                      "RTT GETs:   %s\n" +
                                       "RTT PUTs:   %s\n\n",
                                     reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
                                     print(get_avg, print_details), print(put_avg, print_details));
@@ -623,9 +634,12 @@ public class Test implements Receiver {
     protected static String print(Histogram avg, boolean details) {
         if(avg == null || avg.getTotalCount() == 0)
             return "n/a";
-        return details? String.format("min/avg/max = %d/%,.2f/%,.2f us (%s)",
-                                      avg.getMinValue(), avg.getMean(), avg.getMaxValueAsDouble(), percentiles(avg)) :
-          String.format("avg = %,.2f us", avg.getMean());
+        return details? String.format("min/avg/max: %s/%s/%s (%s)",
+                                      printTime(avg.getMinValue(), NANOSECONDS),
+                                      printTime(avg.getMean(), NANOSECONDS),
+                                      printTime(avg.getMaxValueAsDouble(), NANOSECONDS),
+                                      percentiles(avg)) :
+          String.format("avg: %s", printTime(avg.getMean(), NANOSECONDS));
     }
 
     public static String env(Map<String,Object> m) {
@@ -637,8 +651,8 @@ public class Test implements Receiver {
                                 m.get("view"), m.get("jg"), m.get("ispn"),
                                 m.get("jdk"), m.get("jg-vthreads"), m.get("ispn-vthreads"),
                                 m.get("cfg"), m.get("control-cfg"),
-                                m.get("threads"), m.get("keys"), Util.printTime((Integer)m.get("time"), TimeUnit.SECONDS),
-                                Util.printTime((Integer)m.get("warmup"), TimeUnit.SECONDS),
+                                m.get("threads"), m.get("keys"), printTime((Integer)m.get("time"), TimeUnit.SECONDS),
+                                printTime((Integer)m.get("warmup"), TimeUnit.SECONDS),
                                 Util.printBytes((Integer)m.get("msg-size")),
                                 m.get("nodes"), m.get("read-percentage")));
         return sb.toString();
@@ -736,11 +750,14 @@ public class Test implements Receiver {
 
     protected static String percentiles(Histogram h) {
         StringBuilder sb=new StringBuilder();
+        boolean first=true;
         for(double percentile: PERCENTILES) {
-            long val=h.getValueAtPercentile(percentile);
-            sb.append(String.format("%,.1f=%,d ", percentile, val));
+            if(!first)
+                sb.append(" ");
+            else first=false;
+            long val=h.getValueAtPercentile(percentile); // in ns
+            sb.append(String.format("%,.1f=%s", percentile, Util.printTime(val, NANOSECONDS)));
         }
-        sb.append(String.format("[percentile at mean: %,.2f]", h.getPercentileAtOrBelowValue((long)h.getMean())));
         return sb.toString();
     }
 
@@ -897,8 +914,8 @@ public class Test implements Receiver {
     protected class CacheInvoker implements Runnable {
         protected final CountDownLatch latch;
         // max recordable value is 80s
-        protected final Histogram      get_avg=new Histogram(1, 80_000_000, 3); // us
-        protected final Histogram      put_avg=new Histogram(1, 80_000_000, 3); // us
+        protected final Histogram      get_avg=new Histogram(1, 80_000_000_000L, 3); // ns
+        protected final Histogram      put_avg=new Histogram(1, 80_000_000_000L, 3); // ns
         protected volatile boolean     running=true;
         protected UUID                 local_uuid=(UUID)local_addr;
         protected long                 count=0;
@@ -930,7 +947,7 @@ public class Test implements Receiver {
                             long start=System.nanoTime();
                             cache.get(key);
                             long t=System.nanoTime() - start;
-                            get_avg.recordValue(t/1000);
+                            get_avg.recordValue(t);
                             num_reads.increment();
                         }
                         else {
@@ -941,7 +958,7 @@ public class Test implements Receiver {
                             long start=System.nanoTime();
                             cache.put(key, buffer);
                             long t=System.nanoTime() - start;
-                            put_avg.recordValue(t/1000);
+                            put_avg.recordValue(t);
                             num_writes.increment();
                         }
                         break;
@@ -993,8 +1010,9 @@ public class Test implements Receiver {
         public String toString() {
             long total_reqs=num_gets + num_puts;
             double total_reqs_per_sec=total_reqs / (time / 1000.0);
-            return String.format("%,.2f reqs/sec (%,d GETs, %,d PUTs), avg RTT (us) = %,.2f get, %,.2f put",
-                                 total_reqs_per_sec, num_gets, num_puts, get_avg.getMean(), put_avg.getMean());
+            return String.format("%,.2f reqs/sec (%,d GETs, %,d PUTs), avg RTT = %s get %s put",
+                                 total_reqs_per_sec, num_gets, num_puts,
+                                 printTime(get_avg.getMean(), NANOSECONDS), printTime(put_avg.getMean(), NANOSECONDS));
         }
     }
 
