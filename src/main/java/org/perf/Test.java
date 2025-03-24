@@ -194,7 +194,7 @@ public class Test implements Receiver {
         if(test_runner != null && test_runner.isAlive())
             System.err.println("test is already running - wait until complete to start a new run");
         else {
-            test_runner=new Thread(() -> startIspnTest(addr, time_secs), "testrunner");
+            test_runner=thread_factory.newThread(() -> startIspnTest(addr, time_secs), "testrunner");
             test_runner.start();
         }
     }
