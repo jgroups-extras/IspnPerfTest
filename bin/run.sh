@@ -88,4 +88,7 @@ export proc_id=$$
 
 FLAGS="-Dorg.infinispan.threads.virtual=true -Djdk.virtualThreadScheduler.parallelism=110 $FLAGS"
 
+# Uncomment e.g. to use with JITWatch
+#FLAGS="$FLAGS -XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation"
+
 java -cp $CP $LOG $FLAGS $*
