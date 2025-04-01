@@ -10,12 +10,10 @@ import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.jgroups.*;
 import org.jgroups.annotations.Property;
 import org.jgroups.conf.ClassConfigurator;
-import org.jgroups.jmx.JmxConfigurator;
 import org.jgroups.protocols.TP;
 import org.jgroups.util.*;
 import org.jgroups.util.UUID;
 
-import javax.management.MBeanServer;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
@@ -146,14 +144,6 @@ public class Test implements Receiver {
         control_channel.setReceiver(this);
         control_channel.connect("cfg");
         local_addr=control_channel.getAddress();
-
-        try {
-            MBeanServer server=Util.getMBeanServer();
-            JmxConfigurator.registerChannel(control_channel, server, "control-channel", control_channel.getClusterName(), true);
-        }
-        catch(Throwable ex) {
-            System.err.println("registering the channel in JMX failed: " + ex);
-        }
 
         if(members.size() >= 2) {
             Address coord=members.get(0);
