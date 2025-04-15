@@ -5,7 +5,7 @@
 
 DIR=`dirname $0`
 TARGET_DIR=$DIR/../target
-DEP=$TARGET_DIR/dependency
+DEP=$TARGET_DIR/libs
 
 if [ ! -d $TARGET_DIR ]; then
    echo "$TARGET_DIR not found; run build.sh first!"
@@ -83,5 +83,5 @@ export proc_id=$$
 
 # exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
 
-java -cp $CP $FLAGS $DEBUG org.jgroups.tests.perf.UPerf $*
+java -cp $CP $FLAGS $DEBUG org.jgroups.tests.perf.UPerf -props jgroups-gcp.xml $*
 
