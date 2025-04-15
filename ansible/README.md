@@ -9,27 +9,62 @@ Requirements
 The controller node requires Ansible and `rsync` to upload files remotely.
 The nodes provisioned by Ansible require sshd and the correct keys uploaded.
 
+Google cloud setup
+------------------
+`gcloud` could be used to provision a cluster of 8 instances:
+
+```bash
+gcloud compute instances bulk create \
+       --project=ispnperftest \
+       --name-pattern="vm-#" \
+       --zone=us-central1-a \
+       --machine-type=n2-standard-8 \
+       --count=8 $*
+````
+
+Once the hosts have been created, make sure that each of them is accessible, e.g. by listing all instances:
+```bash
+mac] /Users/bela/IspnPerfTest/ansible$ gcloud compute instances list 
+NAME  ZONE           MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP    EXTERNAL_IP     STATUS
+vm-1  us-central1-a  n2-standard-8               10.128.15.200  34.44.229.42    RUNNING
+vm-2  us-central1-a  n2-standard-8               10.128.15.204  35.222.6.215    RUNNING
+vm-3  us-central1-a  n2-standard-8               10.128.15.203  35.184.130.129  RUNNING
+vm-4  us-central1-a  n2-standard-8               10.128.15.198  34.70.96.248    RUNNING
+vm-5  us-central1-a  n2-standard-8               10.128.15.199  34.134.216.20   RUNNING
+vm-6  us-central1-a  n2-standard-8               10.128.15.197  34.44.146.5     RUNNING
+vm-7  us-central1-a  n2-standard-8               10.128.15.201  34.56.211.228   RUNNING
+vm-8  us-central1-a  n2-standard-8               10.128.15.202  34.28.193.200   RUNNING
+[mac] /Users/bela/IspnPerfTest/ansible$
+```
+
+Next ssh into all of them, e.g. `ssh -i ~/.ssh/google_compute_engine 34.28.193.200`
+
+The next step is to upload the local IspnPerfTest installation to all 8 hosts, see next section.
+
 Playbooks
 ---------
 
 There are multiple playbooks to help manage dependencies, files, start and stop the test.
 
-### perf.yml
+### setup.yml
 
 This playbook allows to interact with the provisioned nodes to synchronize and install dependencies.
 This should be run before trying to run any test.
 This is defined by which kind of operation to perform:
 
-* `-e operation=upload`: Will synchronize the files from the parent folder in all nodes.
-This should be executed after changes in the configuration files or the Java source.
+* `-e operation=upload`: Will synchronize the files from the local IspnPerfTest to all nodes.
+This should be executed this after changes in the configuration files or the Java source.
 You need to recompile the project and synchronize. This step uploads the scripts in `bin/`, the compiled source (`target/`) and the environment file `env`.
 * `-e operation=init`: Install the dependencies to run the tests.
 
-To run this playbook the inventory file is required. You can run as:
+To run this playbook the inventory file is required. You can run as (in IspnPerfTest):
 
 ```bash
-$ ansible-playbook -i inventory.yaml perf.yml -e operation=[init|upload]
+$ ansible-playbook -i ansible/inventory.yaml ansible/setup.yml -e operation=[init|upload]
 ```
+
+> [!NOTE] 
+> `inventory.yml` needs to have a list of all hosts, see `gcp.yml` as an example
 
 > [!NOTE]
 > Running without the `-e operation` argument runs the `init` and `upload` steps.
