@@ -11,7 +11,7 @@ import org.jgroups.util.Util;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 
 @State(Scope.Benchmark)
 @Measurement(timeUnit=TimeUnit.MILLISECONDS,iterations=10)
@@ -22,7 +22,7 @@ public class Benchmark {
     protected Cache<Integer,byte[]>        cache;
 
     protected byte[]                       BUFFER;
-    protected final AtomicInteger          num_reads=new AtomicInteger(0), num_writes=new AtomicInteger(0);
+    protected final LongAdder              num_reads=new LongAdder(), num_writes=new LongAdder();
 
     // <cache type>:<config>
     @Param("ispn:dist-sync.xml")
@@ -89,7 +89,7 @@ public class Benchmark {
 
     @TearDown
     public void destroy() {
-        System.out.printf("-- num_reads: %,d, num_writes: %,d\n", num_reads.get(), num_writes.get());
+        System.out.printf("-- num_reads: %,d, num_writes: %,d\n", num_reads.sum(), num_writes.sum());
         cache_factory.destroy();
     }
 
@@ -103,11 +103,11 @@ public class Benchmark {
         boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
         if(is_this_a_read) {
             cache.get(key);
-            num_reads.incrementAndGet();
+            num_reads.increment();
         }
         else {
             cache.put(key, BUFFER);
-            num_writes.incrementAndGet();
+            num_writes.increment();
         }
     }
 
