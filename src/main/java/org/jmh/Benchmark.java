@@ -24,11 +24,9 @@ public class Benchmark {
     protected byte[]                       BUFFER;
     protected final AtomicInteger          num_reads=new AtomicInteger(0), num_writes=new AtomicInteger(0);
 
-    @Param("ispn")
-    protected String                       cache_factory_class="ispn";
-
-    @Param("dist-sync.xml")
-    protected String                       config="dist-sync.xml";
+    // <cache type>:<config>
+    @Param("ispn:dist-sync.xml")
+    protected String                       config="ispn:dist-sync.xml";
 
     @Param("perf-cache")
     protected String                       cache_name="perf-cache";
@@ -43,16 +41,11 @@ public class Benchmark {
     @Param("100000")
     protected int                          num_keys=100_000; // [1 .. num_keys]
 
-
     protected static final String          ispn_factory=InfinispanCacheFactory.class.getName();
     protected static final String          tri_factory=TriCacheFactory.class.getName();
     protected static final String          raft_factory=RaftCacheFactory.class.getName();
     protected static final String          local_factory=LocalCacheFactory.class.getName();
 
-    public Benchmark cacheFactoryClass(String cache_factory_class) {
-        this.cache_factory_class=cache_factory_class;
-        return this;
-    }
 
     public Benchmark config(String config) {
         this.config=config;
@@ -77,10 +70,13 @@ public class Benchmark {
     @Setup
     public void setup() throws Exception {
         BUFFER=new byte[msg_size];
+        String[] tmp=split(config);
+        String cache_factory_class=tmp[0];
+        String cfg=tmp[1];
         cache_factory=createFactory(cache_factory_class);
-        cache_factory.init(config);
+        cache_factory.init(cfg);
         cache=cache_factory.create(cache_name, null);
-        System.out.printf("-- created cache from factory %s\n", cache_factory.getClass().getSimpleName());
+        System.out.printf("\n-- created cache from factory %s\n", cache_factory.getClass().getSimpleName());
         if(cache.isEmpty()) {
             System.out.printf("-- adding keys [1 .. %,d]: ", num_keys);
             for(int i=1; i <= num_keys; i++)
@@ -102,13 +98,9 @@ public class Benchmark {
     @Fork(1)
     @Warmup(time=10,timeUnit=TimeUnit.SECONDS)
     public void testMethod() throws Exception {
-        // This is a demo/sample template for building your JMH benchmarks. Edit as needed.
-        // Put your benchmark code here.
-
         // get a random key in range [1 .. num_keys]
         int key=Util.random(num_keys) -1;
         boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
-
         if(is_this_a_read) {
             cache.get(key);
             num_reads.incrementAndGet();
@@ -117,6 +109,14 @@ public class Benchmark {
             cache.put(key, BUFFER);
             num_writes.incrementAndGet();
         }
+    }
+
+    protected static String[] split(String c) {
+        int index=c.indexOf(":");
+        if(index < 0)
+            throw new IllegalArgumentException(String.format("failed to parse cache type and config from %s", c));
+        String cache_type=c.substring(0, index), cfg=c.substring(index+1);
+        return new String[]{cache_type.trim(), cfg.trim()};
     }
 
     protected static CacheFactory<Integer,byte[]> createFactory(String cache_factory_name) throws Exception {
