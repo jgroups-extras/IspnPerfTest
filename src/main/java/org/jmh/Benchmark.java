@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 @State(Scope.Benchmark)
-@Measurement(timeUnit=TimeUnit.MILLISECONDS,iterations=10)
+@Measurement(timeUnit=TimeUnit.SECONDS,iterations=10)
 @Threads(1)
 // @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class Benchmark {
@@ -94,7 +94,7 @@ public class Benchmark {
     }
 
     @org.openjdk.jmh.annotations.Benchmark
-    @BenchmarkMode({Mode.Throughput}) @OutputTimeUnit(TimeUnit.MILLISECONDS)
+    @BenchmarkMode({Mode.Throughput}) @OutputTimeUnit(TimeUnit.SECONDS)
     @Fork(1)
     @Warmup(time=10,timeUnit=TimeUnit.SECONDS)
     public void testMethod() throws Exception {
