@@ -1,9 +1,5 @@
 #!/bin/bash
 
-usage() {
-  java -jar target/benchmarks.jar -h
-}
-
 # this causes JMH to use vthreads rather than platform threads to execute benchmarks
 USE_VTHREADS="-Djmh.executor=VIRTUAL"
 
@@ -11,7 +7,7 @@ USE_VTHREADS="-Djmh.executor=VIRTUAL"
 PROF='async:libPath=/Users/bela/async-profiler/lib/libasyncProfiler.dylib;dir=results;output=flamegraph;direction=forward'
 
 CFG="config=tri:jgroups-tcp.xml"
-READ_PERCENTAGE="read_percentage=0.8"
+READ_PERCENTAGE="read_percentage=1.0"
 
 # NUmber of warmup iterations
 WARMUP_ITERATIONS='0'
@@ -58,10 +54,6 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
-
-echo "warmup iterations: $WARMUP_ITERATIONS wi time: $WARMUP_ITERATION_TIME iterations $ITERATIONS time: $ITERATION_TIME"
-echo "args: $* rest: $rest"
-
 
 java  -jar target/benchmarks.jar \
       -jvmArgs=$USE_VTHREADS \
