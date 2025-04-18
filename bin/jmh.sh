@@ -23,7 +23,7 @@ WARMUP_ITERATION_TIME='0s'
 ITERATIONS='1'
 
 # Each iteration takes N secs
-ITERATION_TIME='60s'
+ITERATION_TIME='10s'
 
 # The number of threads used to run the benchmark method(s) - synchronized unless option '-si' is used
 THREADS='1'
