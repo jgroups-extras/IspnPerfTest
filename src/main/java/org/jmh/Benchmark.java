@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 @State(Scope.Benchmark)
-@Measurement(timeUnit=TimeUnit.SECONDS,iterations=10)
+@Measurement(timeUnit=TimeUnit.SECONDS,iterations=60)
 @Threads(1)
 // @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class Benchmark {
@@ -25,21 +25,22 @@ public class Benchmark {
     protected final LongAdder              num_reads=new LongAdder(), num_writes=new LongAdder();
 
     // <cache type>:<config>
-    @Param("ispn:dist-sync.xml")
-    protected String                       config="ispn:dist-sync.xml";
+    // @Param("ispn:dist-sync.xml")
+    @Param("tri:jgroups-tcp.xml")
+    protected String                       config;
 
     @Param("perf-cache")
-    protected String                       cache_name="perf-cache";
+    protected String                       cache_name;
 
     // this value can be changed, e.g. by passing -p "read_percentage=0.8,1.0" to the test runner
     @Param("1.0")
-    protected double                       read_percentage=1.0;
+    protected double                       read_percentage;
 
     @Param("1000")
-    protected int                          msg_size=1000;
+    protected int                          msg_size;
 
     @Param("100000")
-    protected int                          num_keys=100_000; // [1 .. num_keys]
+    protected int                          num_keys; // [1 .. num_keys]
 
     protected static final String          ispn_factory=InfinispanCacheFactory.class.getName();
     protected static final String          tri_factory=TriCacheFactory.class.getName();
@@ -94,7 +95,7 @@ public class Benchmark {
     }
 
     @org.openjdk.jmh.annotations.Benchmark
-    @BenchmarkMode({Mode.Throughput}) @OutputTimeUnit(TimeUnit.SECONDS)
+    @BenchmarkMode({Mode.Throughput}) @OutputTimeUnit(TimeUnit.MILLISECONDS)
     @Fork(1)
     @Warmup(time=10,timeUnit=TimeUnit.SECONDS)
     public void testMethod() throws Exception {
