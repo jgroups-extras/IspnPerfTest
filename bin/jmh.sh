@@ -5,7 +5,9 @@ USE_VTHREADS="-Djmh.executor=VIRTUAL"
 
 ## Uses async-profiler to profile data into 'results' dir. Comment if profiling is not required
 ## Change the location of async-profiler!
-PROF='async:libPath=/Users/bela/async-profiler/lib/libasyncProfiler.dylib;dir=results;output=flamegraph;direction=forward'
+PROF="async:libPath="
+PROF="$PROF$HOME"
+PROF="$PROF/async-profiler/lib/libasyncProfiler.dylib;dir=results;output=flamegraph;direction=forward"
 
 CFG="config=tri:jgroups-tcp.xml"
 READ_PERCENTAGE="read_percentage=1.0"
