@@ -4,6 +4,7 @@
 USE_VTHREADS="-Djmh.executor=VIRTUAL"
 
 ## Uses async-profiler to profile data into 'results' dir. Comment if profiling is not required
+## Change the location of async-profiler!
 PROF='async:libPath=/Users/bela/async-profiler/lib/libasyncProfiler.dylib;dir=results;output=flamegraph;direction=forward'
 
 CFG="config=tri:jgroups-tcp.xml"
@@ -19,7 +20,7 @@ WARMUP_ITERATION_TIME='0s'
 ITERATIONS='1'
 
 # Each iteration takes N secs
-ITERATION_TIME='10s'
+ITERATION_TIME='60s'
 
 # The number of threads used to run the benchmark method(s) - synchronized unless option '-si' is used
 THREADS='1'
