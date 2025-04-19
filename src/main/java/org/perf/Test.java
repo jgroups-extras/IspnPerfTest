@@ -25,7 +25,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.zip.DataFormatException;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -49,8 +48,6 @@ public class Test implements Receiver {
     protected Address                             local_addr;
     protected final List<Address>                 members=new ArrayList<>();
     protected volatile View                       view;
-    protected final LongAdder                     num_reads=new LongAdder();
-    protected final LongAdder                     num_writes=new LongAdder();
     protected volatile boolean                    looping=true;
     protected Integer[]                           keys;
     protected final ResponseCollector<Results>    results=new ResponseCollector<>();
@@ -275,9 +272,6 @@ public class Test implements Receiver {
     }
 
     protected void startIspnTest(Address sender, int time_secs) {
-        num_reads.reset();
-        num_writes.reset();
-
         try {
             System.out.printf("Running test for %d seconds:\n", time_secs);
 
@@ -300,7 +294,7 @@ public class Test implements Receiver {
             for(int i=1; i <= 10; i++) {
                 Util.sleep(interval);
                 if(print_details)
-                    System.out.printf("%d: %s\n", i, printAverage(start));
+                    System.out.printf("%d: %s\n", i, printAverage(start, invokers));
                 else
                     System.out.print(".");
             }
@@ -309,6 +303,11 @@ public class Test implements Receiver {
             for(Thread t: threads)
                 t.join();
 
+            int num_reads=0, num_writes=0;
+            for(CacheInvoker ci: invokers) {
+                num_reads+=ci.reads();
+                num_writes+=ci.writes();
+            }
             long t=System.currentTimeMillis() - start;
             System.out.println("\ndone (in " + t + " ms)\n");
 
@@ -342,7 +341,7 @@ public class Test implements Receiver {
                                   printTime(put_avg.getMinValue(), NANOSECONDS),
                                   printTime(put_avg.getMean(), NANOSECONDS),
                                   printTime(put_avg.getMaxValueAsDouble(), NANOSECONDS));
-            Results result=new Results(num_reads.sum(), num_writes.sum(), t, get_avg, put_avg);
+            Results result=new Results(num_reads, num_writes, t, get_avg, put_avg);
             send(sender, Type.RESULTS, result);
         }
         catch(Throwable t) {
@@ -751,9 +750,13 @@ public class Test implements Receiver {
         return sb.toString();
     }
 
-    protected String printAverage(long start_time) {
+    protected String printAverage(long start_time, CacheInvoker[] invokers) {
+        int reads=0, writes=0;
+        for(CacheInvoker i: invokers) {
+            reads+=i.reads();
+            writes+=i.writes();
+        }
         long t=System.currentTimeMillis() - start_time;
-        long reads=num_reads.sum(), writes=num_writes.sum();
         double reqs_sec=(reads+writes) / (t / 1000.0);
         return String.format("%,.0f reqs/sec (%,d reads %,d writes)", reqs_sec, reads, writes);
     }
@@ -794,7 +797,6 @@ public class Test implements Receiver {
                     try {
                         writeTo(local_uuid, count.getAndIncrement(), buffer, 0);
                         cache.put(k, buffer);
-                        num_writes.increment();
                         if(print > 0 && k > 0 && k % print == 0)
                             System.out.print(".");
                     }
@@ -908,12 +910,16 @@ public class Test implements Receiver {
         protected final Histogram      put_avg=new Histogram(1, 80_000_000_000L, 3); // ns
         protected volatile boolean     running=true;
         protected UUID                 local_uuid=(UUID)local_addr;
-        protected long                 count=0;
+        protected long                 count;
+        protected int                  reads, writes;
 
 
         public CacheInvoker(CountDownLatch latch) {
             this.latch=latch;
         }
+
+        public int reads()  {return reads;}
+        public int writes() {return writes;}
 
         public void cancel() {running=false;}
 
@@ -938,7 +944,7 @@ public class Test implements Receiver {
                             cache.get(key);
                             long t=System.nanoTime() - start;
                             get_avg.recordValue(t);
-                            num_reads.increment();
+                            reads++;
                         }
                         else {
                             // Adding the ID is for validation (option [8]). We cannot reuse this byte array as JGroups
@@ -949,7 +955,7 @@ public class Test implements Receiver {
                             cache.put(key, buffer);
                             long t=System.nanoTime() - start;
                             put_avg.recordValue(t);
-                            num_writes.increment();
+                            writes++;
                         }
                         break;
                     }
