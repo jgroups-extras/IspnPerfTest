@@ -3,11 +3,20 @@
 # this causes JMH to use vthreads rather than platform threads to execute benchmarks
 USE_VTHREADS="-Djmh.executor=VIRTUAL"
 
+ARCH=`uname -m`
+
+if [[ $ARCH == "arm"* ]] ; then
+  EXT="dylib"
+else
+  EXT="so"
+fi
+
 ## Uses async-profiler to profile data into 'results' dir. Comment if profiling is not required
 ## Change the location of async-profiler!
 PROF="async:libPath="
 PROF="$PROF$HOME"
-PROF="$PROF/async-profiler/lib/libasyncProfiler.dylib;dir=results;output=flamegraph;direction=forward"
+PROF="$PROF/async-profiler/lib/libasyncProfiler.$EXT;dir=results;output=flamegraph;direction=forward"
+
 
 CFG="config=tri:jgroups-tcp.xml"
 READ_PERCENTAGE="read_percentage=1.0"
