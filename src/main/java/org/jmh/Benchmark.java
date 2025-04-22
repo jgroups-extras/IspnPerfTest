@@ -11,7 +11,6 @@ import org.jgroups.util.Util;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.LongAdder;
 
 @State(Scope.Benchmark)
 @Measurement(timeUnit=TimeUnit.SECONDS,iterations=60)
@@ -22,7 +21,7 @@ public class Benchmark {
     protected Cache<Integer,byte[]>        cache;
 
     protected byte[]                       BUFFER;
-    protected final LongAdder              num_reads=new LongAdder(), num_writes=new LongAdder();
+    protected int                          num_reads, num_writes; // only works with single threads, or synchronization
 
     // <cache type>:<config>
     // @Param("ispn:dist-sync.xml")
@@ -90,7 +89,7 @@ public class Benchmark {
 
     @TearDown
     public void destroy() {
-        System.out.printf("-- num_reads: %,d, num_writes: %,d\n", num_reads.sum(), num_writes.sum());
+        System.out.printf("-- num_reads: %,d, num_writes: %,d\n", num_reads, num_writes);
         cache_factory.destroy();
     }
 
@@ -104,11 +103,11 @@ public class Benchmark {
         boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
         if(is_this_a_read) {
             cache.get(key);
-            num_reads.increment();
+            num_reads++;
         }
         else {
             cache.put(key, BUFFER);
-            num_writes.increment();
+            num_writes++;
         }
     }
 
