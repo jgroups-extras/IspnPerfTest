@@ -49,7 +49,6 @@ public class Test implements Receiver {
     protected final List<Address>                 members=new ArrayList<>();
     protected volatile View                       view;
     protected volatile boolean                    looping=true;
-    protected Integer[]                           keys;
     protected final ResponseCollector<Results>    results=new ResponseCollector<>();
     protected final Promise<Map<Integer,byte[]>>  contents_promise=new Promise<>();
     protected final Promise<Config>               config_promise=new Promise<>();
@@ -98,11 +97,11 @@ public class Test implements Receiver {
     protected static final String local_factory=LocalCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
-      "\n[5] Keys (%,d) [6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
+      "\n[6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b) [l] dump local cache" +
-      "\n[x] Exit [X] Exit all\n";
+      "\n[x] Exit [X] Exit  (num_keys=%,d)\n";
 
     static {
         ClassConfigurator.add((short)11000, Results.class);
@@ -162,8 +161,6 @@ public class Test implements Receiver {
             else
                 System.out.println("cache already contains " + size + " elements");
         }
-        keys=createKeys(num_keys);
-        System.out.printf("created %,d keys: [%,d-%,d]\n", keys.length, keys[0], keys[keys.length - 1]);
         System.out.println(NODE_STARTED_MESSAGE);
 
         if (num_nodes == 1 && view == null) {
@@ -184,13 +181,6 @@ public class Test implements Receiver {
             test_runner=thread_factory.newThread(() -> startIspnTest(addr, time_secs), "testrunner");
             test_runner.start();
         }
-    }
-
-    protected static Integer[] createKeys(int num_keys) {
-        Integer[] retval=new Integer[num_keys];
-        for(int i=0; i < num_keys; i++)
-            retval[i]=i + 1;
-        return retval;
     }
 
     public void receive(Message msg) {
@@ -303,14 +293,13 @@ public class Test implements Receiver {
             for(Thread t: threads)
                 t.join();
 
+            long t=System.currentTimeMillis() - start;
+            System.out.println("\ndone (in " + t + " ms)\n");
             int num_reads=0, num_writes=0;
             for(CacheInvoker ci: invokers) {
                 num_reads+=ci.reads();
                 num_writes+=ci.writes();
             }
-            long t=System.currentTimeMillis() - start;
-            System.out.println("\ndone (in " + t + " ms)\n");
-
             Histogram get_avg=null, put_avg=null;
             if(print_invokers)
                 System.out.print("Round trip times (min/avg/max):\n");
@@ -384,7 +373,6 @@ public class Test implements Receiver {
             Util.setField(field, this, value);
             System.out.println(field.getName() + "=" + value);
         }
-        changeKeySet();
     }
 
     protected Config getConfig() {
@@ -399,7 +387,6 @@ public class Test implements Receiver {
             Field field=Util.getField(getClass(), entry.getKey());
             Util.setField(field, this, entry.getValue());
         }
-        changeKeySet();
     }
 
     protected Map<Integer,byte[]> getContents() {
@@ -419,8 +406,8 @@ public class Test implements Receiver {
     public void eventLoop() throws Throwable {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
-                                              num_threads, keys != null? keys.length : 0, time, Util.printBytes(msg_size),
-                                              read_percentage, print_details, print_invokers));
+                                              num_threads, time, Util.printBytes(msg_size),
+                                              read_percentage, print_details, print_invokers, num_keys));
             switch(c) {
                 case '1':
                     startBenchmark(time, false);
@@ -433,9 +420,6 @@ public class Test implements Receiver {
                     break;
                 case '4':
                     changeFieldAcrossCluster("num_threads", Util.readIntFromStdin("Number of sender threads: "));
-                    break;
-                case '5':
-                    changeFieldAcrossCluster("num_keys", Util.readIntFromStdin("Number of keys: "));
                     break;
                 case '6':
                     changeFieldAcrossCluster("time", Util.readIntFromStdin("Time (secs): "));
@@ -770,15 +754,6 @@ public class Test implements Receiver {
         cache.clear();
     }
 
-    protected void changeKeySet() {
-        if(keys == null || keys.length != num_keys) {
-            int old_key_size=keys != null? keys.length : 0;
-            keys=createKeys(num_keys);
-            System.out.printf("created %,d keys: [%,d-%,d], old key set size: %,d\n",
-                              keys.length, keys[0], keys[keys.length - 1], old_key_size);
-        }
-    }
-
     // Inserts num_keys keys into the cache (in parallel)
     protected void populateCache() throws InterruptedException {
         final AtomicInteger key=new AtomicInteger(1);
@@ -932,8 +907,7 @@ public class Test implements Receiver {
             }
             while(running) {
                 // get a random key in range [0 .. num_keys-1]
-                int index=Util.random(num_keys) -1;
-                Integer key=keys[index];
+                int key=Util.random(num_keys) -1;
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
                 // try the operation until it is successful
