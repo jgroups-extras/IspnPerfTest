@@ -21,7 +21,7 @@ public class Benchmark {
     protected Cache<Integer,byte[]>        cache;
 
     protected byte[]                       BUFFER;
-    protected int                          num_reads, num_writes; // only works with single threads, or synchronization
+    protected long                         num_reads, num_writes; // only works with single threads, or synchronization
 
     // <cache type>:<config>
     // @Param("ispn:dist-sync.xml")
