@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 @Measurement(timeUnit=TimeUnit.SECONDS,iterations=60)
 @Threads(1)
-// @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class Benchmark {
     protected CacheFactory<Integer,byte[]> cache_factory;
     protected Cache<Integer,byte[]>        cache;
@@ -24,8 +23,8 @@ public class Benchmark {
     protected long                         num_reads, num_writes; // only works with single threads, or synchronization
 
     // <cache type>:<config>
-    // @Param("ispn:dist-sync.xml")
-    @Param("tri:jgroups-tcp.xml")
+    // @Param("tri:jgroups-tcp.xml")
+    @Param("ispn:dist-sync.xml")
     protected String                       config;
 
     @Param("perf-cache")
