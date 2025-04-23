@@ -78,7 +78,7 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
         is_trace=log.isTraceEnabled();
     }
 
-
+    public JChannel      channel()                         {return ch;}
     public TriCache<K,V> removesTillCompaction(int n)      {req_table.removesTillCompaction(this.removes_till_compaction=n); return this;}
     public int           removesTillCompaction()           {return removes_till_compaction;}
     public void          compactRequestTable()             {req_table.compact();}

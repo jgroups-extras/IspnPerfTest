@@ -4,6 +4,7 @@ import org.HdrHistogram.Histogram;
 import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.cache.impl.*;
+import org.cache.impl.tri.TriCache;
 import org.cache.impl.tri.TriCacheFactory;
 import org.infinispan.commons.jdkspecific.ThreadCreator;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
@@ -101,7 +102,7 @@ public class Test implements Receiver {
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b) [l] dump local cache" +
-      "\n[x] Exit [X] Exit  (num_keys=%,d)\n";
+      "\n[x] Exit [X] Exit  (num_keys=%,d, jg-vthreads: %b, ispn-vthreads: %b)\n";
 
     static {
         ClassConfigurator.add((short)11000, Results.class);
@@ -407,7 +408,8 @@ public class Test implements Receiver {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
                                               num_threads, time, Util.printBytes(msg_size),
-                                              read_percentage, print_details, print_invokers, num_keys));
+                                              read_percentage, print_details, print_invokers, num_keys,
+                                              jgroupsVThreads(), ispnVThreads()));
             switch(c) {
                 case '1':
                     startBenchmark(time, false);
@@ -653,7 +655,7 @@ public class Test implements Receiver {
         m.put("jg", org.jgroups.Version.printVersion());
         m.put("ispn", String.format("%s", org.infinispan.commons.util.Version.getBrandVersion()));
         m.put("jg-vthreads", jgroupsVThreads());
-        m.put("ispn-vthreads", ispnVThrads());
+        m.put("ispn-vthreads", ispnVThreads());
         m.put("cfg", cfg);
         m.put("control-cfg", control_cfg);
         m.put("threads", num_threads);
@@ -704,18 +706,22 @@ public class Test implements Receiver {
     protected boolean jgroupsVThreads() {
         if(cache instanceof InfinispanCache) {
             JGroupsTransport transport=(JGroupsTransport)((InfinispanCache<?,?>)cache).getTransport();
+            if(transport == null)
+                return false;
             JChannel ch=transport.getChannel();
             TP tp=ch.getProtocolStack().getTransport();
             return tp.useVirtualThreads();
         }
-
-        if (cache instanceof RaftCache) {
+        if(cache instanceof RaftCache)
             return ((RaftCache<?, ?>) cache).isVirtualThreadsEnabled();
+        if(cache instanceof TriCache) {
+            JChannel ch=((TriCache<Integer,byte[]>)cache).channel();
+            return ch.stack().getTransport().useVirtualThreads();
         }
         return false;
     }
 
-    protected static boolean ispnVThrads() {
+    protected static boolean ispnVThreads() {
         // kludge ahead:
         Optional<ExecutorService> blocking_executor=ThreadCreator.createBlockingExecutorService();
         return blocking_executor.isPresent();
