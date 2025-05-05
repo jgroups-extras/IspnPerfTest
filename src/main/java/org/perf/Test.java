@@ -25,7 +25,6 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.DataFormatException;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -762,35 +761,21 @@ public class Test implements Receiver {
 
     // Inserts num_keys keys into the cache (in parallel)
     protected void populateCache() throws InterruptedException {
-        final AtomicInteger key=new AtomicInteger(1);
-        final int           print=num_keys / 10;
-        final UUID          local_uuid=(UUID)local_addr;
-        final AtomicInteger count=new AtomicInteger(1);
+        final int  print=num_keys / 10;
+        final UUID local_uuid=(UUID)local_addr;
 
-        Thread[] inserters=new Thread[num_threads];
-        for(int i=0; i < inserters.length; i++) {
-            inserters[i]=new Thread(() -> {
-                for(;;) {
-                    byte[] buffer=new byte[msg_size];
-                    int k=key.getAndIncrement();
-                    if(k > num_keys)
-                        return;
-                    try {
-                        writeTo(local_uuid, count.getAndIncrement(), buffer, 0);
-                        cache.put(k, buffer);
-                        if(print > 0 && k > 0 && k % print == 0)
-                            System.out.print(".");
-                    }
-                    catch(Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-            });
+        for(int k=1; k <= num_keys; k++) {
+            byte[] buffer=new byte[msg_size];
+            try {
+                writeTo(local_uuid, k, buffer, 0);
+                cache.put(k, buffer);
+                if(print > 0 && k > 0 && k % print == 0)
+                    System.out.print(".");
+            }
+            catch(Throwable t) {
+                t.printStackTrace();
+            }
         }
-        for(Thread inserter: inserters)
-            inserter.start();
-        for(Thread inserter: inserters)
-            inserter.join();
     }
 
     protected static void writeTo(UUID addr, long seqno, byte[] buf, int offset) {
