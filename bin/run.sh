@@ -91,4 +91,4 @@ FLAGS="-Dorg.infinispan.threads.virtual=true $FLAGS"
 # Uncomment e.g. to use with JITWatch
 #FLAGS="$FLAGS -XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation"
 
-java -cp $CP $LOG $FLAGS $*
+java -cp $CP $LOG $DEBUG $FLAGS $*
