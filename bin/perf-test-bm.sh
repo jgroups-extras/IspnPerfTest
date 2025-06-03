@@ -90,6 +90,6 @@ export proc_id=$$
 
 # exec mvn -o -f $POM exec:java $FLAGS $JMX $LOG -Dexec.mainClass=org.perf.Test -Dexec.args="$*"
 
-BM="-javaagent:$LIBS/byteman-4.0.20.jar=resourcescript:prot-perf.btm"
+BM="-javaagent:$LIBS/byteman-4.0.25.jar=resourcescript:prot-perf.btm"
 
 java -cp "$LIBS/*" $FLAGS $DEBUG $BM org.perf.Test $*
