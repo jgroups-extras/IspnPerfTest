@@ -14,6 +14,7 @@
         bundler.max_size="${jgroups.bundler.max_size:64K}"
         bundler.capacity="8096"
         bundler.remove_queue_capacity="1024"
+        bundler.use_single_sender_thread="true"
 
         non_blocking_sends="${jgroups.non_blocking_sends:false}"
         diag.enabled="true"
@@ -41,5 +42,4 @@
    <MFC max_credits="${jgroups.max_credits:4m}"
         min_threshold="0.4"/>
    <FRAG4 frag_size="60K"/>
-   <TIME/>
 </config>
