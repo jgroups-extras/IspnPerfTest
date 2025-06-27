@@ -161,11 +161,17 @@ public class Test implements Receiver {
             else
                 System.out.println("cache already contains " + size + " elements");
         }
-        System.out.println(NODE_STARTED_MESSAGE);
 
         if (num_nodes == 1 && view == null) {
             viewAccepted(control_channel.view());
         }
+
+        if (batch_mode && Util.isCoordinator(control_channel) && control_channel.getView().size() == 1) {
+            System.out.printf("-- Coordinator in batch mode populating cache with %d keys:\n", num_keys);
+            populateCache();
+        }
+
+        System.out.println(NODE_STARTED_MESSAGE);
     }
 
     protected void stop() {
@@ -341,9 +347,11 @@ public class Test implements Receiver {
     // Only run when coordinator
     protected void runBatch() {
         try {
-            System.out.printf("-- Populating cache with %d keys:\n", num_keys);
-            populateCache();
-            System.out.println();
+            if (cache.isEmpty()) {
+                System.out.printf("-- Populating cache with %d keys:\n", num_keys);
+                populateCache();
+                System.out.println();
+            }
             if(warmup > 0)
                 startBenchmark(warmup, false);
             Util.sleep(2000);

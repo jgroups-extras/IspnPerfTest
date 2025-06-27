@@ -7,7 +7,7 @@
 
 
     <jgroups>
-        <stack-file name="jgroupsStack" path="/Users/bela/jgroups-tcp.xml"/>
+        <stack-file name="jgroupsStack" path="jgroups-tcp.xml"/>
     </jgroups>
 
     <cache-container name="default" default-cache="perf-cache">
