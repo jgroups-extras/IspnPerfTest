@@ -42,5 +42,4 @@
     <MFC max_credits="4M"
          min_threshold="0.4"/>
     <FRAG4 frag_size="60K"  />
-    <TIME/>
 </config>

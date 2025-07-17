@@ -2,30 +2,36 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-   <TCP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
+  <TCP
+        bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
         bind_port="7800"
-        recv_buf_size="20M"
-        send_buf_size="10M"
+        recv_buf_size="0"
+        send_buf_size="0"
         buffered_input_stream_size="65536"
         buffered_output_stream_size="65536"
         sock_conn_timeout="300ms"
-        bundler_type="${jgroups.bundler.type:transfer-queue}"
-        bundler.max_size="${jgroups.bundler.max_size:64000}"
-        non_blocking_sends="${jgroups.non_blocking_sends:false}"
+
+        bundler_type="${jgroups.bundler.type:pd}"
+        bundler.max_size="${jgroups.bundler.max_size:64K}"
+        bundler.capacity="${jgroups.bundler.capacity:16k}"
+
+        bundler.use_single_sender_thread="${jgroups.bundler.use_single_sender_thread:true}"
+        bundler.use_ringbuffer="${jgroups.bundler.use_ringbuffer:true}"
+        tcp_nodelay="${tcp-nodelay:false}"
+
         diag.enabled="true"
         diag.enable_tcp="true"
-        tcp_nodelay="${tcp-nodelay:false}"
         thread_pool.min_threads="${jgroups.thread_pool.min_threads:0}"
         thread_pool.max_threads="${jgroups.thread_pool.max_threads:200}"
         thread_pool.keep_alive_time="60s"
         use_virtual_threads="${vthreads:true}"/>
-   <!-- Infinispan can only have *2* variables in a list -->
    <TCPPING
         initial_hosts_file="hosts.txt"
         port_range="${tcpping.port_range,env.PORT_RANGE:0}"/>
+   <!-- Infinispan can only have *2* variables in a list -->
    <MERGE3 max_interval="30000"
            min_interval="10000"/>
-   <FD_SOCK2 offset="20" port_range="0" connect_timeout="300"/>
+   <FD_SOCK2/>
    <FD_ALL3 timeout="60000" interval="10000"/>
    <VERIFY_SUSPECT2 timeout="1.5s"/>
    <pbcast.NAKACK2 xmit_interval="0.5s"/>
@@ -39,4 +45,5 @@
    <MFC max_credits="${jgroups.max_credits:4m}"
         min_threshold="0.4"/>
    <FRAG4 frag_size="60K"/>
+   <!--TIME/-->
 </config>
