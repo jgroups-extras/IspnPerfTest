@@ -7,7 +7,6 @@ jdk_version: 21.0.2-open
 
 vthreads:
   - true
-  - false
 
 # States not allowed in the permutation.
 forbidden_states:
