@@ -1,4 +1,12 @@
 - block:
+    - name: Define JVM options
+      ansible.builtin.set_fact:
+        jvm_opts: "-Dorg.infinispan.threads.virtual={{ use_virtual_threads }} -Dvthreads={{ use_virtual_threads }} {{ java_opts }} {{ benchmark_java_opts }}"
+        
+    - name: Show JVM options
+      ansible.builtin.debug:
+        msg: "JVM Options: {{ jvm_opts }}"
+
     - name: "Running {{ script_file }}"
       ansible.builtin.shell: |
         source {{ sdkman_folder }}/bin/sdkman-init.sh
@@ -12,7 +20,7 @@
           -time {{ test_duration }} \
           -warmup {{ warmup_duration }} \
           -msg-size {{ msg_size }} \
-          -read-percentage {{read_percentage }} \
+          -read-percentage {{ read_percentage }} \
           -nodes {{ groups['instances'] | length }} \
           -csv "jdk,jg,ispn,jg-vthreads,ispn-vthreads" \
           {{ batch_mode | ansible.builtin.ternary('-batch-mode true', '') }} \
@@ -20,4 +28,4 @@
       args:
         executable: /bin/bash
       environment:
-        JAVA_OPTS: "-Dorg.infinispan.threads.virtual={{ use_virtual_threads }} -Dvthreads={{ use_virtual_threads }} {{ java_opts }}"
+        JAVA_OPTS: "{{ jvm_opts }}"

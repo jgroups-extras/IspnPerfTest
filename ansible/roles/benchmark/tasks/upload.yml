@@ -9,7 +9,9 @@
     loop_var: folder
 
 - name: "Upload script files"
-  synchronize: src="{{ bin_folder }}" dest="{{ remote_folder }}"
+  ansible.posix.synchronize:
+    src: "{{ bin_folder }}"
+    dest: "{{ remote_folder }}"
 
 - name: "Upload target folder"
   synchronize: src="{{ target_folder }}" dest="{{ remote_folder }}"

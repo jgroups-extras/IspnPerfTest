@@ -1,9 +1,11 @@
-- hosts: controller
-  roles: [ benchmark ]
+- name: Start controller node
+  hosts: controller
+  roles: [benchmark]
   vars:
     operation: start
 
-- hosts: controller
+- name: Wait until controller started
+  hosts: controller
   tasks:
     - name: Wait until coordinator started
       ansible.builtin.wait_for:
@@ -11,12 +13,14 @@
         search_regex: Node completed start setup
         timeout: 20
 
-- hosts: "instances:!controller"
-  roles: [ benchmark ]
+- name: Starte remaining nodes
+  hosts: "instances:!controller"
+  roles: [benchmark]
   vars:
     operation: start
 
-- hosts: controller
+- name: Run benchmark steps.
+  hosts: controller
   tasks:
     - name: Time we started waiting for the test to complete
       ansible.builtin.debug:

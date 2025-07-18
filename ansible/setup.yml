@@ -4,9 +4,10 @@
   gather_facts: false
   tasks:
     - name: Verify operation
-      fail:
+      ansible.builtin.fail:
         msg: "Operation '{{ operation }}' is not allowed in this playbook!"
       when: operation is defined and (operation is search("start") or operation is search("stop"))
 
-- hosts: "instances"
-  roles: [ benchmark ]
+- name: "Run operation {{ operation | default('') }}"
+  hosts: "instances"
+  roles: [benchmark]

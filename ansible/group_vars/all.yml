@@ -8,7 +8,16 @@ jdk_version: 21.0.2-open
 vthreads:
   - true
 
+properties:
+  - jgroups.bundler.type:
+    - pd
+    - tq
+  - jgroups.bundler.use_single_sender_thread:
+    - 'true'
+    - 'false'
+  - bundler.use_ringbuffer:
+    - 'true'
+    - 'false'
+
 # States not allowed in the permutation.
-forbidden_states:
-  - jdk_version: 17.0.15-tem
-    use_virtual_threads: true
+forbidden_states: []

@@ -2,16 +2,26 @@
 
 - hosts: localhost
   tasks:
+    - name: Create environment variables
+      ansible.builtin.set_fact:
+        transformed_properties: "{{ transformed_properties | default([]) + [item | dict2items] }}"
+      loop: "{{ properties }}"
+
+    - name: Reduce all environment properties
+      ansible.builtin.set_fact:
+        all_properties: "{{ all_properties | default([]) + [['-D' + item[0].key] | product(item[0].value) | map('join', '=')] }}"
+      loop: "{{ transformed_properties }}"
+
     - name: Create test permutation
-      set_fact:
+      ansible.builtin.set_fact:
         permutation: >-
-          {{ jdks | product(vthreads)
-                  | map('zip', ['jdk_version', 'use_virtual_threads'])
+          {{ jdks | product(vthreads, all_properties[0] | product(*all_properties[1:]))
+                  | map('zip', ['jdk_version', 'use_virtual_threads', 'java_options'])
                   | map('map', 'reverse')
                   | map('community.general.dict')
                   | difference(forbidden_states) }}
 
-    - name: Start test
+    - name: "Start test for permutations ({{ permutation | length }})"
       ansible.builtin.include_role:
         name: benchmark
         public: true

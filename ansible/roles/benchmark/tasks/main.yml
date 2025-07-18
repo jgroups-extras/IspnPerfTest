@@ -1,4 +1,5 @@
-- debug:
+- name: Show operation details
+  ansible.builtin.debug:
     msg: "Server Operation is {{ operation | default('DEFAULT') }}"
 
 - name: Initializing benchmark requirements
@@ -28,6 +29,7 @@
     use_virtual_threads: "{{ c.use_virtual_threads }}"
     controller_host: "{{ groups['controller'][0] }}"
     ansible_user: "{{ hostvars[groups['controller'][0]]['ansible_user'] }}"
+    benchmark_java_opts: "{{ c.java_options | join(' ') }}"
   loop: "{{ benchmark_configuration }}"
   loop_control:
     loop_var: c

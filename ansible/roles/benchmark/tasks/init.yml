@@ -1,4 +1,3 @@
-
 - name: Install zip
   package:
     name: zip
@@ -47,7 +46,7 @@
 - name: Install and configure asprof
   block:
     - name: Check if asprof already downloaded
-      stat:
+      ansible.builtin.stat:
         path: "{{ remote_folder }}/asprof.tar.gz"
       register: stat_result
 
@@ -63,7 +62,7 @@
 
     - name: Download async-profiler {{ asprof_arch }}
       ansible.builtin.get_url:
-        url: "https://github.com/async-profiler/async-profiler/releases/download/nightly/async-profiler-4.0-5b4450b-linux-{{ asprof_arch }}.tar.gz"
+        url: "https://github.com/async-profiler/async-profiler/releases/download/nightly/async-profiler-4.0-5fffdb1-linux-{{ asprof_arch }}.tar.gz"
         dest: "{{ remote_folder }}/asprof.tar.gz"
       when: not stat_result.stat.exists
 

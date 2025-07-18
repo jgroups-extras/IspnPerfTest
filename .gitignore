@@ -21,4 +21,4 @@ doc/tutorial/target
 conf/MANIFEST.MF
 target/
 results.*
-
+.ansible
