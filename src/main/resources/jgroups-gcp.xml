@@ -9,7 +9,7 @@
    <!-- Infinispan can only have *2* variables in a list -->
    <MERGE3 max_interval="30000"
            min_interval="10000"/>
-   <FD_SOCK2/>
+   <FD_SOCK2 offset="20" port_range="0" connect_timeout="300"/>
    <FD_ALL3 timeout="60000" interval="10000"/>
    <VERIFY_SUSPECT2 timeout="1.5s"/>
    <pbcast.NAKACK2 xmit_interval="0.5s"/>

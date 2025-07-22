@@ -54,6 +54,7 @@ public class Test implements Receiver {
     protected final Promise<Config>               config_promise=new Promise<>();
     protected Thread                              test_runner;
     protected ThreadFactory                       thread_factory;
+    protected String                              runtimeProperties;
     protected boolean                             done; // set to true if batch-mode and run was triggered
 
     protected enum Type {
@@ -119,6 +120,7 @@ public class Test implements Receiver {
     public Test resultFile(String f)     {this.result_file=f; return this;}
     public Test batchMode(boolean b)     {this.batch_mode=b; return this;}
     public Test csvFilter(String f)      {this.csv_filter=f; return this;}
+    public Test runtimeProps(String p)   {this.runtimeProperties=p; return this;}
 
     public void init(String factory, String cache_name, String name, boolean use_vthreads) throws Exception {
         // sanity checks:
@@ -167,6 +169,7 @@ public class Test implements Receiver {
         }
 
         if (batch_mode && Util.isCoordinator(control_channel) && control_channel.getView().size() == 1) {
+            System.out.println("-- Test environment:\n" + env(envMap()));
             System.out.printf("-- Coordinator in batch mode populating cache with %d keys:\n", num_keys);
             populateCache();
         }
@@ -628,7 +631,7 @@ public class Test implements Receiver {
         StringBuilder sb=new StringBuilder(String.format("\n-------------------- %s -------------------------\n", m.get("date")));
         String fmt="node: %s\nip: %s\nview: %s\njgroups: %s\ninfinispan: %s\njdk: %s\njg-vthreads: %b\n" +
           "ispn-vthreads: %b\ncfg: %s\ncontrol_cfg: %s\nnum_threads: %d\nnum_keys: %,d\ntime: %s\nwarmup: %s\n" +
-          "msg_size: %s\nnodes: %d\nread_percentage: %.2f\n";
+          "msg_size: %s\nnodes: %d\nread_percentage: %.2f\nruntime-properties: %s\n";
         sb.append(String.format(fmt, m.get("node"), m.get("ip"),
                                 m.get("view"), m.get("jg"), m.get("ispn"),
                                 m.get("jdk"), m.get("jg-vthreads"), m.get("ispn-vthreads"),
@@ -636,7 +639,7 @@ public class Test implements Receiver {
                                 m.get("threads"), m.get("keys"), printTime((Integer)m.get("time"), TimeUnit.SECONDS),
                                 printTime((Integer)m.get("warmup"), TimeUnit.SECONDS),
                                 Util.printBytes((Integer)m.get("msg-size")),
-                                m.get("nodes"), m.get("read-percentage")));
+                                m.get("nodes"), m.get("read-percentage"), m.get("env-props")));
         return sb.toString();
     }
 
@@ -672,6 +675,7 @@ public class Test implements Receiver {
         m.put("nodes", num_nodes);
         m.put("msg-size", msg_size);
         m.put("read-percentage", read_percentage);
+        m.put("env-props", runtimeProperties);
         return m;
     }
 
@@ -1110,6 +1114,10 @@ public class Test implements Receiver {
             }
             if("-csv".equals(args[i])) {
                 test.csvFilter(args[++i]);
+                continue;
+            }
+            if ("-runtime-props".equals(args[i])) {
+                test.runtimeProps(args[++i]);
                 continue;
             }
             if("-env".equals(args[i])) {
