@@ -60,8 +60,10 @@ You need to recompile the project and synchronize. This step uploads the scripts
 To run this playbook the inventory file is required. You can run as (in IspnPerfTest):
 
 ```bash
-$ ansible-playbook -i ansible/inventory.yaml ansible/setup.yml -e operation=[init|upload]
+$ ansible-playbook --private-key ~/.ssh/google_compute_engine -i ansible/inventory.yaml ansible/setup.yml -e operation=[init|upload]
 ```
+
+Argument `--private-key` needs to point to the private key used to ssh into the instances.
 
 > [!NOTE] 
 > `inventory.yml` needs to have a list of all hosts, see `gcp.yml` as an example
