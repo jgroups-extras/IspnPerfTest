@@ -53,6 +53,13 @@
       flat: true
     delegate_to: "{{ controller_host }}"
 
+  - name: Download log files from coordinator
+    ansible.builtin.fetch:
+      src: '/home/{{ ansible_user }}/ispn-perf.log'
+      dest: "downloads/{{ now(utc=true,fmt='%Y-%m-%d %H:%M:%S') }}-{{ controller_host }}.log"
+      flat: true
+    delegate_to: "{{ controller_host }}"
+
 - name: Ensure all nodes stopped
   ansible.builtin.include_role:
     name: benchmark
