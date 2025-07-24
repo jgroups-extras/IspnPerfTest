@@ -107,6 +107,14 @@ The default version is `21.0.2-open`.
 $ ansible-playbook -i inventory.yaml start.yml
 ```
 
+or
+
+```bash
+$ ansible-playbook -i inventory.yaml batch.yml
+```
+, if you want to run all permutations listed in `all.yml`.
+
+
 The playbook will run the tests and will download a `result.txt` file at the end.
 
 ### stop.yml
