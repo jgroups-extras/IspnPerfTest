@@ -1,6 +1,8 @@
-- ansible.builtin.import_playbook: setup.yml
+- name: Setup and upload files
+  ansible.builtin.import_playbook: setup.yml
 
-- hosts: localhost
+- name: Run the test permutation in batch mode
+  hosts: localhost
   tasks:
     - name: Create environment variables
       ansible.builtin.set_fact:
@@ -19,7 +21,7 @@
                   | map('zip', ['jdk_version', 'use_virtual_threads', 'java_options'])
                   | map('map', 'reverse')
                   | map('community.general.dict')
-                  | difference(forbidden_states) }}
+                  | remove_forbidden(forbidden_states) }}
 
     - name: "Start test for permutations ({{ permutation | length }})"
       ansible.builtin.include_role:

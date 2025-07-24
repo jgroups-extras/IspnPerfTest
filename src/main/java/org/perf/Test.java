@@ -3,25 +3,59 @@ package org.perf;
 import org.HdrHistogram.Histogram;
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.cache.impl.*;
+import org.cache.impl.DummyCacheFactory;
+import org.cache.impl.HazelcastCacheFactory;
+import org.cache.impl.InfinispanCache;
+import org.cache.impl.InfinispanCacheFactory;
+import org.cache.impl.LocalCacheFactory;
+import org.cache.impl.RaftCache;
+import org.cache.impl.RaftCacheFactory;
 import org.cache.impl.tri.TriCache;
 import org.cache.impl.tri.TriCacheFactory;
 import org.infinispan.commons.jdkspecific.ThreadCreator;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.jgroups.*;
+import org.jgroups.Address;
+import org.jgroups.Event;
+import org.jgroups.Global;
+import org.jgroups.JChannel;
+import org.jgroups.Message;
+import org.jgroups.Receiver;
+import org.jgroups.View;
 import org.jgroups.annotations.Property;
 import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.protocols.TP;
-import org.jgroups.util.*;
+import org.jgroups.util.Bits;
+import org.jgroups.util.ByteArrayDataInputStream;
+import org.jgroups.util.ByteArrayDataOutputStream;
+import org.jgroups.util.DefaultThreadFactory;
+import org.jgroups.util.Promise;
+import org.jgroups.util.ResponseCollector;
+import org.jgroups.util.Streamable;
+import org.jgroups.util.ThreadFactory;
 import org.jgroups.util.UUID;
+import org.jgroups.util.Util;
 
-import java.io.*;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -509,7 +543,8 @@ public class Test implements Receiver {
 
         long total_reqs=0, total_time=0, longest_time=0;
         Histogram get_avg=null, put_avg=null;
-        System.out.println("\n======================= Results: ===========================");
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n======================= Results: ===========================").append(System.lineSeparator());
         for(Map.Entry<Address,Results>  entry: results.getResults().entrySet()) {
             Address mbr=entry.getKey();
             Results result=entry.getValue();
@@ -526,17 +561,20 @@ public class Test implements Receiver {
                 else
                     put_avg.add(result.put_avg);
             }
-            System.out.println(mbr + ": " + result);
+            sb.append(mbr).append(": ").append(result).append(System.lineSeparator());
         }
         double reqs_sec_node=total_reqs / (total_time / 1000.0);
         double reqs_sec_cluster=total_reqs / (longest_time / 1000.0);
         double throughput=reqs_sec_node * msg_size;
-        String result=String.format("\nThroughput: %,.0f reqs/sec/node (%s/sec) %,.0f reqs/sec/cluster\n" +
-                                      "RTT GETs:   %s\n" +
-                                      "RTT PUTs:   %s\n\n",
-                                    reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
-                                    print(get_avg, print_details), print(put_avg, print_details));
-        System.out.println(Util.bold(result));
+        sb.append(System.lineSeparator());
+        String summary=String.format("\nThroughput: %,.0f reqs/sec/node (%s/sec) %,.0f reqs/sec/cluster\n" +
+                        "RTT GETs:   %s\n" +
+                        "RTT PUTs:   %s\n\n",
+                reqs_sec_node, Util.printBytes(throughput), reqs_sec_cluster,
+                print(get_avg, print_details), print(put_avg, print_details));
+        sb.append("\033[1m").append(summary).append("\033[0m").append(System.lineSeparator());
+        String result = sb.toString();
+        System.out.println(result);
         if(batch_mode && write_results) {
             Map<String,Object> map=envMap();
             try(DataOutputStream out=new DataOutputStream(new FileOutputStream(result_file, true))) {

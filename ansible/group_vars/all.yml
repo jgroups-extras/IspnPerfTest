@@ -20,4 +20,7 @@ properties:
     - 'false'
 
 # States not allowed in the permutation.
-forbidden_states: []
+forbidden_states:
+  # Write the option as they are provided to the JVM.
+  # It will perform a sub-set mathc. That is, every state that has the `java_options` containing these values.
+  - java_options: ["-Djgroups.bundler.type=tq", "-Djgroups.bundler.use_single_sender_thread=false"]
