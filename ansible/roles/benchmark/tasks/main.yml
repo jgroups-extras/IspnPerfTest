@@ -18,6 +18,10 @@
   ansible.builtin.include_tasks: stop.yml
   when: operation is defined and operation is search("stop")
 
+- name: Cleaning up files
+  ansible.builtin.include_tasks: clean.yml
+  when: operation is defined and operation is search("clean")
+
 - name: Downloading JFR file
   ansible.builtin.include_tasks: download.yml
   when: operation is defined and operation is search('download') and file_path is defined

@@ -1,0 +1,4 @@
+- hosts: "instances"
+  roles: [ benchmark ]
+  vars:
+    operation: clean

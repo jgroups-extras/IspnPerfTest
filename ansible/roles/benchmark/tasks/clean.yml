@@ -1,0 +1,16 @@
+- name: Complete clean up
+  block:
+    - name: Stopping java processes
+      ansible.builtin.shell: "pkill java"
+
+    - name: Delete files
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/{{ file_name }}"
+        state: absent
+      loop:
+        - results.csv
+        - results.txt
+        - ispn-perf.log
+      loop_control:
+        loop_var: file_name
+  ignore_errors: true
