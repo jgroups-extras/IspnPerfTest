@@ -19,4 +19,7 @@ cat $RESULTS_FILE | sed "s/-Dorg.infinispan.threads.virtual=True -Dvthreads=True
     sed "s/single_sender_thread/sst/g" | sed "s/ringbuffer/rb/g" |
     sed "s/rb=true/+rb/g" | sed "s/rb=false/-rb/g" |
     sed "s/sst=true/+sst/g" | sed "s/sst=false/-sst/g" | sed "s/type=//g" |
-     tr -s ' '
+    sed "s/jdk=21[0-9\.+-ea]*/jdk=21/" | sed "s/jdk=25[0-9\.+-ea]*/jdk=25/" |
+    sed "s/jdk=26[0-9\.+-ea]*/jdk=26/" |
+    sed "s/jg=[0-9\.]*//g" | sed "s/ispn=[0-9\.a-zA-Z]*//g" |
+    tr -s ' '
