@@ -9,7 +9,6 @@ import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.util.AverageMinMax;
 import org.jgroups.util.MessageBatch;
-import org.jgroups.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -75,7 +74,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public void recordReceiveTime() {
-        receive_timings.put(Thread.currentThread(), Util.micros());
+        receive_timings.put(Thread.currentThread(), micros());
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -86,7 +85,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public void recordDeliveryTime() {
-        delivery_timings.put(Thread.currentThread(), Util.micros());
+        delivery_timings.put(Thread.currentThread(), micros());
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -96,7 +95,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public void recordRequestTime() {
-        req_timings.put(Thread.currentThread(), Util.micros());
+        req_timings.put(Thread.currentThread(), micros());
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -107,7 +106,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public void recordRequestBatchTime() {
-        req_batch_timings.put(Thread.currentThread(), Util.micros());
+        req_batch_timings.put(Thread.currentThread(), micros());
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -118,7 +117,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public void recordTransportSendTime() {
-        transport_send_time.put(Thread.currentThread(), Util.micros());
+        transport_send_time.put(Thread.currentThread(), micros());
     }
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -140,18 +139,16 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
 
     @SuppressWarnings("MethodMayBeStatic")
     public void addSendTimeTo(Message msg) {
-        PerfHeader hdr=new PerfHeader(0, Util.micros());
+        PerfHeader hdr=new PerfHeader(0, micros());
         msg.putHeader(PROT_ID, hdr);
     }
 
-    @SuppressWarnings("MethodMayBeStatic")
     public void attachRecordedTimeTo(Message msg) {
         long previously_recorded_time=getReceiveTime();
         if(previously_recorded_time > 0)
             addReceiveTimeTo(msg, previously_recorded_time);
     }
 
-    @SuppressWarnings("MethodMayBeStatic")
     public void attachRecordedTimeTo(MessageBatch[] batches) {
         if(batches == null || batches.length == 0)
             return;
@@ -177,7 +174,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     public void computeReceiveTime(Message msg) {
         PerfHeader hdr=msg.getHeader(PROT_ID);
         if(hdr != null && hdr.receive_time > 0) {
-            long time=Util.micros() - hdr.receive_time;
+            long time=micros() - hdr.receive_time;
             hdr.receive_time=0;
             avg_receive_time.recordValue(time);
         }
@@ -189,32 +186,29 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
             Message first=batch.first();
             PerfHeader hdr=first.getHeader(PROT_ID);
             if(hdr != null && hdr.receive_time > 0) {
-                long time=Util.micros() - hdr.receive_time;
+                long time=micros() - hdr.receive_time;
                 hdr.receive_time=0;
                 avg_receive_time.recordValue(time);
             }
         }
     }
 
-    @SuppressWarnings("MethodMayBeStatic")
     public void computeResponseTime() {
         long previously_recorded_time=getRequestTime();
         if(previously_recorded_time > 0)
-            avg_rsp_time.recordValue(Util.micros() - previously_recorded_time);
+            avg_rsp_time.recordValue(micros() - previously_recorded_time);
     }
 
-    @SuppressWarnings("MethodMayBeStatic")
     public void computeRequestTime() {
         long previously_recorded_time=getRequestTime();
         if(previously_recorded_time > 0)
-            avg_req_time.recordValue(Util.micros() - previously_recorded_time);
+            avg_req_time.recordValue(micros() - previously_recorded_time);
     }
 
-    @SuppressWarnings("MethodMayBeStatic")
-       public void computeRequestBatchTime() {
+    public void computeRequestBatchTime() {
         long previously_recorded_time=getRequestBatchTime();
         if(previously_recorded_time > 0)
-            avg_batch_req_time.recordValue(Util.micros() - previously_recorded_time);
+            avg_batch_req_time.recordValue(micros() - previously_recorded_time);
     }
 
 
@@ -222,7 +216,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     public void computeDownTime(Message msg) {
         PerfHeader hdr=msg != null? msg.getHeader(PROT_ID) : null;
         if(hdr != null && hdr.send_time > 0) {
-            long time=Util.micros() - hdr.send_time;
+            long time=micros() - hdr.send_time;
             avg_down_time.recordValue(time);
         }
     }
@@ -231,7 +225,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     public void computeSendTime(Message msg) {
         PerfHeader hdr=msg != null? msg.getHeader(PROT_ID) : null;
         if(hdr != null && hdr.send_time > 0) {
-            long time=Util.micros() - hdr.send_time;
+            long time=micros() - hdr.send_time;
             hdr.send_time=0; // to prevent multiple computations caused by retransmission
             avg_send_time.recordValue(time);
         }
@@ -240,7 +234,7 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     @SuppressWarnings("MethodMayBeStatic")
     public void computeSendTime(List<Message> list) {
         if(list != null) {
-            long current_time=Util.micros();
+            long current_time=micros();
             for(Message msg: list) {
                 PerfHeader hdr=msg.getHeader(PROT_ID);
                 if(hdr != null && hdr.send_time > 0) {
@@ -253,23 +247,24 @@ public class DeliveryHelper implements DiagnosticsHandler.ProbeHandler {
     }
 
 
-    @SuppressWarnings("MethodMayBeStatic")
     public void computeTransportSendTime() {
         long previously_recorded_time=getTransportSendTime();
         if(previously_recorded_time > 0)
-            avg_transport_send_time.recordValue(Util.micros() - previously_recorded_time);
+            avg_transport_send_time.recordValue(micros() - previously_recorded_time);
     }
 
 
     public void afterDelivery() {
         long previously_recorded_time=getDeliveryTime();
         if(previously_recorded_time > 0) {
-            long time=Util.micros() - previously_recorded_time;
+            long time=micros() - previously_recorded_time;
             avg_delivery_time.recordValue(time);
         }
     }
 
-
+    protected static long micros() {
+        return (long)(System.nanoTime() / 1000.0);
+    }
 
     public Map<String,String> handleProbe(String... keys) {
         Map<String,String> map=new LinkedHashMap<>();
