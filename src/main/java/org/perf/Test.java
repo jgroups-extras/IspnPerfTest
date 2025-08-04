@@ -296,10 +296,12 @@ public class Test implements Receiver {
             System.out.printf("-- new view has %d members; waiting for %d\n", new_view.size(), num_nodes);
             return;
         }
-        // more than num_nodes members and am I the coord to start the batch?
-        if(new_view.size() >= num_nodes && is_coord) {
-            System.out.printf("-- reached expected number of members (%d): starting test in batch-mode\n", num_nodes);
-            new Thread(this::runBatch).start();
+        // more than num_nodes members
+        if(new_view.size() >= num_nodes) { // && is_coord) {
+            if(is_coord) { // am I the coord to start the batch?
+                System.out.printf("-- reached expected number of members (%d): starting test in batch-mode\n", num_nodes);
+                new Thread(this::runBatch).start();
+            }
             done=true;
         }
     }
