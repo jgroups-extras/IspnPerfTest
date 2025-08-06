@@ -23,4 +23,5 @@ cat $RESULTS_FILE | sed "s/-Dorg.infinispan.threads.virtual=True -Dvthreads=True
     sed "s/jdk=26[^[:blank:]]*/jdk=26/" |
     sed "s/jg=[^[:blank:]]*//g" | sed "s/ispn=[^[:blank:]]*//g" |
     sed -E "s/[0-9]{0,2}:[0-9]{0,2}(:[0-9]{0,})?//g" |
+    sed -E "s/[0-9]{2,4}-[0-9]{2}-[0-9]{2}//g" |
     tr -s ' '
