@@ -3,4 +3,4 @@
 
 - block:
     - name: Stopping java processes
-      ansible.builtin.shell: "pkill java"
+      ansible.builtin.shell: "pkill -9 java"

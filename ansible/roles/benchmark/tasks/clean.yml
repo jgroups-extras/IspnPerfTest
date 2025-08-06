@@ -1,7 +1,7 @@
 - name: Complete clean up
   block:
     - name: Stopping java processes
-      ansible.builtin.shell: "pkill java"
+      ansible.builtin.shell: "pkill -9 java"
 
     - name: Delete files
       ansible.builtin.file:
