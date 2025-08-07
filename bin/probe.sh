@@ -37,5 +37,5 @@ CP="$TARGET_DIR/classes:$LIBS/*"
 #FLAGS="$FLAGS -server -Xms2G -Xmx2G"
 FLAGS="$FLAGS -Djava.net.preferIPv4Stack=true"
 
-java -cp $CP $FLAGS $DEBUG org.jgroups.tests.Probe $*
+java -cp $CP $FLAGS $DEBUG org.jgroups.tests.Probe -tcp true $*
 
