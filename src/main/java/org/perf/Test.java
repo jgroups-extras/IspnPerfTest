@@ -811,7 +811,7 @@ public class Test implements Receiver {
         cache.clear();
     }
 
-    // Inserts num_keys keys into the cache (in parallel)
+    // Inserts num_keys keys into the cache
     protected void populateCache() throws InterruptedException {
         final int  print=num_keys / 10;
         final UUID local_uuid=(UUID)local_addr;
