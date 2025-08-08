@@ -2,7 +2,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-   <include file="${transport-config:tcp-default.xml}"/>
+   <include file="${transport-config:jgroups-tcp-default.xml}"/>
    <MPING />
    <!-- Infinispan can only have *2* variables in a list -->
    <MERGE3 max_interval="30000"
