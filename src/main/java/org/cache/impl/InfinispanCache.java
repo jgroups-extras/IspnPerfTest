@@ -9,15 +9,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static org.infinispan.context.Flag.*;
+
 /**
  * @author Bela Ban
  * @since x.y
  */
 public class InfinispanCache<K,V> implements Cache<K,V> {
     protected final org.infinispan.Cache<K,V> cache;
+    protected final org.infinispan.Cache<K,V> async_cache;
 
     public InfinispanCache(org.infinispan.Cache<K,V> cache) {
         this.cache=cache;
+        this.async_cache=cache.getAdvancedCache()
+          .withFlags(IGNORE_RETURN_VALUES, SKIP_LOCKING, FORCE_ASYNCHRONOUS, SKIP_LISTENER_NOTIFICATION);
     }
 
     public V put(K key, V value) {
@@ -26,9 +31,7 @@ public class InfinispanCache<K,V> implements Cache<K,V> {
 
     @Override
     public void putAsync(K key, V value) {
-        cache.getAdvancedCache()
-          .withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING, Flag.FORCE_ASYNCHRONOUS, Flag.SKIP_LISTENER_NOTIFICATION)
-          .put(key, value);
+        async_cache.put(key, value);
     }
 
     public V get(K key) {
