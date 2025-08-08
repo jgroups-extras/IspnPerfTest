@@ -949,8 +949,8 @@ public class Test implements Receiver {
                 e.printStackTrace();
             }
             while(running) {
-                // get a random key in range [0 .. num_keys-1]
-                int key=Util.random(num_keys) -1;
+                // get a random key in range [1 .. num_keys]
+                int key=Util.random(num_keys);
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
                 // try the operation until it is successful
