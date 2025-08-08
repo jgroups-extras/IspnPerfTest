@@ -820,7 +820,7 @@ public class Test implements Receiver {
             byte[] buffer=new byte[msg_size];
             try {
                 writeTo(local_uuid, k, buffer, 0);
-                cache.put(k, buffer);
+                cache.putAsync(k, buffer);
                 if(print > 0 && k > 0 && k % print == 0)
                     System.out.print(".");
             }

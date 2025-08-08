@@ -24,6 +24,13 @@ public class InfinispanCache<K,V> implements Cache<K,V> {
         return cache.put(key, value);
     }
 
+    @Override
+    public void putAsync(K key, V value) {
+        cache.getAdvancedCache()
+          .withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING, Flag.FORCE_ASYNCHRONOUS, Flag.SKIP_LISTENER_NOTIFICATION)
+          .put(key, value);
+    }
+
     public V get(K key) {
         return cache.get(key);
     }

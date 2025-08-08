@@ -10,12 +10,19 @@ import java.util.Set;
  */
 public interface Cache<K,V> {
     /**
-     * Adds a key and value into a cache
+     * Adds a key and value to a cache
      * @param key the new key
      * @param value the new value
      * @return the previous value associated with key, or null if the implementation doesn't support this
      */
     V put(K key, V value);
+
+    /**
+     * Adds a key and value to a cache asynchronously; ie. he return value is not sent / ignored
+     * @param key The key
+     * @param value The value
+     */
+    default void putAsync(K key, V value) {put(key, value);}
 
     /**
      * Gets the value associated with a given key
