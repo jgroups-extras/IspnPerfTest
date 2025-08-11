@@ -648,8 +648,9 @@ public class Test implements Receiver {
     }
 
     protected void printView() {
-        System.out.printf("\n-- ctl: %s, view: %s\n-- reg: %s, view: %s\n\n",
-                          local_addr, view, cache.getLocalAddress(), cache.getView());
+        List<?> v=cache.getView();
+        System.out.printf("\n-- ctl: %s\n-- view: %s\n-- reg: %s\n-- view: (%d) %s\n\n",
+                          local_addr, view, cache.getLocalAddress(), v.size(), v);
         try {
             System.in.skip(System.in.available());
         }
