@@ -336,7 +336,7 @@ public class Test implements Receiver {
 
             Arrays.stream(invokers).forEach(CacheInvoker::cancel);
             for(Thread t: threads) {
-                t.interrupt();
+                // t.interrupt();
                 try {
                     t.join(100);
                 }
