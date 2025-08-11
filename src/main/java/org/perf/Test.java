@@ -961,7 +961,6 @@ public class Test implements Receiver {
                 int key=Util.random(num_keys);
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
-                // try the operation until it is successful
                 try {
                     if(is_this_a_read) {
                         long start=System.nanoTime();
