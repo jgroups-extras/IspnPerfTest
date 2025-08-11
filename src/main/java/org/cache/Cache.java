@@ -1,5 +1,6 @@
 package org.cache;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,4 +61,15 @@ public interface Cache<K,V> {
      */
     Map<K,V> getContents();
 
+    /**
+     * Returns the cache's local address
+     * @return The local address
+     */
+    default Object getLocalAddress() {return null;}
+
+    /**
+     * Returns the cluster view of the cache
+     * @return The cluster view
+     */
+    default List<? extends Object> getView() {return List.of();}
 }

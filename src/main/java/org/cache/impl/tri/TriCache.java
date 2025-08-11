@@ -216,6 +216,16 @@ public class TriCache<K,V> implements Receiver, Cache<K,V>, Closeable, Runnable,
         }
     }
 
+    @Override
+    public Object getLocalAddress() {
+        return ch != null? ch.getAddress() : null;
+    }
+
+    @Override
+    public List<?> getView() {
+        return ch != null? ch.view().getMembers() : List.of();
+    }
+
     public Map<String,String> handleProbe(String... keys) {
         Map<String,String> m=new HashMap<>();
         for(String key: keys) {

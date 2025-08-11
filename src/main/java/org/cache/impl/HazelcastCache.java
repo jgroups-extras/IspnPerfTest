@@ -12,9 +12,7 @@ import com.hazelcast.spi.impl.NodeEngine;
 
 import org.cache.Cache;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Bela Ban
@@ -80,6 +78,16 @@ public class HazelcastCache<K,V> implements Cache<K,V> {
                 map.put(k, (V)toObj(val, ctx));
         }
         return map;
+    }
+
+    @Override
+    public Object getLocalAddress() {
+        return hc.getLocalEndpoint();
+    }
+
+    @Override
+    public List<?> getView() {
+        return new ArrayList<>(hc.getCluster().getMembers());
     }
 
     protected static Object toObj(Object data, MapServiceContext ctx) {

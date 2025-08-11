@@ -5,6 +5,7 @@ import org.jgroups.JChannel;
 import org.jgroups.protocols.TP;
 import org.jgroups.raft.blocks.ReplicatedStateMachine;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -68,6 +69,17 @@ public class RaftCache<K, V> implements Cache<K, V> {
         return Map.of();
     }
 
+    @Override
+    public Object getLocalAddress() {
+        JChannel channel=rsm.channel();
+        return channel != null? channel.getAddress() : null;
+    }
+
+    @Override
+    public List<?> getView() {
+        JChannel channel=rsm.channel();
+        return channel != null? channel.view().getMembers() : List.of();
+    }
 
     private static class ExtendedReplicatedStateMachine<K, V> extends ReplicatedStateMachine<K, V> {
 
