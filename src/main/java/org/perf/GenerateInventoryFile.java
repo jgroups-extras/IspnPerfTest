@@ -47,7 +47,7 @@ public class GenerateInventoryFile {
             String variable="$" + i;
             input_str=input_str.replace(variable, ips.get(i));
         }
-        System.out.printf("-- created %s from %s: :\n--------------------\n%s\n--------------\n", out, in,
+        System.out.printf("## created %s from %s: :\n## --------------------\n%s\n", out, in,
                           input_str);
 
     }

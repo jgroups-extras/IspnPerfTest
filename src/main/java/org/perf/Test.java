@@ -335,8 +335,14 @@ public class Test implements Receiver {
             }
 
             Arrays.stream(invokers).forEach(CacheInvoker::cancel);
-            for(Thread t: threads)
-                t.join();
+            for(Thread t: threads) {
+                t.interrupt();
+                try {
+                    t.join(100);
+                }
+                catch(Throwable ignored) {
+                }
+            }
 
             long t=System.currentTimeMillis() - start;
             System.out.println("\ndone (in " + t + " ms)\n");
@@ -539,7 +545,7 @@ public class Test implements Receiver {
         }
 
         // wait for time_secs seconds pus 20%
-        boolean all_results=results.waitForAllResponses((long)(time_secs * 1000 * 1.2));
+        boolean all_results=results.waitForAllResponses((long)(time_secs * 1000 * 1.5));
         if(!all_results)
             System.err.printf("did not receive all results: missing results from %s\n", results.getMissing());
 
