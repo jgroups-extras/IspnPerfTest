@@ -962,31 +962,28 @@ public class Test implements Receiver {
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
                 // try the operation until it is successful
-                while(true) {
-                    try {
-                        if(is_this_a_read) {
-                            long start=System.nanoTime();
-                            cache.get(key);
-                            long t=System.nanoTime() - start;
-                            get_avg.recordValue(t);
-                            reads++;
-                        }
-                        else {
-                            // Adding the ID is for validation (option [8]). We cannot reuse this byte array as JGroups
-                            // queues the message before it is sent: modifying the byte array might lead to corruption
-                            byte[] buffer=new byte[msg_size];
-                            writeTo(local_uuid, count++, buffer, 0);
-                            long start=System.nanoTime();
-                            cache.put(key, buffer);
-                            long t=System.nanoTime() - start;
-                            put_avg.recordValue(t);
-                            writes++;
-                        }
-                        break;
+                try {
+                    if(is_this_a_read) {
+                        long start=System.nanoTime();
+                        cache.get(key);
+                        long t=System.nanoTime() - start;
+                        get_avg.recordValue(t);
+                        reads++;
                     }
-                    catch(Throwable t) {
-                        t.printStackTrace();
+                    else {
+                        // Adding the ID is for validation (option [8]). We cannot reuse this byte array as JGroups
+                        // queues the message before it is sent: modifying the byte array might lead to corruption
+                        byte[] buffer=new byte[msg_size];
+                        writeTo(local_uuid, count++, buffer, 0);
+                        long start=System.nanoTime();
+                        cache.put(key, buffer);
+                        long t=System.nanoTime() - start;
+                        put_avg.recordValue(t);
+                        writes++;
                     }
+                }
+                catch(Throwable t) {
+                    t.printStackTrace();
                 }
             }
         }
