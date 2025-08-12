@@ -1,6 +1,7 @@
 package org.perf;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -29,7 +30,7 @@ public class GenerateInventoryFile {
             throw new IllegalArgumentException(String.format("input file (%s) and output file (%s) cannot be the same",
                                                              in, out));
         List<String> ips=new ArrayList<>(20);
-/*        if(System.in.available() == 0) {
+        /*  if(System.in.available() == 0) {
             System.out.println("-- nothing to read from stdin, terminating");
             return;
         }*/
@@ -49,7 +50,9 @@ public class GenerateInventoryFile {
         }
         System.out.printf("## created %s from %s: :\n## --------------------\n%s\n", out, in,
                           input_str);
-
+        try(FileOutputStream output=new FileOutputStream(out)) {
+            output.write(input_str.getBytes());
+        }
     }
 
     public static void main(String[] args) throws IOException {
@@ -68,7 +71,6 @@ public class GenerateInventoryFile {
         }
 
         gi.generate();
-
     }
 
     protected static void help() {
