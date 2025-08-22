@@ -59,6 +59,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 import java.util.zip.DataFormatException;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -156,7 +157,7 @@ public class Test implements Receiver {
     public Test csvFilter(String f)      {this.csv_filter=f; return this;}
     public Test runtimeProps(String p)   {this.runtimeProperties=p; return this;}
 
-    public void init(String factory, String cache_name, String name, boolean use_vthreads) throws Exception {
+    public void init(String factory, String cache_name, String name, boolean use_vthreads, int metricsPort) throws Exception {
         // sanity checks:
         if(batch_mode) {
             if(num_nodes <= 0)
@@ -169,7 +170,7 @@ public class Test implements Receiver {
 
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
-        cache_factory.init(cfg);
+        cache_factory.init(cfg, metricsPort > 0, metricsPort);
         cache=cache_factory.create(cache_name, name);
 
         control_channel=new JChannel(control_cfg);
@@ -938,10 +939,13 @@ public class Test implements Receiver {
         protected UUID                 local_uuid=(UUID)local_addr;
         protected long                 count;
         protected int                  reads, writes;
+        protected final LongConsumer   readMetrics, writeMetrics;
 
 
         public CacheInvoker(CountDownLatch latch) {
             this.latch=latch;
+            this.readMetrics = Objects.requireNonNull(cache_factory.metricForOperation("GET"));
+            this.writeMetrics = Objects.requireNonNull(cache_factory.metricForOperation("PUT"));
         }
 
         public int reads()  {return reads;}
@@ -967,6 +971,7 @@ public class Test implements Receiver {
                         cache.get(key);
                         long t=System.nanoTime() - start;
                         get_avg.recordValue(t);
+                        readMetrics.accept(t);
                         reads++;
                     }
                     else {
@@ -978,6 +983,7 @@ public class Test implements Receiver {
                         cache.put(key, buffer);
                         long t=System.nanoTime() - start;
                         put_avg.recordValue(t);
+                        writeMetrics.accept(t);
                         writes++;
                     }
                 }
@@ -1089,6 +1095,7 @@ public class Test implements Receiver {
         String  cache_name="perf-cache", name=null;
         String  cache_factory_name=InfinispanCacheFactory.class.getName();
         boolean interactive=true, use_vthreads=true;
+        int metricsPort = -1;
 
         Test test=new Test();
         for(int i=0; i < args.length; i++) {
@@ -1164,6 +1171,10 @@ public class Test implements Receiver {
                 test.runtimeProps(args[++i]);
                 continue;
             }
+            if ("-metrics-port".equals(args[i])) {
+                metricsPort = Integer.parseInt(args[++i]);
+                continue;
+            }
             if("-env".equals(args[i])) {
                 String env=Test.env(test.envMap());
                 System.out.println("env = " + env);
@@ -1196,7 +1207,7 @@ public class Test implements Receiver {
                 case "local":
                     cache_factory_name=local_factory;
             }
-            test.init(cache_factory_name, cache_name, name, use_vthreads);
+            test.init(cache_factory_name, cache_name, name, use_vthreads, metricsPort);
             Runtime.getRuntime().addShutdownHook(new Thread(test::stop));
             if(!interactive || test.batch_mode) {
                 for(;;)
@@ -1223,7 +1234,8 @@ public class Test implements Receiver {
                             "[-control-cfg <file>]\n" +
                             "[-nohup] [-batch-mode true|false] [-nodes <num>] [-warmup <secs>] [-result-file <file>]\n" +
                             "[-threads <num>] [-keys <num>] [-msg-size <bytes>] [-time <secs>]\n" +
-                            "[-read-percentage <percentage>] [-use-vthreads true|false] [-csv \"<filter>\"]\n" +
+                            "[-read-percentage <percentage>] [-use-vthreads true|false] [-metrics-port <port>] \n"  +
+                            "[-csv \"<filter>\"]\n" +
                             "CSV filters: %s\n" +
                             "Valid factory names:" +
                             "\n  ispn: %s\n  hc:   %s\n  coh:  %s\n  tri:  %s\n dummy: %s\n raft: %s\nlocal: %s\n",

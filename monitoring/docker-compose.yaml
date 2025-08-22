@@ -1,0 +1,37 @@
+networks:
+  monitoring:
+    driver: bridge
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    hostname: prometheus
+    container_name: prometheus
+    volumes:
+      - ./infinispan.yaml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    networks:
+      - monitoring
+  grafana:
+    image: grafana/grafana:latest
+    hostname: grafana
+    container_name: grafana
+    environment:
+      GF_INSTALL_PLUGINS: 'grafana-clock-panel,grafana-simple-json-datasource'
+      GF_SECURITY_ADMIN_USER: 'grafana'
+      GF_SECURITY_ADMIN_PASSWORD: 'grafana'
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - ./grafana_provisioning:/etc/grafana/provisioning/
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring

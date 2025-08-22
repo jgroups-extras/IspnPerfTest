@@ -73,7 +73,7 @@ public class Benchmark {
         String cache_factory_class=tmp[0];
         String cfg=tmp[1];
         cache_factory=createFactory(cache_factory_class);
-        cache_factory.init(cfg);
+        cache_factory.init(cfg, false, 8080);
         cache=cache_factory.create(cache_name, null);
         System.out.printf("\n-- created cache from factory %s\n", cache_factory.getClass().getSimpleName());
         if(cache.isEmpty()) {
