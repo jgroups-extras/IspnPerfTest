@@ -20,7 +20,7 @@ public class HazelcastCacheFactory<K,V> implements CacheFactory<K,V> {
     public HazelcastCacheFactory() {
     }
 
-    public void init(String config) throws Exception {
+    public void init(String config, boolean metricsEnabled, int metricsPort) throws Exception {
         com.hazelcast.config.Config conf=new ClasspathXmlConfig(config);
         hc=Hazelcast.newHazelcastInstance(conf);
     }

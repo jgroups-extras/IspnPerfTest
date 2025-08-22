@@ -1,5 +1,7 @@
 package org.cache;
 
+import java.util.function.LongConsumer;
+
 /**
  * Creates instances of {@link Cache}
  * @author Bela Ban
@@ -9,10 +11,8 @@ public interface CacheFactory<K,V> {
 
     /**
      * Called after creation to configure the cache factory
-     * @param config
-     * @throws Exception
      */
-    void init(String config) throws Exception;
+    void init(String config, boolean metricsEnabled, int metricsPort) throws Exception;
 
     /**
      * Called to destroy the cache manager and de-allocate resources created by it
@@ -26,4 +26,8 @@ public interface CacheFactory<K,V> {
      * @return a newly created and configured cache
      */
     Cache<K,V> create(String cache_name, String name);
+
+    default LongConsumer metricForOperation(String operation) {
+        return value -> {};
+    }
 }
