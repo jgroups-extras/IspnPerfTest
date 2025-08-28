@@ -2,21 +2,45 @@ package org.perf;
 
 import org.cache.Cache;
 import org.cache.CacheFactory;
-import org.cache.impl.*;
+import org.cache.impl.DummyCacheFactory;
+import org.cache.impl.HazelcastCacheFactory;
+import org.cache.impl.InfinispanCache;
+import org.cache.impl.InfinispanCacheFactory;
+import org.cache.impl.LocalCacheFactory;
+import org.cache.impl.RaftCacheFactory;
 import org.cache.impl.tri.TriCacheFactory;
 import org.infinispan.commons.jdkspecific.ThreadCreator;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
-import org.jgroups.*;
+import org.jgroups.Address;
+import org.jgroups.Event;
+import org.jgroups.Global;
+import org.jgroups.JChannel;
+import org.jgroups.Message;
+import org.jgroups.Receiver;
+import org.jgroups.Version;
+import org.jgroups.View;
 import org.jgroups.annotations.Property;
 import org.jgroups.protocols.TP;
+import org.jgroups.util.Bits;
+import org.jgroups.util.ByteArrayDataInputStream;
+import org.jgroups.util.ByteArrayDataOutputStream;
+import org.jgroups.util.DefaultThreadFactory;
+import org.jgroups.util.Promise;
+import org.jgroups.util.Streamable;
+import org.jgroups.util.ThreadFactory;
 import org.jgroups.util.UUID;
-import org.jgroups.util.*;
+import org.jgroups.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 
@@ -71,7 +95,7 @@ public class Demo implements Receiver {
 
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
-        cache_factory.init(cfg);
+        cache_factory.init(cfg, false, 8080);
         cache=cache_factory.create(cache_name, name);
 
         control_channel=new JChannel(control_cfg);
