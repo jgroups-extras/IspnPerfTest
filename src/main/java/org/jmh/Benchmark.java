@@ -98,7 +98,7 @@ public class Benchmark {
     @Warmup(time=10,timeUnit=TimeUnit.SECONDS)
     public void testMethod() throws Exception {
         // get a random key in range [1 .. num_keys]
-        int key=Util.random(num_keys) -1;
+        int key=Math.toIntExact(Util.random(num_keys) -1);
         boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
         if(is_this_a_read) {
             cache.get(key);

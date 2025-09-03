@@ -962,7 +962,7 @@ public class Test implements Receiver {
             }
             while(running) {
                 // get a random key in range [1 .. num_keys]
-                int key=Util.random(num_keys);
+                int key=Math.toIntExact(Util.random(num_keys));
                 boolean is_this_a_read=Util.tossWeightedCoin(read_percentage);
 
                 try {
