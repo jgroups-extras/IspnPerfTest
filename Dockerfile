@@ -2,12 +2,12 @@
 # Build: docker build -f Dockerfile -t belaban/ispn_perf_test .
 # Push: docker push belaban/ispn_perf_test
 
-FROM adoptopenjdk/openjdk11 as build-stage
+FROM adoptopenjdk/openjdk16 as build-stage
 RUN apt-get update ; apt-get install -y git maven net-tools netcat iputils-ping dnsutils emacs
 
 
 # For the runtime, we only need a JRE (smaller footprint)
-FROM adoptopenjdk/openjdk11:jre as make-dirs
+FROM adoptopenjdk/openjdk16:jre as make-dirs
 LABEL maintainer="Bela Ban (belaban@mailbox.org)"
 RUN useradd --uid 1000 --home /opt/ispn --create-home --shell /bin/bash ispn
 RUN echo root:root | chpasswd ; echo ispn:ispn | chpasswd
