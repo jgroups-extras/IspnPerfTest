@@ -1,7 +1,10 @@
 package org.cache.impl;
 
 import com.sun.net.httpserver.HttpServer;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.prometheusmetrics.PrometheusConfig;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import org.cache.Cache;
 import org.cache.CacheFactory;
 import org.infinispan.commons.configuration.io.ConfigurationResourceResolvers;
@@ -15,7 +18,6 @@ import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.metrics.Constants;
 import org.infinispan.metrics.impl.MetricsRegistry;
-import org.infinispan.metrics.impl.MetricsRegistryImpl;
 import org.infinispan.notifications.Listener;
 import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
 import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
@@ -37,6 +39,7 @@ import java.util.function.LongConsumer;
 @Listener
 public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
     protected EmbeddedCacheManager mgr;
+    private MeterRegistry localRegistry;
     private Thread metricsServerThread;
 
     /** Empty constructor needed for an instance to be created via reflection */
@@ -73,15 +76,14 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
 
     @Override
     public LongConsumer metricForOperation(String operation) {
-        var registry = metricsRegistry();
-        if (!(registry instanceof MetricsRegistryImpl)) {
+        if (localRegistry == null) {
             return value -> {};
         }
         Timer timer = Timer.builder("requests")
                 .description("The benchmark requests")
                 .publishPercentileHistogram(true)
                 .tags("operation", operation, Constants.NODE_TAG_NAME, mgr.getAddress().toString())
-                .register(((MetricsRegistryImpl) registry).registry());
+                .register(localRegistry);
         return value -> timer.record(value, TimeUnit.NANOSECONDS);
     }
 
@@ -101,6 +103,9 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
         if (!registry.supportScrape()) {
             return;
         }
+        if (localRegistry == null) {
+            localRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        }
         // ISPN 15 and ISPN 16 use an incompatible version of prometheus metrics.
         try {
             System.out.println("Starting Prometheus server in port " + metricsPort);
@@ -108,10 +113,12 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
             server.createContext("/metrics", httpExchange -> {
                 // a bit hacky but this should work for both ISPN 15 and ISPN 16
                 String response = registry.scrape("text/plain; version=0.0.4; charset=utf-8");
+                String localResponse = ((PrometheusMeterRegistry) localRegistry).scrape("text/plain; version=0.0.4; charset=utf-8");
+                String fullResponse = response + System.lineSeparator() + localResponse;
                 httpExchange.getResponseHeaders().add("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
-                httpExchange.sendResponseHeaders(200, response.getBytes().length);
+                httpExchange.sendResponseHeaders(200, fullResponse.getBytes().length);
                 try (OutputStream os = httpExchange.getResponseBody()) {
-                    os.write(response.getBytes());
+                    os.write(fullResponse.getBytes());
                 }
             });
 
