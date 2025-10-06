@@ -50,10 +50,10 @@
         <!--<version.micrometer>1.15.2</version.micrometer>-->
 
         <!-- ISPN 15 -->
-        <version.infinispan>15.0.18.Final</version.infinispan>
+        <version.infinispan>15.2.5.Final</version.infinispan>
         <version.micrometer>1.12.13</version.micrometer>
 
-        <version.jgroups>5.5.0.Final-SNAPSHOT</version.jgroups>
+        <version.jgroups>5.5.0.Final</version.jgroups>
         <version.hazelcast>5.5.0</version.hazelcast>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
         <version.log4j>2.24.3</version.log4j>
@@ -61,8 +61,8 @@
         <uberjar.name>benchmarks</uberjar.name>
         <byteman.version>4.0.25</byteman.version>
 
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <output.directory>${project.build.directory}/libs</output.directory>
@@ -70,10 +70,9 @@
         <!-- nexus-staging-maven-plugin -->
         <autoReleaseAfterClose>true</autoReleaseAfterClose>
         <nexus.server.id>jboss-releases-repository</nexus.server.id>
-        <nexus.server.url>https://repository.jboss.org/nexus</nexus.server.url>
+        <nexus.server.url>https://repository.jboss.org/nexus/repository/releases/</nexus.server.url>
         <nexus.snapshot.server.id>jboss-snapshots-repository</nexus.snapshot.server.id>
-        <nexus.snapshot.server.url>https://repository.jboss.org/nexus/content/repositories/snapshots/
-        </nexus.snapshot.server.url>
+        <nexus.snapshot.server.url>https://repository.jboss.org/nexus/repository/snapshots/</nexus.snapshot.server.url>
     </properties>
 
 
@@ -88,51 +87,6 @@
             <url>${nexus.snapshot.server.url}</url>
         </snapshotRepository>
     </distributionManagement>
-
-    <repositories>
-        <repository>
-            <id>jboss-public-repository-group</id>
-            <name>JBoss Public Maven Repository Group</name>
-            <url>https://repository.jboss.org/nexus/content/groups/public/</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>interval:120</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>jboss-releases-repository</id>
-            <name>JBoss Public Maven Repository Staging</name>
-            <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>interval:120</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>jboss-snapshots-repository</id>
-            <name>JBoss Nexus snapshots repository</name>
-            <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>false</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>interval:120</updatePolicy>
-            </snapshots>
-        </repository>
-    </repositories>
 
     <dependencyManagement>
         <dependencies>
