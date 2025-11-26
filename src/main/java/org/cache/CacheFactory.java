@@ -12,7 +12,7 @@ public interface CacheFactory<K,V> {
     /**
      * Called after creation to configure the cache factory
      */
-    void init(String config, boolean metricsEnabled, int metricsPort) throws Exception;
+    void init(String config, boolean metricsEnabled, int metricsPort, String node_name) throws Exception;
 
     /**
      * Called to destroy the cache manager and de-allocate resources created by it

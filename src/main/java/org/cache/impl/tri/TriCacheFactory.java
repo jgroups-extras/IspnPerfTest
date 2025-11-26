@@ -12,7 +12,7 @@ public class TriCacheFactory<K,V> implements CacheFactory<K,V> {
     protected String        config;
     protected TriCache<K,V> cache;
 
-    public void init(String config, boolean metricsEnabled, int metricsPort) throws Exception {
+    public void init(String config, boolean metricsEnabled, int metricsPort, String node_name) throws Exception {
         this.config=config;
     }
 

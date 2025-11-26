@@ -9,7 +9,7 @@ import org.cache.CacheFactory;
  */
 public class LocalCacheFactory<K,V> implements CacheFactory<K,V> {
     @Override
-    public void init(String config, boolean metricsEnabled, int metricsPort) throws Exception {
+    public void init(String config, boolean metricsEnabled, int metricsPort, String node_name) throws Exception {
         ;
     }
 

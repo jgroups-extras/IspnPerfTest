@@ -95,7 +95,7 @@ public class Demo implements Receiver {
 
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
-        cache_factory.init(cfg, false, 8080);
+        cache_factory.init(cfg, false, 8080, null);
         cache=cache_factory.create(cache_name, name);
 
         control_channel=new JChannel(control_cfg);

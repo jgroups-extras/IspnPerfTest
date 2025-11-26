@@ -170,7 +170,7 @@ public class Test implements Receiver {
 
         Class<CacheFactory<Integer,byte[]>> clazz=(Class<CacheFactory<Integer,byte[]>>)Util.loadClass(factory, (Class<?>)null);
         cache_factory=clazz.getDeclaredConstructor().newInstance();
-        cache_factory.init(cfg, metricsPort > 0, metricsPort);
+        cache_factory.init(cfg, metricsPort > 0, metricsPort, name);
         cache=cache_factory.create(cache_name, name);
 
         control_channel=new JChannel(control_cfg);

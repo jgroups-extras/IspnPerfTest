@@ -9,7 +9,7 @@ public class RaftCacheFactory<K, V> implements CacheFactory<K, V> {
   private JChannel channel;
 
   @Override
-  public void init(String config, boolean metricsEnabled, int metricsPort) throws Exception {
+  public void init(String config, boolean metricsEnabled, int metricsPort, String node_name) throws Exception {
     channel = new JChannel(config);
 
     channel.connect("raft-cluster");

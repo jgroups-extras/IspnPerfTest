@@ -21,6 +21,8 @@ import org.infinispan.metrics.impl.MetricsRegistry;
 import org.infinispan.notifications.Listener;
 import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
 import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
+import org.jgroups.util.ExtendedUUID;
+import org.jgroups.util.NameCache;
 import org.jgroups.util.ThreadCreator;
 import org.jgroups.util.Util;
 
@@ -29,6 +31,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.LongConsumer;
 
 /**
@@ -42,13 +45,20 @@ public class InfinispanCacheFactory<K,V> implements CacheFactory<K,V> {
     private MeterRegistry localRegistry;
     private Thread metricsServerThread;
 
+    protected static final Function<ExtendedUUID,String> PRINT=uuid -> {
+        String val=NameCache.get(uuid);
+        return val != null? val : uuid.toStringLong();
+    };
+
     /** Empty constructor needed for an instance to be created via reflection */
     public InfinispanCacheFactory() {
     }
 
-    public void init(String config, boolean metricsEnabled, int metricsPort) throws Exception {
+    public void init(String config, boolean metricsEnabled, int metricsPort, String node_name) throws Exception {
         ConfigurationBuilderHolder holder = parseConfiguration(config);
         toggleMetrics(holder, metricsEnabled);
+        ExtendedUUID.setPrintFunction(PRINT);
+        holder.getGlobalConfigurationBuilder().transport().nodeName(node_name);
         mgr = new DefaultCacheManager(holder, true);
         mgr.addListener(this);
         if (metricsEnabled) {
