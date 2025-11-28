@@ -132,12 +132,12 @@ public class Test implements Receiver {
     protected static final String raft_factory=RaftCacheFactory.class.getName();
     protected static final String local_factory=LocalCacheFactory.class.getName();
 
-    protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) " +
+    protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) [5] Keys (%,d) " +
       "\n[6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b) [l] dump local cache" +
-      "\n[x] Exit [X] Exit  (num_keys=%,d, jg-vthreads: %b, ispn-vthreads: %b)\n";
+      "\n[x] Exit [X] Exit  (jg-vthreads: %b, ispn-vthreads: %b)\n";
 
     static {
         ClassConfigurator.add((short)11000, Results.class);
@@ -460,8 +460,8 @@ public class Test implements Receiver {
     public void eventLoop() throws Throwable {
         while(looping) {
             int c=Util.keyPress(String.format(input_str,
-                                              num_threads, time, Util.printBytes(msg_size),
-                                              read_percentage, print_details, print_invokers, num_keys,
+                                              num_threads, num_keys, time, Util.printBytes(msg_size),
+                                              read_percentage, print_details, print_invokers,
                                               jgroupsVThreads(), ispnVThreads()));
             switch(c) {
                 case '1':
@@ -475,6 +475,9 @@ public class Test implements Receiver {
                     break;
                 case '4':
                     changeFieldAcrossCluster("num_threads", Util.readIntFromStdin("Number of sender threads: "));
+                    break;
+                case '5':
+                    changeFieldAcrossCluster("num_keys", Util.readIntFromStdin("Number of keys: "));
                     break;
                 case '6':
                     changeFieldAcrossCluster("time", Util.readIntFromStdin("Time (secs): "));
