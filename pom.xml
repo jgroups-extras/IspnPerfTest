@@ -46,14 +46,14 @@
 
     <properties>
         <!-- ISPN 16 -->
-        <version.infinispan>16.0.0.Dev08</version.infinispan>
+        <version.infinispan>16.0.2</version.infinispan>
         <version.micrometer>1.15.2</version.micrometer>
 
         <!-- ISPN 15 -->
 <!--        <version.infinispan>15.2.5.Final</version.infinispan>-->
 <!--        <version.micrometer>1.12.13</version.micrometer>-->
 
-        <version.jgroups>5.5.0.Final</version.jgroups>
+        <version.jgroups>5.5.1.Final</version.jgroups>
         <version.hazelcast>5.5.0</version.hazelcast>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
         <version.log4j>2.24.3</version.log4j>
