@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<infinispan
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:infinispan:config:16.0  http://www.infinispan.org/schemas/infinispan-config-16.0.xsd"
+        xmlns="urn:infinispan:config:16.0">
+
+
+    <jgroups>
+        <stack-file name="jgroupsStack" path="jgroups-tcp.xml"/>
+    </jgroups>
+
+    <cache-container name="persons" default-cache="persons">
+        <serialization marshaller="org.perf.PersonMarshaller">
+            <allow-list>
+                <class>org.perf.Person</class>
+            </allow-list>
+        </serialization>
+
+        <transport stack="jgroupsStack" lock-timeout="600000" cluster="persons-cluster"/>
+        <jmx>
+            <property name="enabled">true</property>
+        </jmx>
+        <replicated-cache name="persons"/>
+    </cache-container>
+
+
+
+</infinispan>
