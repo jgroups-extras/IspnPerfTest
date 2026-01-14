@@ -94,10 +94,10 @@ public class CounterPerf implements Receiver {
    }
 
 
-   public void init(String props, String name, int bind_port, boolean use_fibers) throws Throwable {
+   public void init(String props, String name, int bind_port, boolean use_vthreads) throws Throwable {
       thread_factory = new DefaultThreadFactory("incrementer", false, true)
-            .useFibers(use_fibers);
-      if (use_fibers && Util.fibersAvailable())
+            .useVirtualThreads(use_vthreads);
+      if (use_vthreads && Util.virtualThreadsAvailable())
          System.out.println("-- using fibers instead of threads");
 
       channel = new JChannel(props).setName(name);
