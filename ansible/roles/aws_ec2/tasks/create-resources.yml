@@ -57,6 +57,7 @@
     image_id: "{{ ami_info.images[0].image_id }}"
     key_name: "{{ cluster_name }}"
     security_group: "{{ group.group_id }}"
+    instance_initiated_shutdown_behavior: terminate
     network:
       assign_public_ip: yes
     volumes:
@@ -64,6 +65,10 @@
         ebs:
           volume_size: "{{ test_volume_size }}"
           delete_on_termination: true
+    user_data: |
+      #!/bin/bash
+      shutdown -h +480
+      echo "@reboot root shutdown -h +480" >> /etc/cron.d/self_destruct
   register: instance_info
   no_log: "{{ no_log_sensitive }}"
 
