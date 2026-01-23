@@ -1,0 +1,30 @@
+name: Create EC2 instances
+author: José Bolina
+description: Provisions the EC2 instances in AWS.
+
+inputs:
+  region:
+    description: 'The AWS region to host the EC2 instances'
+    required: true
+
+  arguments:
+    description: 'Additional arguments when provisioning'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Install the required Ansible collections.
+      id: aws-ec2-requirements-install
+      shell: bash
+      run: |
+        ./ansible/aws-ec2.sh requirements
+        pipx inject ansible-core boto3 botocore
+
+    - name: Provision the AWS instances
+      id: aws-ec2-provision-instances
+      shell: bash
+      run: |
+        echo "Provision in ${{ inputs.region }} with (${{ inputs.arguments }})"
+        ./ansible/aws-ec2.sh create ${{ inputs.region }} ${{ inputs.arguments }}

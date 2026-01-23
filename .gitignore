@@ -22,3 +22,5 @@ conf/MANIFEST.MF
 target/
 results.*
 .ansible
+.ai
+CLAUDE.md

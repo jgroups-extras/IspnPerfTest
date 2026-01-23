@@ -1,0 +1,39 @@
+name: Restore Benchmark Environment
+description: Checks out code, downloads artifacts, and decrypts infrastructure keys.
+author: José Bolina
+
+inputs:
+  gpg_passphrase:
+    description: 'The secret passphrase to decrypt the infrastructure state'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download application artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmark-application
+        path: target/
+
+    - name: Download infrastructure state
+      uses: actions/download-artifact@v4
+      with:
+        name: infrastructure-state
+        path: .
+
+    - name: Restore infrastructure
+      shell: bash
+      env:
+        GPG_PASSPHRASE: ${{ inputs.gpg_passphrase }}
+      run: |
+        .github/scripts/infrastructure-encryption/main.sh \
+          decrypt \
+          GPG_PASSPHRASE \
+          infrastructure-state.tar.enc \
+          infrastructure-state.tar
+
+        mkdir -p ansible
+        tar -xf infrastructure-state.tar -C ansible
+
+        chmod 600 ansible/*.pem

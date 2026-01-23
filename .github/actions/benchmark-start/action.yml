@@ -1,0 +1,21 @@
+name: Run a single benchmark combination
+author: José Bolina
+description: benchmark-start
+
+inputs:
+  inventory:
+    description: 'The Ansible inventory file name to use.'
+    required: true
+
+  arguments:
+    description: 'Additional arguments when running the benchmark.'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Deletes all AWS resources
+      id: delete-ec2-runners
+      shell: bash
+      run: .github/scripts/instances-controller/main.sh start -i ${{ inputs.inventory }} ${{ inputs.arguments }}

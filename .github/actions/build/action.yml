@@ -1,0 +1,96 @@
+name: Build Benchmark Application
+description: Compiles the application, optionally building dependencies from source.
+author: José Bolina
+
+inputs:
+  infinispan_version:
+    description: 'Infinispan Version (optional)'
+    required: false
+    default: ''
+
+  jgroups_version:
+    description: 'JGroups Version (optional)'
+    required: false
+    default: ''
+
+  infinispan_repository:
+    description: 'Custom repository to build Infinispan from (owner/repo:branch)'
+    required: false
+    default: ''
+
+  jgroups_repository:
+    description: 'Custom repository to build JGroups from (owner/repo:branch)'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up JDK 25
+      uses: actions/setup-java@v4
+      with:
+        java-version: 25
+        distribution: temurin
+        cache: maven
+
+    - name: Initialize build variables
+      shell: bash
+      run: |
+        echo "INFINISPAN_VERSION=${{ inputs.infinispan_version }}" >> $GITHUB_ENV
+        echo "JGROUPS_VERSION=${{ inputs.jgroups_version }}" >> $GITHUB_ENV 
+
+    - name: "Build custom JGroups"
+      if: ${{ inputs.jgroups_repository != '' }}
+      shell: bash
+      run: |
+        INPUT="${{ inputs.jgroups_repository }}"
+        REPO="${INPUT%%:*}"
+        REF="${INPUT##*:}"
+
+        git clone --depth 1 --branch "$REF" "https://github.com/$REPO.git" custom-jgroups
+        cd custom-jgroups
+
+        mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dcheckstyle.skip=true
+        DETECTED_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '[:space:]')
+        echo "Detected Custom JGroups Version: $DETECTED_VERSION"
+        echo "JGROUPS_VERSION=$DETECTED_VERSION" >> $GITHUB_ENV
+
+    - name: "Build Custom Infinispan"
+      if: ${{ inputs.infinispan_repository != '' }}
+      shell: bash
+      run: |
+        INPUT="${{ inputs.infinispan_repository }}"
+        REPO="${INPUT%%:*}"
+        REF="${INPUT##*:}"
+
+        git clone --depth 1 --branch "$REF" "https://github.com/$REPO.git" custom-infinispan
+        cd custom-infinispan
+
+        mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
+        DETECTED_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '[:space:]')
+        echo "Detected Custom Infinispan Version: $DETECTED_VERSION"
+        echo "INFINISPAN_VERSION=$DETECTED_VERSION" >> $GITHUB_ENV
+
+    - name: Build with Maven
+      shell: bash
+      run: |
+        MVN_CMD="mvn clean install -DskipTests"
+
+        if [ -n "$INFINISPAN_VERSION" ]; then
+          echo "Overriding Infinispan Version with $INFINISPAN_VERSION"
+          MVN_CMD="$MVN_CMD -Dversion.infinispan=$INFINISPAN_VERSION"
+        fi
+
+        if [ -n "$JGROUPS_VERSION" ]; then
+          echo "Overriding JGroups Version with $JGROUPS_VERSION"
+          MVN_CMD="$MVN_CMD -Dversion.jgroups=$JGROUPS_VERSION"
+        fi
+
+        $MVN_CMD
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-application
+        path: target/*
+        retention-days: 1

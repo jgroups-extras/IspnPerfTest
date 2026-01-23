@@ -1,0 +1,13 @@
+name: Install AWS requirements
+author: José Bolina
+description: ec2-install-requirements
+
+runs:
+  using: composite
+  steps:
+    - name: Install the required Ansible collections.
+      id: aws-ec2-requirements-install
+      shell: bash
+      run: |
+        ./ansible/aws-ec2.sh requirements
+        pipx inject ansible-core boto3 botocore

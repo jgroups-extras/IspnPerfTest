@@ -1,0 +1,16 @@
+name: Setup the benchmark
+author: José Bolina
+description: Installs all dependencies and upload files
+
+inputs:
+  inventory:
+    description: 'The Ansible inventory file name to use.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Deletes all AWS resources
+      id: delete-ec2-runners
+      shell: bash
+      run: .github/scripts/instances-controller/main.sh setup -i ${{ inputs.inventory }}

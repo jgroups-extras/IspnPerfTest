@@ -1,9 +1,7 @@
 # JDKs utilized for testing
 jdks:
-  - 21.0.2-open
-  - 24.0.2-open
-  - 25.ea.34-open
-jdk_version: 21.0.2-open
+  - 25.0.1-open
+jdk_version: 25.0.1-open
 
 vthreads:
   - true
@@ -11,13 +9,10 @@ vthreads:
 properties:
   - jgroups.bundler.type:
     - pd
-    - tq
   - jgroups.bundler.use_single_sender_thread:
     - 'true'
-    - 'false'
   - bundler.use_ringbuffer:
     - 'true'
-    - 'false'
 
 # States not allowed in the permutation.
 forbidden_states:

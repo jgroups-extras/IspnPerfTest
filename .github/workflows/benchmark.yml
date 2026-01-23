@@ -1,0 +1,326 @@
+name: Benchmark Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      chart_name:
+        description: 'Name of the chart'
+        required: false
+        type: string
+        default: ''
+
+      chart_description:
+        description: 'Description for chat'
+        required: false
+        type: string
+        default: ''
+
+      chart_folder:
+        description: 'Folder to store the benchmark results'
+        required: false
+        type: string
+        default: 'dev/benchmark'
+
+      infinispan_version:
+        description: 'Infinispan Version (optional)'
+        required: false
+        type: string
+      jgroups_version:
+        description: 'JGroups Version (optional)'
+        required: false
+        type: string
+
+      infinispan_repository:
+        description: 'Custom repository to build Infinispan from (optional, infinispan/infinispan:main)'
+        required: false
+        type: string
+
+      jgroups_repository:
+        description: 'Custom repository to build JGroups from (optional, belaban/jgroups:master)'
+        required: false
+        type: string
+
+      # Define the arguments for provisioning the environment.
+      aws_region:
+        description: 'The AWS region to provision'
+        required: false
+        default: 'sa-east-1'
+        type: string
+
+      aws_cluster_size:
+        description: 'The number of nodes to provision'
+        required: false
+        default: '1'
+        type: string
+
+      aws_provision_arguments:
+        description: 'Provide custom arguments when provisioning in AWS'
+        required: false
+        default: ''
+        type: string
+
+      # Define the arguments when running the benchmark.
+      benchmark_arguments:
+        description: 'Provide custom arguments when running the benchmark'
+        required: false
+        default: ''
+        type: string
+
+env:
+  ANSIBLE_HOST_KEY_CHECKING: False
+  INVENTORY_NAME: 'benchmark-file.yaml'
+  CLUSTER_NAME: 'benchmark_runner'
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check team membership
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          ACTOR: ${{ github.actor }}
+          ORG: jgroups-extras
+          TEAM: performance
+        run: |
+          STATUS=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "orgs/$ORG/teams/$TEAM/memberships/$ACTOR" \
+            --jq '.state' 2>/dev/null || echo "not_found")
+
+          if [ "$STATUS" != "active" ]; then
+            echo "::error::User '$ACTOR' is not an active member of the '$ORG/$TEAM' team."
+            exit 1
+          fi
+
+          echo "User '$ACTOR' is authorized (membership: $STATUS)."
+
+  build-application:
+    runs-on: ubuntu-latest
+    needs: authorize
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build IspnPerf
+        uses: ./.github/actions/build
+        with:
+          infinispan_version: '${{ inputs.infinispan_version }}'
+          infinispan_repository: '${{ inputs.infinispan_repository }}'
+          jgroups_version: '${{ inputs.jgroups_version }}'
+          jgroups_repository: '${{ inputs.jgroups_repository }}'
+
+  provision:
+    runs-on: ubuntu-latest
+    needs: authorize
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create AWS EC2 instances
+        id: create-aws-ec2-instances
+        uses: ./.github/actions/ec2-create-instances
+        with:
+          region: ${{ inputs.aws_region }}
+          arguments: "-e test_cluster_size=${{ inputs.aws_cluster_size }} ${{ inputs.aws_provision_arguments }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Capture inventory file name
+        working-directory: ansible
+        run: ls -1 *_inventory.yaml | xargs -L1 -I{} cp {} $INVENTORY_NAME
+
+      - name: Archive infrastructure files
+        working-directory: ansible
+        run: tar -cf ../infrastructure-state.tar *.pem "$INVENTORY_NAME"
+
+      - name: Encrypt infrastructure
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          .github/scripts/infrastructure-encryption/main.sh \
+            encrypt \
+            GPG_PASSPHRASE \
+            infrastructure-state.tar \
+            infrastructure-state.tar.enc
+
+      - name: Upload infrastructure artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-state
+          path: infrastructure-state.tar.enc
+          retention-days: 1
+
+  run-benchmark:
+    runs-on: ubuntu-latest
+    needs:
+      - build-application
+      - provision
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore Environment
+        uses: ./.github/actions/restore-environment
+        with:
+          gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Install EC2 requirements
+        uses: ./.github/actions/ec2-install-requirements
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Include runner in security group
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ inputs.aws_region }}
+          SECURITY_GROUP_NAME: ${{ env.CLUSTER_NAME }}
+        run: |
+          MY_IP=$(curl -s https://checkip.amazonaws.com)
+          aws ec2 authorize-security-group-ingress \
+            --group-name "$SECURITY_GROUP_NAME" \
+            --protocol tcp \
+            --port 22 \
+            --cidr "$MY_IP/32" \
+            --region $AWS_REGION || true
+
+      - name: Setup benchmark
+        uses: ./.github/actions/benchmark-setup
+        with:
+          inventory: $INVENTORY_NAME
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Run single benchmark
+        uses: ./.github/actions/benchmark-start
+        with:
+          inventory: $INVENTORY_NAME
+          arguments: ${{ inputs.benchmark_arguments }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Extract benchmark configuration
+        id: extract-config
+        working-directory: ansible
+        run: |
+          # Extract configuration metadata from results
+          eval $(../.github/scripts/benchmark-metadata/extract-config.sh results.txt)
+
+          # Output as step outputs
+          echo "nodes=$BENCHMARK_NODES" >> $GITHUB_OUTPUT
+          echo "cache_config=$BENCHMARK_CACHE_CONFIG" >> $GITHUB_OUTPUT
+          echo "jdk_version=$BENCHMARK_JDK_VERSION" >> $GITHUB_OUTPUT
+          echo "vthreads=$BENCHMARK_VTHREADS" >> $GITHUB_OUTPUT
+          echo "ispn_version=$BENCHMARK_ISPN_VERSION" >> $GITHUB_OUTPUT
+          echo "jgroups_version=$BENCHMARK_JGROUPS_VERSION" >> $GITHUB_OUTPUT
+          echo "num_threads=$BENCHMARK_NUM_THREADS" >> $GITHUB_OUTPUT
+          echo "read_percentage=$BENCHMARK_READ_PERCENTAGE" >> $GITHUB_OUTPUT
+
+      - name: Generate configuration ID and name
+        id: config-id
+        run: |
+          # Generate both the ID (for uniqueness) and human-readable name (for display)
+          eval $(.github/scripts/benchmark-metadata/generate-config-id.sh \
+            --cluster-size "${{ steps.extract-config.outputs.nodes }}" \
+            --cache-config "${{ steps.extract-config.outputs.cache_config }}" \
+            --jdk-version "${{ steps.extract-config.outputs.jdk_version }}" \
+            --vthreads "${{ steps.extract-config.outputs.vthreads }}" \
+            --ispn-version "${{ steps.extract-config.outputs.ispn_version }}" \
+            --jgroups-version "${{ steps.extract-config.outputs.jgroups_version }}" \
+            --read-percentage "${{ steps.extract-config.outputs.read_percentage }}" \
+            --num-threads "${{ steps.extract-config.outputs.num_threads }}" \
+            --output both)
+
+          echo "Configuration ID: $ID"
+          echo "Configuration Name: $NAME"
+          echo "id=$ID" >> $GITHUB_OUTPUT
+          echo "automatic=$NAME" >> $GITHUB_OUTPUT
+          
+          if [ -z "${{ inputs.chart_name }}" ]; then
+            echo "name=$NAME" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ inputs.chart_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show the results
+        working-directory: ansible
+        run: |
+          echo "=== Configuration ==="
+          echo "Config ID: ${{ steps.config-id.outputs.id }}"
+          echo "Config Name: ${{ steps.config-id.outputs.name }}"
+          echo "Nodes: ${{ steps.extract-config.outputs.nodes }}"
+          echo "Cache Config: ${{ steps.extract-config.outputs.cache_config }}"
+          echo "JDK: ${{ steps.extract-config.outputs.jdk_version }}"
+          echo "Virtual Threads: ${{ steps.extract-config.outputs.vthreads }}"
+          echo "Infinispan: ${{ steps.extract-config.outputs.ispn_version }}"
+          echo "JGroups: ${{ steps.extract-config.outputs.jgroups_version }}"
+          echo ""
+          echo "=== Results CSV ==="
+          cat results.csv
+          echo ""
+          echo "=== Results Details ==="
+          cat results.txt
+
+          # Extract the last non-empty line, split by comma, get second column, strip empty spaces.
+          THROUGHPUT=$(tac results.csv | egrep -m 1 . | cut -d',' -f2 | xargs)
+          DESCRIPTION="${{ inputs.chart_description }} \n${{ steps.config-id.outputs.automatic }} (JDK: ${{ steps.extract-config.outputs.jdk_version }}, ISPN: ${{ steps.extract-config.outputs.ispn_version }}, JGroups: ${{ steps.extract-config.outputs.jgroups_version }})"
+
+          # Create benchmark data with configuration metadata
+          cat <<EOF > benchmark-data.json
+          [
+            {
+              "name": "Cluster Throughput",
+              "unit": "reqs/sec",
+              "value": $THROUGHPUT,
+              "extra": "$DESCRIPTION"
+            }
+          ]
+          EOF
+
+          echo ""
+          echo "=== Benchmark Data ==="
+          cat benchmark-data.json
+
+      - name: Store Benchmark Result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: '${{ steps.config-id.outputs.name }}'
+          tool: 'customBiggerIsBetter'
+          output-file-path: ansible/benchmark-data.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '20%'
+          comment-on-alert: true
+          fail-on-alert: false
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: '${{ inputs.chart_folder }}'
+
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs:
+      - run-benchmark
+      - provision
+
+    if: ${{ always() && needs.provision.result == 'success'  }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore Environment
+        uses: ./.github/actions/restore-environment
+        with:
+          gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Delete AWS resources
+        uses: ./.github/actions/ec2-delete-instances
+        with:
+          region: ${{ inputs.aws_region }}
+          inventory: $INVENTORY_NAME
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

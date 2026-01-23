@@ -1,0 +1,27 @@
+name: Delete EC2 instances
+author: José Bolina
+description: Deletes all EC2 instances with related resources.
+
+inputs:
+  region:
+    description: 'The AWS region used to delete the EC2 instances.'
+    required: true
+
+  inventory:
+    description: 'The Ansible inventory file name to use.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install the required Ansible collections.
+      id: aws-ec2-requirements-install
+      shell: bash
+      run: |
+        ./ansible/aws-ec2.sh requirements
+        pipx inject ansible-core boto3 botocore
+  
+    - name: Deletes all AWS resources
+      id: delete-ec2-runners
+      shell: bash
+      run: ./ansible/aws-ec2.sh delete ${{ inputs.region }} -i ${{ inputs.inventory }}
