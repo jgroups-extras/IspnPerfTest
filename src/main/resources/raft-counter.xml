@@ -8,21 +8,7 @@
 <config xmlns="urn:org:jgroups"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <UDP    bind_addr="match-interface:eth2,match-interface:eth0,loopback"
-            mcast_addr="232.7.7.7"
-            mcast_port="${jgroups.udp.mcast_port:46699}"
-            ip_ttl="8"
-            tos="8"
-            ucast_recv_buf_size="5M"
-            ucast_send_buf_size="5M"
-            mcast_recv_buf_size="5M"
-            mcast_send_buf_size="5M"
-
-            thread_pool.min_threads="2"
-            thread_pool.max_threads="100"
-            thread_pool.keep_alive_time="5000"
-    />
-
+    <include file="${transport-config:jgroups-udp-default.xml}"/>
     <PING />
     <MERGE3 max_interval="30000"
             min_interval="10000"/>

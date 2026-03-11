@@ -8,26 +8,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <TCP
-         external_addr="${JGROUPS_EXTERNAL_ADDR:match-interface:eth0}"
-	     bind_addr="site_local,match-interface:eth0"
-         bind_port="${TCP_PORT:7900}"
-
-         recv_buf_size="200k"
-         send_buf_size="200k"
-         bundler.max_size="64K"
-         diag.enabled="true"
-         diag.port="7501"
-         thread_naming_pattern="cl"
-
-         use_virtual_threads="${use_fibers:false}"
-         thread_pool.min_threads="0"
-         thread_pool.max_threads="100"
-         thread_pool.keep_alive_time="30000" />
-
-    <!--TCPPING
-        initial_hosts="172.31.47.164[7800],172.31.43.171[7800]"/-->
-
+    <include file="${transport-config:jgroups-tcp-default.xml}"/>
     <org.jgroups.protocols.kubernetes.KUBE_PING/>
 
     <MERGE3 max_interval="30000"

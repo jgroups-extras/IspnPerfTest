@@ -8,26 +8,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <TCP
-         external_addr="${JGROUPS_EXTERNAL_ADDR:match-interface:eth0}"
-	     bind_addr="site_local,match-interface:eth0"
-         bind_port="${TCP_PORT:7800}"
-         port_range="3"
-
-         recv_buf_size="5M"
-         send_buf_size="1M"
-         bundler.max_size="64K"
-         diag.enabled="true"
-         thread_naming_pattern="cl"
-
-         use_virtual_threads="${use_fibers:false}"
-         thread_pool.min_threads="0"
-         thread_pool.max_threads="500"
-         thread_pool.keep_alive_time="30000" />
-
-    <!--TCPPING
-        initial_hosts="172.31.47.164[7800],172.31.43.171[7800]"/-->
-
+    <include file="${transport-config:jgroups-tcp-default.xml}"/>
     <dns.DNS_PING
             dns_query="${DNS_QUERY,env.DNS_QUERY:ispn-perf-test}"
     />
@@ -56,6 +37,4 @@
          min_threshold="0.4"/>
     <FRAG2 frag_size="60K"  />
     <pbcast.STATE_TRANSFER  />
-    <CENTRAL_LOCK />
-    <COUNTER/>
 </config>

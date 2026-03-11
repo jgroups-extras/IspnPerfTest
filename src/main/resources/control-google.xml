@@ -8,21 +8,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <TCP
-	     bind_addr="site_local,match-interface:eth0"
-         bind_port="${TCP_PORT:7900}"
-
-         recv_buf_size="200k"
-         send_buf_size="200k"
-         bundler.max_size="64K"
-         diag.enabled="true"
-         diag.port="7501"
-         thread_naming_pattern="cl"
-
-         thread_pool.min_threads="0"
-         thread_pool.max_threads="200"
-         thread_pool.keep_alive_time="30000" />
-
+    <include file="${transport-config:jgroups-tcp-default.xml}"/>
     <org.jgroups.protocols.google.GOOGLE_PING2
             location="${google.bucket_name:pick-your-own-unique-bucketname}"
     />

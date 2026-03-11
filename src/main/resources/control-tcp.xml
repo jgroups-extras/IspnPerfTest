@@ -10,19 +10,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <TCP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
-         bind_port="7900"
-         recv_buf_size="20M"
-         send_buf_size="10M"
-         bundler.max_size="64K"
-         diag.enabled="true"
-         diag.enable_tcp="true"
-         diag.port="7501"
-         use_virtual_threads="${vthreads:true}"
-
-         thread_pool.min_threads="0"
-         thread_pool.max_threads="100"
-         thread_pool.keep_alive_time="30000" />
+    <include file="${transport-config:jgroups-tcp-default.xml}"/>
     <MPING mcast_addr="232.2.2.2" mcast_port="7666" />
     <TCPPING
          initial_hosts="${tcpping.initial_hosts_control,INITIAL_HOSTS_CONTROL:127.0.0.1[7900]}"

@@ -10,17 +10,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <UDP bind_addr="match-interface:eth2,match-interface:eth0,site_local,loopback"
-         mcast_addr="232.5.5.5"
-         mcast_port="${jgroups.udp.mcast_port:45588}"
-         ucast_recv_buf_size="20M"
-         ucast_send_buf_size="10M"
-         bundler.max_size="64K"
-         diag.enabled="true"
-         use_vthreads="true"
-         thread_pool.min_threads="0"
-         thread_pool.max_threads="1000"
-         thread_pool.keep_alive_time="30000" />
+    <include file="${transport-config:jgroups-udp-default.xml}"/>
     <PING />
     <MERGE3 max_interval="30000"
             min_interval="10000"/>
