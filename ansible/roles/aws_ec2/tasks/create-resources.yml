@@ -23,6 +23,9 @@
         group_name: "{{ cluster_name }}"
   register: group
   no_log: "{{ no_log_sensitive }}"
+  retries: 3
+  delay: 5
+  until: group is not failed
 
 - name: Create Key
   amazon.aws.ec2_key:
