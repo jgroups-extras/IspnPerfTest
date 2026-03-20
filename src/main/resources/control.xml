@@ -12,6 +12,9 @@
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
     <include file="${transport-config:jgroups-udp-default.xml}"
              bind_addr="match-interface:eth2,match-interface:eth0,match-interface:en0,site_local,loopback"
+             bind_port="7900"
+             diag.enable_tcp="true"
+             diag.port="7501"
              mcast_addr="${CONTROL_MCAST_ADDR:232.8.8.8}"
              mcast_port="${CONTROL_MCAST_PORT:55588}"/>
 

@@ -10,7 +10,10 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
-    <include file="${transport-config:jgroups-tcp-default.xml}"/>
+    <include file="${transport-config:jgroups-tcp-default.xml}"
+             bind_port="7900"
+             diag.enable_tcp="true"
+             diag.port="7501"/>
     <TCPPING
          initial_hosts_file="hosts.txt"
          port_range="${tcpping.port_range,PORT_RANGE:0}"/>

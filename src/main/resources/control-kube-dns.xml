@@ -11,6 +11,9 @@
     <include file="${transport-config:jgroups-tcp-default.xml}"/>
     <dns.DNS_PING
             dns_query="${DNS_QUERY_CONTROL,env.DNS_QUERY_CONTROL:control-ispn-perf-test}"
+            bind_port="7900"
+            diag.enable_tcp="true"
+            diag.port="7501"
     />
 
 

@@ -11,6 +11,9 @@
     <include file="${transport-config:jgroups-tcp-default.xml}"/>
     <org.jgroups.protocols.google.GOOGLE_PING2
             location="${google.bucket_name:pick-your-own-unique-bucketname}"
+            bind_port="7900"
+            diag.enable_tcp="true"
+            diag.port="7501"
     />
 
     <MERGE3 max_interval="30000"
