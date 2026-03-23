@@ -1,7 +1,7 @@
 # JDKs utilized for testing
 jdks:
-  - 25.0.1-open
-jdk_version: 25.0.1-open
+  - 25.0.2-open
+jdk_version: 25.0.2-open
 
 vthreads:
   - true
