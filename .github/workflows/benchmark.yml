@@ -69,7 +69,7 @@ on:
 env:
   ANSIBLE_HOST_KEY_CHECKING: False
   INVENTORY_NAME: 'benchmark-file.yaml'
-  CLUSTER_NAME: 'benchmark_runner'
+  CLUSTER_NAME: 'benchmark_runner_${{ github.run_id }}'
 
 jobs:
   authorize:
@@ -122,7 +122,7 @@ jobs:
         with:
           region: ${{ inputs.aws_region }}
           # Uses a t4g.2xlarge by default. The last argument wins, so it can be overridden.
-          arguments: "-e test_instance_type=t4g.2xlarge -e test_cluster_size=${{ inputs.aws_cluster_size }} ${{ inputs.aws_provision_arguments }}"
+          arguments: "-e cluster_identifier=runner_${{ github.run_id }} -e test_instance_type=t4g.2xlarge -e test_cluster_size=${{ inputs.aws_cluster_size }} ${{ inputs.aws_provision_arguments }}"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -339,6 +339,7 @@ jobs:
         uses: ./.github/actions/ec2-delete-instances
         with:
           region: ${{ inputs.aws_region }}
+          arguments: '-e cluster_identifier=runner_${{ github.run_id }}'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

@@ -7,6 +7,11 @@ inputs:
     description: 'The AWS region used to delete the EC2 instances.'
     required: true
 
+  arguments:
+    description: 'Additional arguments when deleting resources.'
+    required: false
+    default: ''
+
 runs:
   using: composite
   steps:
@@ -20,4 +25,4 @@ runs:
     - name: Deletes all AWS resources
       id: delete-ec2-runners
       shell: bash
-      run: ./ansible/aws-ec2.sh delete ${{ inputs.region }}
+      run: ./ansible/aws-ec2.sh delete ${{ inputs.region }} ${{ inputs.arguments }}
