@@ -323,12 +323,14 @@ jobs:
       - run-benchmark
       - provision
 
-    if: ${{ always() && needs.provision.result == 'success'  }}
+    if: ${{ always() }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Restore Environment
+        if: ${{ needs.provision.result == 'success' }}
+        continue-on-error: true
         uses: ./.github/actions/restore-environment
         with:
           gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
@@ -337,7 +339,6 @@ jobs:
         uses: ./.github/actions/ec2-delete-instances
         with:
           region: ${{ inputs.aws_region }}
-          inventory: $INVENTORY_NAME
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

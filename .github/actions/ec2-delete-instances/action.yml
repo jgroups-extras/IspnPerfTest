@@ -7,10 +7,6 @@ inputs:
     description: 'The AWS region used to delete the EC2 instances.'
     required: true
 
-  inventory:
-    description: 'The Ansible inventory file name to use.'
-    required: true
-
 runs:
   using: composite
   steps:
@@ -24,4 +20,4 @@ runs:
     - name: Deletes all AWS resources
       id: delete-ec2-runners
       shell: bash
-      run: ./ansible/aws-ec2.sh delete ${{ inputs.region }} -i ${{ inputs.inventory }}
+      run: ./ansible/aws-ec2.sh delete ${{ inputs.region }}
