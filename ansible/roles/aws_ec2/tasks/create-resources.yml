@@ -70,8 +70,8 @@
           delete_on_termination: true
     user_data: |
       #!/bin/bash
-      shutdown -h +480
-      echo "@reboot root shutdown -h +480" >> /etc/cron.d/self_destruct
+      shutdown -h +120
+      echo "@reboot root shutdown -h +120" >> /etc/cron.d/self_destruct
   register: instance_info
   no_log: "{{ no_log_sensitive }}"
 

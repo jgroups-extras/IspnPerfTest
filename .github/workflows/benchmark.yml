@@ -121,7 +121,8 @@ jobs:
         uses: ./.github/actions/ec2-create-instances
         with:
           region: ${{ inputs.aws_region }}
-          arguments: "-e test_cluster_size=${{ inputs.aws_cluster_size }} ${{ inputs.aws_provision_arguments }}"
+          # Uses a t4g.2xlarge by default. The last argument wins, so it can be overridden.
+          arguments: "-e test_instance_type=t4g.2xlarge -e test_cluster_size=${{ inputs.aws_cluster_size }} ${{ inputs.aws_provision_arguments }}"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -300,6 +301,21 @@ jobs:
           gh-pages-branch: gh-pages
           benchmark-data-dir-path: '${{ inputs.chart_folder }}'
 
+      - name: Download and display log files
+        if: always()
+        working-directory: ansible
+        run: |
+          ansible-playbook download.yml -i $INVENTORY_NAME -e file_path="*.log" -v || true
+          
+          if [ -d downloads ]; then
+            for f in downloads/*; do
+              echo "====== $(basename "$f") ====="
+              cat "$f"
+              echo "=========="
+            done
+          else
+            echo "No log files downloaded"
+          fi
 
   cleanup:
     runs-on: ubuntu-latest
