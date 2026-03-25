@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774338705611,
+  "lastUpdate": 1774449398458,
   "repoUrl": "https://github.com/jgroups-extras/IspnPerfTest",
   "entries": {
     "BelasTest": [
@@ -56,6 +56,34 @@ window.BENCHMARK_DATA = {
             "value": 136522.66,
             "unit": "reqs/sec",
             "extra": "8 nodes \n8 nodes, dist-sync, virtual threads (JDK: 25, ISPN: 16.0.5, JGroups: 5.5.4)"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "committer": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "id": "52ea26a816bf771cc0d800be46e05b9742741170",
+          "message": "Updated Infinispan to 16.2.0.Dev02",
+          "timestamp": "2026-03-25T14:21:16Z",
+          "url": "https://github.com/jgroups-extras/IspnPerfTest/commit/52ea26a816bf771cc0d800be46e05b9742741170"
+        },
+        "date": 1774449397534,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Cluster Throughput",
+            "value": 140376.54,
+            "unit": "reqs/sec",
+            "extra": " \n8 nodes, dist-sync, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
           }
         ]
       }
