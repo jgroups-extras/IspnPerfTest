@@ -5,7 +5,7 @@ on:
     inputs:
       chart_name:
         description: 'Name of the chart'
-        required: true
+        required: false
         type: string
         default: ''
 
@@ -50,7 +50,7 @@ on:
       aws_cluster_size:
         description: 'The number of nodes to provision'
         required: false
-        default: '1'
+        default: '8'
         type: string
 
       aws_provision_arguments:
@@ -243,7 +243,7 @@ jobs:
           echo "automatic=$NAME" >> $GITHUB_OUTPUT
           
           if [ -z "${{ inputs.chart_name }}" ]; then
-            echo "name=$NAME" >> $GITHUB_OUTPUT
+            echo "name=${{ github.actor }}" >> $GITHUB_OUTPUT
           else
             echo "name=${{ inputs.chart_name }}" >> $GITHUB_OUTPUT
           fi
