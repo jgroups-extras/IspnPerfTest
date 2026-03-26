@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774277873141,
+  "lastUpdate": 1774556965617,
   "repoUrl": "https://github.com/jgroups-extras/IspnPerfTest",
   "entries": {
     "adjustments": [
@@ -28,6 +28,36 @@ window.BENCHMARK_DATA = {
             "value": 171255.38,
             "unit": "reqs/sec",
             "extra": " \n4 nodes, dist-sync, virtual threads (JDK: 25, ISPN: 16.0.5, JGroups: 5.5.4)"
+          }
+        ]
+      }
+    ],
+    "jabolina": [
+      {
+        "commit": {
+          "author": {
+            "name": "José Bolina",
+            "username": "jabolina",
+            "email": "jose@infinispan.org"
+          },
+          "committer": {
+            "name": "José Bolina",
+            "username": "jabolina",
+            "email": "jose@infinispan.org"
+          },
+          "id": "791cdb301bb316ac112a33415fbcc41475944b7a",
+          "message": "Fetch and upload logs cluster-wide",
+          "timestamp": "2026-03-26T20:14:55Z",
+          "url": "https://github.com/jgroups-extras/IspnPerfTest/commit/791cdb301bb316ac112a33415fbcc41475944b7a"
+        },
+        "date": 1774556964864,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Cluster Throughput",
+            "value": 221911.3,
+            "unit": "reqs/sec",
+            "extra": " \n3 nodes, dist-sync, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
           }
         ]
       }
