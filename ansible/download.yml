@@ -1,4 +1,4 @@
-- hosts: controller
+- hosts: instances
   roles: [ benchmark ]
   vars:
     operation: download

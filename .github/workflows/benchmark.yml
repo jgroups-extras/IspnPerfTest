@@ -306,16 +306,15 @@ jobs:
         working-directory: ansible
         run: |
           ansible-playbook download.yml -i $INVENTORY_NAME -e file_path="*.log" -v || true
-          
-          if [ -d downloads ]; then
-            for f in downloads/*; do
-              echo "====== $(basename "$f") ====="
-              cat "$f"
-              echo "=========="
-            done
-          else
-            echo "No log files downloaded"
-          fi
+
+      - name: Save log files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-logs
+          path: ansible/downloads/
+          if-no-files-found: 'warn'
+          retention-days: 1
 
   cleanup:
     runs-on: ubuntu-latest
