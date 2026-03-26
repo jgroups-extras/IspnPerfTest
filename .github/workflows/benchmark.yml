@@ -154,7 +154,7 @@ jobs:
             --group-name "$SECURITY_GROUP_NAME" \
             --protocol tcp \
             --port 22 \
-            --cidr-ip "$SSH_CIDR" \
+            --cidr "$SSH_CIDR/32" \
             --region $AWS_REGION || true
 
       - name: Capture inventory file name
