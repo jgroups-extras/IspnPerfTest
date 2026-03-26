@@ -121,9 +121,11 @@ jobs:
     steps:
       - name: Mask user IP
         if: ${{ inputs.ssh_cidr != '' }}
+        env:
+          SSH_CIDR: ${{ inputs.ssh_cidr }}
         run: |
-          echo "::add-mask::${{ inputs.ssh_cidr }}"
-          echo "::add-mask::$(echo '${{ inputs.ssh_cidr }}' | sed 's|/.*||')"
+          echo "::add-mask::$SSH_CIDR"
+          echo "::add-mask::${SSH_CIDR%%/*}"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -146,13 +148,14 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ inputs.aws_region }}
           SECURITY_GROUP_NAME: ${{ env.CLUSTER_NAME }}
+          SSH_CIDR: ${{ inputs.ssh_cidr }}
         run: |
-          aws ec2 authorize-security-group-ingress \                                                                                                                                                                    
-              --group-name "$SECURITY_GROUP_NAME" \                                                                                                                                                                       
-              --protocol tcp \                                                                                                                                                                                            
-              --port 22 \                                                                                                                                                                                                 
-              --cidr "${{ inputs.ssh_cidr }}" \                                                                                                                                                                           
-              --region $AWS_REGION || true
+          aws ec2 authorize-security-group-ingress \
+            --group-name "$SECURITY_GROUP_NAME" \
+            --protocol tcp \
+            --port 22 \
+            --cidr-ip "$SSH_CIDR" \
+            --region $AWS_REGION || true
 
       - name: Capture inventory file name
         working-directory: ansible
