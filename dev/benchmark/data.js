@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774521157369,
+  "lastUpdate": 1774523003683,
   "repoUrl": "https://github.com/jgroups-extras/IspnPerfTest",
   "entries": {
     "BelasTest": [
@@ -112,6 +112,34 @@ window.BENCHMARK_DATA = {
             "value": 145899.68,
             "unit": "reqs/sec",
             "extra": " \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "committer": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "id": "f623e2c15d25bed1aded059858a373228bdab944",
+          "message": "Parameterized capacity and xmit_interval",
+          "timestamp": "2026-03-26T10:47:19Z",
+          "url": "https://github.com/jgroups-extras/IspnPerfTest/commit/f623e2c15d25bed1aded059858a373228bdab944"
+        },
+        "date": 1774523003208,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Cluster Throughput",
+            "value": 135963.07,
+            "unit": "reqs/sec",
+            "extra": "UNICAST4.capacity=9000 \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
           }
         ]
       }
