@@ -15,7 +15,7 @@
  <VERIFY_SUSPECT timeout="1500"  />
  <NAKACK4 xmit_interval="0.5s"/>
  <UNICAST4 xmit_interval="0.5s"
-           capacity="9000"/>
+           capacity="16000"/>
  <pbcast.GMS print_local_addr="true" join_timeout="1000"/>
  <FRAG4 frag_size="60K"  />
 </config>
