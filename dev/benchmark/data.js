@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774596263208,
+  "lastUpdate": 1774867693016,
   "repoUrl": "https://github.com/jgroups-extras/IspnPerfTest",
   "entries": {
     "BelasTest": [
@@ -168,6 +168,34 @@ window.BENCHMARK_DATA = {
             "value": 144683.69,
             "unit": "reqs/sec",
             "extra": "capacity=9000 \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "committer": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "id": "7480c8a249263a980b5114734471ebb1355584a1",
+          "message": "set UNICAST4.capacity to 16k by default in the config",
+          "timestamp": "2026-03-30T10:33:22Z",
+          "url": "https://github.com/jgroups-extras/IspnPerfTest/commit/7480c8a249263a980b5114734471ebb1355584a1"
+        },
+        "date": 1774867692163,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Cluster Throughput",
+            "value": 142700.99,
+            "unit": "reqs/sec",
+            "extra": "cap=16k, new cfg without limit of 10'000 keys \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
           }
         ]
       }
