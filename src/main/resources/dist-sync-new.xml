@@ -11,19 +11,11 @@
     </jgroups>
 
     <cache-container name="default" default-cache="perf-cache">
-        <!--transport stack="jgroupsStack" lock-timeout="600000" cluster="default" remote-command-executor="custom-remote" /-->
         <transport stack="jgroupsStack" lock-timeout="600000" cluster="default" />
         <jmx>
             <property name="enabled">true</property>
         </jmx>
-
-        <distributed-cache name="perf-cache" owners="2" segments="256" statistics="true">
-            <encoding media-type="application/x-protostream"/>
-            <expiration lifespan="500000"/>
-            <memory max-count="10000"
-                    when-full="REMOVE"/>
-        </distributed-cache>
-        <!-- replicated-cache name="perf-cache" statistics="true" mode="ASYNC"/-->
+        <distributed-cache name="perf-cache" />
     </cache-container>
 
 </infinispan>
