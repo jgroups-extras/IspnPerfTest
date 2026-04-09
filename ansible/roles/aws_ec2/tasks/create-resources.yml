@@ -46,9 +46,20 @@
 - name: "Look up AMI {{ test_ami_name }}"
   amazon.aws.ec2_ami_info:
     region: "{{ region }}"
+    owners:
+      - amazon
     filters:
       name: "{{ test_ami_name }}"
   register: ami_info
+
+- name: Ensure AMI was found
+  fail:
+    msg: "No AMI found matching '{{ test_ami_name }}' in region '{{ region }}'"
+  when: ami_info.images | length == 0
+
+- name: Select latest AMI
+  set_fact:
+    selected_ami: "{{ (ami_info.images | sort(attribute='creation_date') | last).image_id }}"
 
 - name: "Create {{ test_cluster_size }} EC2 Instances"
   amazon.aws.ec2_instance:
@@ -57,7 +68,7 @@
     name: "ispn_perf_{{ cluster_name }}"
     count: "{{ test_cluster_size }}"
     instance_type: "{{ test_instance_type }}"
-    image_id: "{{ ami_info.images[0].image_id }}"
+    image_id: "{{ selected_ami }}"
     key_name: "{{ cluster_name }}"
     security_group: "{{ group.group_id }}"
     instance_initiated_shutdown_behavior: terminate
