@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774867693016,
+  "lastUpdate": 1775743807660,
   "repoUrl": "https://github.com/jgroups-extras/IspnPerfTest",
   "entries": {
     "BelasTest": [
@@ -196,6 +196,34 @@ window.BENCHMARK_DATA = {
             "value": 142700.99,
             "unit": "reqs/sec",
             "extra": "cap=16k, new cfg without limit of 10'000 keys \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "José Bolina",
+            "username": "jabolina",
+            "email": "jose@infinispan.org"
+          },
+          "committer": {
+            "name": "José Bolina",
+            "username": "jabolina",
+            "email": "jose@infinispan.org"
+          },
+          "id": "3d1c091ff532a23af81c91aefa4f90e95dc56d8a",
+          "message": "Simplify AWS AMI resolution",
+          "timestamp": "2026-04-09T12:23:20Z",
+          "url": "https://github.com/jgroups-extras/IspnPerfTest/commit/3d1c091ff532a23af81c91aefa4f90e95dc56d8a"
+        },
+        "date": 1775743806775,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Cluster Throughput",
+            "value": 143462.24,
+            "unit": "reqs/sec",
+            "extra": "cap=2k, dist-sync-new.xml \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
           }
         ]
       }
