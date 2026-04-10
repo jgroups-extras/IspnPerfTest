@@ -14,7 +14,7 @@
       - "mybucket" needs to exist. If it doesn't exist, it will be created (the caller needs to have the correct permissions)
       - access_key and secret_access_key need to be set unless the bucket is readable and writable by everyone
       -->
-    <org.jgroups.aws.s3.NATIVE_S3_PING
+    <aws.S3_PING
         region_name="${S3_REGION:us-east-1}"
         bucket_name="${S3_BUCKET:ispn-perf-test}"
      />
