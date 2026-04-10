@@ -9,7 +9,7 @@
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
     <include file="${transport-config:jgroups-tcp-default.xml}"/>
-    <org.jgroups.protocols.kubernetes.KUBE_PING
+    <kubernetes.KUBE_PING
             bind_port="7900"
             diag.enable_tcp="true"
             diag.port="7501"/>

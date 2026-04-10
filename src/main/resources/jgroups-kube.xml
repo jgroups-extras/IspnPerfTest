@@ -9,7 +9,7 @@
         xmlns="urn:org:jgroups"
         xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd">
     <include file="${transport-config:jgroups-tcp-default.xml}"/>
-    <org.jgroups.protocols.kubernetes.KUBE_PING/>
+    <kubernetes.KUBE_PING/>
     <MERGE3 max_interval="30000"
             min_interval="10000"/>
     <FD_SOCK external_addr="${JGROUPS_EXTERNAL_ADDR}"
