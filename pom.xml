@@ -146,9 +146,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jgroups.aws.s3</groupId>
-            <artifactId>native-s3-ping</artifactId>
-            <version>1.0.0.Final</version>
+            <groupId>org.jgroups.aws</groupId>
+            <artifactId>jgroups-aws</artifactId>
+            <version>4.0.1.Final</version>
         </dependency>
 
         <dependency>
