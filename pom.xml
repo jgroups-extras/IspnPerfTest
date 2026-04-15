@@ -48,11 +48,6 @@
         <!-- ISPN 16 -->
         <version.infinispan>16.2.0.Dev01</version.infinispan>
         <version.micrometer>1.15.2</version.micrometer>
-
-        <!-- ISPN 15 -->
-<!--        <version.infinispan>15.2.5.Final</version.infinispan>-->
-<!--        <version.micrometer>1.12.13</version.micrometer>-->
-
         <version.jgroups>5.5.4.Final</version.jgroups>
         <version.hazelcast>5.5.0</version.hazelcast>
         <version.hdrhistogram>2.2.2</version.hdrhistogram>
