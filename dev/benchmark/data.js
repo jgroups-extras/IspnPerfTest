@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775743807660,
+  "lastUpdate": 1776343888688,
   "repoUrl": "https://github.com/jgroups-extras/IspnPerfTest",
   "entries": {
     "BelasTest": [
@@ -224,6 +224,34 @@ window.BENCHMARK_DATA = {
             "value": 143462.24,
             "unit": "reqs/sec",
             "extra": "cap=2k, dist-sync-new.xml \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "committer": {
+            "name": "Bela Ban",
+            "username": "belaban",
+            "email": "belaban@mailbox.org"
+          },
+          "id": "5a7bc432c55f3c6850435c9b39e4e82165d2e18b",
+          "message": "ns",
+          "timestamp": "2026-04-15T12:17:20Z",
+          "url": "https://github.com/jgroups-extras/IspnPerfTest/commit/5a7bc432c55f3c6850435c9b39e4e82165d2e18b"
+        },
+        "date": 1776343887902,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Cluster Throughput",
+            "value": 152509.16,
+            "unit": "reqs/sec",
+            "extra": "message_processing_policy=all-direct \n8 nodes, dist-sync-new, virtual threads (JDK: 25, ISPN: 16.2.0.Dev01, JGroups: 5.5.4)"
           }
         ]
       }
