@@ -278,6 +278,17 @@ jobs:
             echo "name=${{ inputs.chart_name }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Validate benchmark results
+        id: validate
+        working-directory: ansible
+        run: |
+          eval $(../.github/scripts/benchmark-metadata/validate-results.sh results.txt)
+          echo "stable=$BENCHMARK_STABLE" >> $GITHUB_OUTPUT
+          if [[ "$BENCHMARK_STABLE" == "false" ]]; then
+            echo "::warning::$BENCHMARK_WARNING"
+            echo "warning=$BENCHMARK_WARNING" >> $GITHUB_OUTPUT
+          fi
+
       - name: Show the results
         working-directory: ansible
         run: |

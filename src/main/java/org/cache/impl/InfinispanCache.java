@@ -2,7 +2,7 @@ package org.cache.impl;
 
 import org.cache.Cache;
 import org.infinispan.context.Flag;
-import org.infinispan.remoting.rpc.RpcManager;
+import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.remoting.transport.Address;
 import org.infinispan.remoting.transport.Transport;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
@@ -13,7 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.infinispan.context.Flag.*;
+import static org.infinispan.context.Flag.FORCE_ASYNCHRONOUS;
+import static org.infinispan.context.Flag.IGNORE_RETURN_VALUES;
+import static org.infinispan.context.Flag.SKIP_LISTENER_NOTIFICATION;
+import static org.infinispan.context.Flag.SKIP_LOCKING;
 
 /**
  * @author Bela Ban
@@ -66,8 +69,7 @@ public class InfinispanCache<K,V> implements Cache<K,V>, DiagnosticsHandler.Prob
     }
 
     public Transport getTransport() {
-        RpcManager rpc_mgr=cache.getAdvancedCache().getRpcManager();
-        return rpc_mgr != null? rpc_mgr.getTransport() : null;
+        return GlobalComponentRegistry.componentOf(cache.getCacheManager(), Transport.class);
     }
 
     @Override

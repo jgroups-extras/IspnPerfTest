@@ -158,6 +158,10 @@ public class Test implements Receiver {
     public Test runtimeProps(String p)   {this.runtimeProperties=p; return this;}
 
     public void init(String factory, String cache_name, String name, boolean use_vthreads, int metricsPort) throws Exception {
+        // Set unique id for whatever needs a unique ID can use this property.
+        String nodeId = name != null ? name : "node-" + ProcessHandle.current().pid();
+        System.setProperty("perf.node.id", nodeId);
+
         // sanity checks:
         if(batch_mode) {
             if(num_nodes <= 0)
@@ -548,10 +552,14 @@ public class Test implements Receiver {
             return;
         }
 
-        // wait for time_secs seconds pus 20%
-        boolean all_results=results.waitForAllResponses((long)(time_secs * 1000 * 1.5));
+        boolean stable = true;
+
+        // wait for time_secs seconds doubled
+        boolean all_results=results.waitForAllResponses(time_secs * 1000 * 2L);
         if(!all_results)
             System.err.printf("did not receive all results: missing results from %s\n", results.getMissing());
+
+        stable &= all_results;
 
         long total_reqs=0, total_time=0, longest_time=0;
         Histogram get_avg=null, put_avg=null;
@@ -589,6 +597,7 @@ public class Test implements Receiver {
         System.out.println(result);
         if(batch_mode && write_results) {
             Map<String,Object> map=envMap();
+            map.put("stable_run", Boolean.toString(stable));
             try(DataOutputStream out=new DataOutputStream(new FileOutputStream(result_file, true))) {
                 String s=env(map);
                 byte[] bytes=s.getBytes();
@@ -683,7 +692,7 @@ public class Test implements Receiver {
         StringBuilder sb=new StringBuilder(String.format("\n-------------------- %s -------------------------\n", m.get("date")));
         String fmt="node: %s\nip: %s\nview: %s\njgroups: %s\ninfinispan: %s\njdk: %s\njg-vthreads: %b\n" +
           "ispn-vthreads: %b\ncfg: %s\ncontrol_cfg: %s\nnum_threads: %d\nnum_keys: %,d\ntime: %s\nwarmup: %s\n" +
-          "msg_size: %s\nnodes: %d\nread_percentage: %.2f\nruntime-properties: %s\n";
+          "msg_size: %s\nnodes: %d\nread_percentage: %.2f\nruntime-properties: %s\nstable_run=%s\n";
         sb.append(String.format(fmt, m.get("node"), m.get("ip"),
                                 m.get("view"), m.get("jg"), m.get("ispn"),
                                 m.get("jdk"), m.get("jg-vthreads"), m.get("ispn-vthreads"),
@@ -691,7 +700,7 @@ public class Test implements Receiver {
                                 m.get("threads"), m.get("keys"), printTime((Integer)m.get("time"), TimeUnit.SECONDS),
                                 printTime((Integer)m.get("warmup"), TimeUnit.SECONDS),
                                 Util.printBytes((Integer)m.get("msg-size")),
-                                m.get("nodes"), m.get("read-percentage"), m.get("env-props")));
+                                m.get("nodes"), m.get("read-percentage"), m.get("env-props"), m.get("stable_run")));
         return sb.toString();
     }
 
