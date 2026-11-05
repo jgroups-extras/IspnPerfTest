@@ -21,6 +21,7 @@ import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
 import org.jgroups.View;
+import org.jgroups.admin.SwitchAdminHandler;
 import org.jgroups.annotations.Property;
 import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.protocols.TP;
@@ -133,7 +134,7 @@ public class Test implements Receiver {
     protected static final String local_factory=LocalCacheFactory.class.getName();
 
     protected static final String input_str="[1] Start test [2] View [3] Cache size [4] Threads (%d) [5] Keys (%,d) " +
-      "\n[6] Time (secs) (%d) [7] Value size (%s) [8] Validate" +
+      "\n[6] Time (secs) (%d) [7] Value size (%s) [8] Validate [9] Change configuration" +
       "\n[p] Populate cache [c] Clear cache [v] Versions" +
       "\n[r] Read percentage (%.2f) " +
       "\n[d] Details (%b)  [i] Invokers (%b) [l] dump local cache" +
@@ -495,6 +496,28 @@ public class Test implements Receiver {
                     break;
                 case '8':
                     validate();
+                    break;
+                case '9':
+                    if(!(cache instanceof InfinispanCache)) {
+                        System.err.printf("cannot change config on a non Infinispan cache: %s\n",
+                                          cache.getClass().getSimpleName());
+                        break;
+                    }
+                    JGroupsTransport transport=(JGroupsTransport)((InfinispanCache<?,?>)cache).getTransport();
+                    JChannel channel=transport.getChannel();
+                    SwitchAdminHandler h=channel.admin().get("switch");
+                    if(h == null) {
+                        System.err.printf("handler \"%s\" not found\n", "switch");
+                        break;
+                    }
+                    String new_config=Util.readStringFromStdin("new configuration: ");
+                    h.listener((p, m) -> System.out.printf("-- [switch / %.2f %% done]: %s\n", p, m));
+                    long start=System.nanoTime();
+                    boolean result=h.switchToNewConfiguration(new_config);
+                    long end_time=System.nanoTime()-start;
+                    System.out.printf("-- result of attempting to switch to %s: %b (%s)\n",
+                                      new_config, result, Util.printTime(end_time));
+                    h.listener(null);
                     break;
                 case 'c':
                     clearCache();
